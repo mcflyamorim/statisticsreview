@@ -68,7 +68,7 @@ and probably a lot of other SQL community folks out there, so, a huge kudos for 
 
 ## Important notes and pre-requisites:
 * Found a bug or want to change something? Please feel free to create an issue on https://github.com/mcflyamorim/StatisticsReview
- or, you can also e-mail (really? I didn't know people were still using this.) me at fabianonevesamorim@hotmail.com
+ or, you can also e-mail (really? I didn't know people were still using this.) me.
 * I'm using unsupported/undocumented TF 2388 to check statistic lead column type.
 * Depending on the number of statistics, the PS script to generate the excel file may use a lot (a few GBs) of memory.
 * You should know about it, but I'm going to say it anyways:
