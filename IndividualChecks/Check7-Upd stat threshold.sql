@@ -74,7 +74,7 @@ BEGIN TRY
            WHEN TabModificationsPerMinute.avg_modifications_per_minute_based_on_existing_update_stats_intervals > 0 THEN
 				       DATEADD(MINUTE, ((a.auto_update_threshold - a.current_number_of_modified_rows_since_last_update) / TabModificationsPerMinute.avg_modifications_per_minute_based_on_existing_update_stats_intervals), GETDATE())
 			        ELSE NULL
-		       END AS estimated_date_of_next_auto_update_stats,
+		       END AS estimated_datetime_of_next_auto_update_stats,
          TabEstimatedMinsUntilNextUpdateStats.estimated_minutes_until_next_auto_update_stats,
          CASE 
             WHEN a.is_auto_update_stats_on = 1
@@ -193,7 +193,7 @@ BEGIN CATCH
              a.auto_update_threshold,
              a.auto_update_threshold_type,
 	            CONVERT(DECIMAL(25, 2), (a.current_number_of_modified_rows_since_last_update / (a.auto_update_threshold * 1.0)) * 100.0) AS percent_of_threshold,
-             0 AS estimated_date_of_next_auto_update_stats,
+             0 AS estimated_datetime_of_next_auto_update_stats,
              TabEstimatedMinsUntilNextUpdateStats.estimated_minutes_until_next_auto_update_stats,
              CASE 
                 WHEN a.is_auto_update_stats_on = 1
