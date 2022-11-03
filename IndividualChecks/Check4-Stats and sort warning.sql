@@ -37,49 +37,72 @@ EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck4') IS NOT NULL
   DROP TABLE tempdb.dbo.tmpStatisticCheck4
 
-IF OBJECT_ID('tempdb.dbo.#tmpCheckSortWarning') IS NOT NULL
-  DROP TABLE #tmpCheckSortWarning
+/* 
+  If table tempdb.dbo.tmp_default_trace was not created on sp_GetStatisticInfo
+  create it now 
+*/
+IF OBJECT_ID('tempdb.dbo.tmp_default_trace') IS NULL
+BEGIN
+  /* Declaring variables */
+  DECLARE @filename NVARCHAR(1000),
+          @bc INT,
+          @ec INT,
+          @bfn VARCHAR(1000),
+          @efn VARCHAR(10);
 
--- Declare variables
-DECLARE @filename NVarChar(1000);
-DECLARE @bc INT;
-DECLARE @ec INT;
-DECLARE @bfn VarChar(1000);
-DECLARE @efn VarChar(10);
+  /* Get the name of the current default trace */
+  SELECT @filename = [path]
+  FROM sys.traces 
+  WHERE is_default = 1;
 
--- Get the name of the current default trace
-SELECT @filename = CAST(value AS NVarChar(1000))
-FROM::fn_trace_getinfo(DEFAULT)
-WHERE traceid = 1
-      AND property = 2;
+  IF @@ROWCOUNT > 0
+  BEGIN
+    /* Rip apart file name into pieces */
+    SET @filename = REVERSE(@filename);
+    SET @bc = CHARINDEX('.', @filename);
+    SET @ec = CHARINDEX('_', @filename) + 1;
+    SET @efn = REVERSE(SUBSTRING(@filename, 1, @bc));
+    SET @bfn = REVERSE(SUBSTRING(@filename, @ec, LEN(@filename)));
 
--- rip apart file name into pieces
-SET @filename = REVERSE(@filename);
-SET @bc = CHARINDEX('.', @filename);
-SET @ec = CHARINDEX('_', @filename) + 1;
-SET @efn = REVERSE(SUBSTRING(@filename, 1, @bc));
-SET @bfn = REVERSE(SUBSTRING(@filename, @ec, LEN(@filename)));
+    -- Set filename without rollover number
+    SET @filename = @bfn + @efn;
 
--- set filename without rollover number
-SET @filename = @bfn + @efn;
-
--- process all trace files
-SELECT ftg.spid,
-       te.name,
-       ftg.EventSubClass,
-       ftg.StartTime,
-       ftg.ApplicationName,
-       ftg.Hostname,
-       DB_NAME(ftg.databaseID) AS DBName,
-       ftg.LoginName
-INTO #tmpCheckSortWarning
-FROM::fn_trace_gettable(@filename, DEFAULT) AS ftg
+    /* Process all trace files */
+    SELECT ftg.spid AS session_id,
+           te.name AS event_name,
+           ftg.EventSubClass AS event_subclass,
+           ftg.TextData AS text_data,
+           ftg.StartTime AS start_time,
+           ftg.ApplicationName AS application_name,
+           ftg.Hostname AS host_name,
+           DB_NAME(ftg.databaseID) AS database_name,
+           ftg.LoginName AS login_name
+    INTO tempdb.dbo.tmp_default_trace
+    FROM::fn_trace_gettable(@filename, DEFAULT) AS ftg
     INNER JOIN sys.trace_events AS te
-        ON ftg.EventClass = te.trace_event_id
-WHERE te.name = 'Sort Warnings'
-ORDER BY ftg.StartTime ASC, ftg.spid;
+    ON ftg.EventClass = te.trace_event_id
+    WHERE te.name = 'Sort Warnings'
 
-CREATE CLUSTERED INDEX ix1 ON #tmpCheckSortWarning(StartTime)
+    CREATE CLUSTERED INDEX ix1 ON tempdb.dbo.tmp_default_trace(start_time)
+  END
+  ELSE
+  BEGIN
+    /* trace doesn't exist, creating an empty table */
+    CREATE TABLE tempdb.dbo.tmp_default_trace
+    (
+      [spid] [int] NULL,
+      [name] [nvarchar] (128) NULL,
+      [event_subclass] [int] NULL,
+      [text_data] [nvarchar] (max),
+      [start_time] [datetime] NULL,
+      [application_name] [nvarchar] (256) NULL,
+      [host_name] [nvarchar] (256) NULL,
+      [database_name] [nvarchar] (128) NULL,
+      [login_name] [nvarchar] (256) NULL
+    )
+    CREATE CLUSTERED INDEX ix1 ON tempdb.dbo.tmp_default_trace(start_time)
+  END
+END
 
 BEGIN TRY
   SELECT 'Check 4 - Is there a sort Warning on default trace at the same time last update stats happened?' AS [info],
@@ -104,9 +127,11 @@ BEGIN TRY
          END comment_1
   INTO tempdb.dbo.tmpStatisticCheck4
   FROM tempdb.dbo.tmp_stats a
-  CROSS APPLY (SELECT TOP 1 StartTime FROM #tmpCheckSortWarning
-                WHERE #tmpCheckSortWarning.StartTime <= a.last_updated
-                ORDER BY StartTime DESC) AS Tab1(closest_sort_warning)
+  CROSS APPLY (SELECT TOP 1 tmp_default_trace.start_time 
+               FROM tempdb.dbo.tmp_default_trace
+               WHERE tmp_default_trace.start_time <= a.last_updated
+               AND tmp_default_trace.event_name = 'Sort Warnings'
+               ORDER BY tmp_default_trace.start_time DESC) AS Tab1(closest_sort_warning)
   WHERE (a.number_of_rows_at_time_stat_was_updated >= 10000 or a.is_lob = 1) /* Ignoring small tables unless is LOB*/
 END TRY
 BEGIN CATCH
@@ -116,23 +141,25 @@ BEGIN CATCH
       DROP TABLE tempdb.dbo.tmpStatisticCheck4
 
     SELECT 'Check 4 - Is there a sort Warning on default trace at the same time last update stats happened?' AS [info],
-             a.database_name,
-             a.table_name,
-             a.stats_name,
-             a.key_column_name,
-             a.number_of_rows_at_time_stat_was_updated,
-             a.last_updated AS last_updated_datetime,
-             (SELECT COUNT(*) 
-              FROM tempdb.dbo.tmp_exec_history b 
-              WHERE b.rowid = a.rowid) AS number_of_statistic_data_available_for_this_object,
-             Tab1.closest_sort_warning AS closest_sort_warning_datetime,
-             0 AS diff_of_update_stats_to_the_sort_warning_in_ms,
-             'Unable to check datediff... check the diff manually' comment_1
+            a.database_name,
+            a.table_name,
+            a.stats_name,
+            a.key_column_name,
+            a.number_of_rows_at_time_stat_was_updated,
+            a.last_updated AS last_updated_datetime,
+            (SELECT COUNT(*) 
+             FROM tempdb.dbo.tmp_exec_history b 
+             WHERE b.rowid = a.rowid) AS number_of_statistic_data_available_for_this_object,
+            Tab1.closest_sort_warning AS closest_sort_warning_datetime,
+            0 AS diff_of_update_stats_to_the_sort_warning_in_ms,
+            'Unable to check datediff... check the diff manually' comment_1
       INTO tempdb.dbo.tmpStatisticCheck4
       FROM tempdb.dbo.tmp_stats a
-      CROSS APPLY (SELECT TOP 1 StartTime FROM #tmpCheckSortWarning
-                    WHERE #tmpCheckSortWarning.StartTime <= a.last_updated
-                    ORDER BY StartTime DESC) AS Tab1(closest_sort_warning)
+      CROSS APPLY (SELECT TOP 1 tmp_default_trace.start_time 
+                   FROM tempdb.dbo.tmp_default_trace
+                   WHERE tmp_default_trace.start_time <= a.last_updated
+                   AND tmp_default_trace.event_name = 'Sort Warnings'
+                   ORDER BY tmp_default_trace.start_time DESC) AS Tab1(closest_sort_warning)
       WHERE (a.number_of_rows_at_time_stat_was_updated >= 10000 or a.is_lob = 1) /* Ignoring small tables unless is LOB*/
   END
   ELSE

@@ -31,61 +31,94 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck39') IS NOT NULL
   DROP TABLE tempdb.dbo.tmpStatisticCheck39
 
--- Declare variables
-DECLARE @filename NVarChar(1000);
-DECLARE @bc INT;
-DECLARE @ec INT;
-DECLARE @bfn VarChar(1000);
-DECLARE @efn VarChar(10);
-
--- Get the name of the current default trace
-SELECT @filename = CAST(value AS NVarChar(1000))
-FROM::fn_trace_getinfo(DEFAULT)
-WHERE traceid = 1
-      AND property = 2;
-
--- rip apart file name into pieces
-SET @filename = REVERSE(@filename);
-SET @bc = CHARINDEX('.', @filename);
-SET @ec = CHARINDEX('_', @filename) + 1;
-SET @efn = REVERSE(SUBSTRING(@filename, 1, @bc));
-SET @bfn = REVERSE(SUBSTRING(@filename, @ec, LEN(@filename)));
-
--- set filename without rollover number
-SET @filename = @bfn + @efn;
-
-IF @filename <> ''
+/* 
+  If table tempdb.dbo.tmp_default_trace was not created on sp_GetStatisticInfo
+  create it now 
+*/
+IF OBJECT_ID('tempdb.dbo.tmp_default_trace') IS NULL
 BEGIN
-  -- process all trace files
-  SELECT 'Check 39 - Missing column stats from default trace' AS [info],
-         ftg.spid,
-         te.name,
-         DB_NAME(ftg.DatabaseID) AS database_name,
-         ftg.TextData AS text_data,
-         ftg.StartTime AS start_datetime,
-         ftg.ApplicationName AS application_name,
-         ftg.Hostname AS host_name,
-         ftg.LoginName AS login_name
-  INTO tempdb.dbo.tmpStatisticCheck39
-  FROM::fn_trace_gettable(@filename, DEFAULT) AS ftg
-      INNER JOIN sys.trace_events AS te
-          ON ftg.EventClass = te.trace_event_id
-  WHERE te.name = 'Missing Column Statistics'
-  AND DB_NAME(ftg.DatabaseID) NOT IN ('tempdb', 'master', 'model', 'msdb')
-  AND CONVERT(VARCHAR(MAX), ftg.TextData COLLATE Latin1_General_BIN2) NOT IN ('NO STATS:([j].[job_id])')
-  AND CONVERT(VARCHAR(MAX), ftg.TextData COLLATE Latin1_General_BIN2) NOT LIKE '%recursion%'
+  /* Declaring variables */
+  DECLARE @filename NVARCHAR(1000),
+          @bc INT,
+          @ec INT,
+          @bfn VARCHAR(1000),
+          @efn VARCHAR(10);
 
-  SELECT * FROM tempdb.dbo.tmpStatisticCheck39
-  ORDER BY start_datetime ASC, spid;
+  /* Get the name of the current default trace */
+  SELECT @filename = [path]
+  FROM sys.traces 
+  WHERE is_default = 1;
+
+  IF @@ROWCOUNT > 0
+  BEGIN
+    /* Rip apart file name into pieces */
+    SET @filename = REVERSE(@filename);
+    SET @bc = CHARINDEX('.', @filename);
+    SET @ec = CHARINDEX('_', @filename) + 1;
+    SET @efn = REVERSE(SUBSTRING(@filename, 1, @bc));
+    SET @bfn = REVERSE(SUBSTRING(@filename, @ec, LEN(@filename)));
+
+    -- Set filename without rollover number
+    SET @filename = @bfn + @efn;
+
+    /* Process all trace files */
+    SELECT ftg.spid AS session_id,
+           te.name AS event_name,
+           ftg.EventSubClass AS event_subclass,
+           ftg.TextData AS text_data,
+           ftg.StartTime AS start_time,
+           ftg.ApplicationName AS application_name,
+           ftg.Hostname AS host_name,
+           DB_NAME(ftg.databaseID) AS database_name,
+           ftg.LoginName AS login_name
+    INTO tempdb.dbo.tmp_default_trace
+    FROM::fn_trace_gettable(@filename, DEFAULT) AS ftg
+    INNER JOIN sys.trace_events AS te
+    ON ftg.EventClass = te.trace_event_id
+    WHERE te.name = 'Missing Column Statistics'
+
+    CREATE CLUSTERED INDEX ix1 ON tempdb.dbo.tmp_default_trace(start_time)
+  END
+  ELSE
+  BEGIN
+    /* trace doesn't exist, creating an empty table */
+    CREATE TABLE tempdb.dbo.tmp_default_trace
+    (
+      [spid] [int] NULL,
+      [name] [nvarchar] (128) NULL,
+      [event_subclass] [int] NULL,
+      [text_data] [nvarchar] (max),
+      [start_time] [datetime] NULL,
+      [application_name] [nvarchar] (256) NULL,
+      [host_name] [nvarchar] (256) NULL,
+      [database_name] [nvarchar] (128) NULL,
+      [login_name] [nvarchar] (256) NULL
+    )
+    CREATE CLUSTERED INDEX ix1 ON tempdb.dbo.tmp_default_trace(start_time)
+  END
 END
-ELSE
-BEGIN
+
+
 -- process all trace files
-  SELECT 'Check 39 - Missing column stats from default trace' AS [info]
-  INTO tempdb.dbo.tmpStatisticCheck39
+SELECT 'Check 39 - Missing column stats from default trace' AS [info],
+       session_id,
+       event_name,
+       database_name,
+       text_data,
+       start_time AS start_datetime,
+       application_name,
+       host_name,
+       login_name
+INTO tempdb.dbo.tmpStatisticCheck39
+FROM tempdb.dbo.tmp_default_trace
+WHERE event_name = 'Missing Column Statistics'
+AND database_name NOT IN ('master', 'model', 'msdb')
+AND CONVERT(VARCHAR(MAX), text_data COLLATE Latin1_General_BIN2) NOT IN ('NO STATS:([j].[job_id])')
+AND CONVERT(VARCHAR(MAX), text_data COLLATE Latin1_General_BIN2) NOT LIKE '%recursion%'
 
-  SELECT * FROM tempdb.dbo.tmpStatisticCheck39
-END
+SELECT * FROM tempdb.dbo.tmpStatisticCheck39
+ORDER BY start_datetime ASC, session_id;
+
 /*
 IF OBJECT_ID('Tab1') IS NOT NULL
   DROP TABLE Tab1
@@ -97,11 +130,11 @@ INSERT INTO Tab1(ID, Col1) VALUES(2, 'Amorim')
 GO
 -- This will show missing statistic warning for ID
 SELECT MAX(ID) FROM Tab1
-OPTION (USE HINT ('FORCE_LEGACY_CARDINALITY_ESTIMATION'), RECOMPILE)
+OPTION (USE HINT ('FORCE_LEGACY_CARDINALITY_ESTIMATION'))
 GO
 -- This will trigger auto create statistic for ID
 SELECT MAX(ID) FROM Tab1
-OPTION (USE HINT ('FORCE_DEFAULT_CARDINALITY_ESTIMATION'), RECOMPILE)
+OPTION (USE HINT ('FORCE_DEFAULT_CARDINALITY_ESTIMATION'))
 GO
 */
 

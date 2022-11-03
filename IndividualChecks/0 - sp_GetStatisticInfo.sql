@@ -5,11 +5,6 @@ IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME = 's
 	EXEC ('CREATE PROC dbo.sp_GetStatisticInfo AS SELECT 1')
 GO
 
-/*
-
-
-*/
-
 ALTER PROC dbo.sp_GetStatisticInfo
 (
   @database_name_filter NVARCHAR(200) = NULL, /* By default I'm collecting information about all DBs */
@@ -123,6 +118,120 @@ BEGIN
       DROP TABLE tempdb.dbo.tmp_exec_history
     END
   END
+
+  IF OBJECT_ID('tempdb.dbo.tmp_stats') IS NOT NULL
+    DROP TABLE tempdb.dbo.tmp_stats
+  IF OBJECT_ID('tempdb.dbo.tmp_stat_header') IS NOT NULL
+    DROP TABLE tempdb.dbo.tmp_stat_header
+  IF OBJECT_ID('tempdb.dbo.tmp_density_vector') IS NOT NULL
+    DROP TABLE tempdb.dbo.tmp_density_vector
+  IF OBJECT_ID('tempdb.dbo.tmp_histogram') IS NOT NULL
+    DROP TABLE tempdb.dbo.tmp_histogram
+  IF OBJECT_ID('tempdb.dbo.tmp_stats_stream') IS NOT NULL
+    DROP TABLE tempdb.dbo.tmp_stats_stream
+  IF OBJECT_ID('tempdb.dbo.tmp_exec_history') IS NOT NULL
+    DROP TABLE tempdb.dbo.tmp_exec_history
+  IF OBJECT_ID('tempdb.dbo.tmp_default_trace') IS NOT NULL
+    DROP TABLE tempdb.dbo.tmp_default_trace
+
+  /* 
+    On "Check4-Stats and sort warning" and on "Check39-Missing column stats" I'm reading 
+    data from the default trace. 
+    Since the DBCC commands are captured on default trace and I'm about to run
+    several of those commands, I'm saving a snapshot of current data of default 
+    trace to use it later on Check4 and Check39.
+    This is a good idea because after I run several DBCC commands here, I may lose
+    some of those events I'm searching for.
+  */
+  /* Starting code to create a copy of default trace data */
+		SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Starting code to create a copy of default trace data.'
+  RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+
+  /* Declaring variables */
+  DECLARE @filename NVARCHAR(1000),
+          @bc INT,
+          @ec INT,
+          @bfn VARCHAR(1000),
+          @efn VARCHAR(10),
+          @sort_warning_rows INT,
+          @missing_stats_rows INT;
+
+  /* Get the name of the current default trace */
+  SELECT @filename = [path]
+  FROM sys.traces 
+  WHERE is_default = 1;
+
+  IF @@ROWCOUNT > 0
+  BEGIN
+    /* Rip apart file name into pieces */
+    SET @filename = REVERSE(@filename);
+    SET @bc = CHARINDEX('.', @filename);
+    SET @ec = CHARINDEX('_', @filename) + 1;
+    SET @efn = REVERSE(SUBSTRING(@filename, 1, @bc));
+    SET @bfn = REVERSE(SUBSTRING(@filename, @ec, LEN(@filename)));
+
+    -- Set filename without rollover number
+    SET @filename = @bfn + @efn;
+
+    /* Process all trace files */
+    SELECT ftg.spid AS session_id,
+           te.name AS event_name,
+           ftg.EventSubClass AS event_subclass,
+           ftg.TextData AS text_data,
+           ftg.StartTime AS start_time,
+           ftg.ApplicationName AS application_name,
+           ftg.Hostname AS host_name,
+           DB_NAME(ftg.databaseID) AS database_name,
+           ftg.LoginName AS login_name
+    INTO tempdb.dbo.tmp_default_trace
+    FROM::fn_trace_gettable(@filename, DEFAULT) AS ftg
+    INNER JOIN sys.trace_events AS te
+    ON ftg.EventClass = te.trace_event_id
+    WHERE te.name IN ('Sort Warnings', 'Missing Column Statistics')
+
+    SELECT @sort_warning_rows = COUNT(*)
+    FROM tempdb.dbo.tmp_default_trace
+    WHERE event_name = 'Sort Warnings'
+
+    SELECT @missing_stats_rows = COUNT(*)
+    FROM tempdb.dbo.tmp_default_trace
+    WHERE event_name = 'Missing Column Statistics'
+
+    CREATE CLUSTERED INDEX ix1 ON tempdb.dbo.tmp_default_trace(start_time)
+
+		  SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Found ' + CONVERT(VARCHAR(200), @sort_warning_rows) + ' sort warning events on default trace.'
+    RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+
+		  SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Found ' + CONVERT(VARCHAR(200), @missing_stats_rows) + ' missing column statistics events on default trace.'
+    RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+
+		  SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Finished code to create a copy of default trace data.'
+    RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+  END
+  ELSE
+  BEGIN
+		  SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Default trace is not running.'
+    RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+
+    /* trace doesn't exist, creating an empty table */
+    CREATE TABLE tempdb.dbo.tmp_default_trace
+    (
+      [spid] [int] NULL,
+      [name] [nvarchar] (128) NULL,
+      [event_subclass] [int] NULL,
+      [text_data] [nvarchar] (max),
+      [start_time] [datetime] NULL,
+      [application_name] [nvarchar] (256) NULL,
+      [host_name] [nvarchar] (256) NULL,
+      [database_name] [nvarchar] (128) NULL,
+      [login_name] [nvarchar] (256) NULL
+    )
+    CREATE CLUSTERED INDEX ix1 ON tempdb.dbo.tmp_default_trace(start_time)
+    
+		  SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Finished code to create a copy of default trace data.'
+    RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+  END
+  /* Finished code to create a copy of default trace data */
 
   /*
     Creating temporary table to store stats info
