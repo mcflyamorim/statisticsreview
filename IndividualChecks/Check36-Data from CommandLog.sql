@@ -90,17 +90,7 @@ BEGIN
                      CommandLog.EndTime AS end_datetime,
                      CommandLog.ErrorNumber AS error_number,
                      CommandLog.ErrorMessage AS error_message,
-                     CommandLog.ExtendedInfo AS extended_info,
-                     CASE 
-                       WHEN (CommandLog.ObjectName LIKE ''%bkp%'' 
-                             OR 
-                             CommandLog.ObjectName LIKE ''%test%''
-                             OR 
-                             CommandLog.ObjectName LIKE ''%backup%''
-                             OR 
-                             CommandLog.ObjectName LIKE ''%temp%'') THEN ''Warning - Table name may indicate this table is not really used. Please confirm that update stat on this object is really needed.''
-                       ELSE ''OK''
-                     END AS comment_1
+                     CommandLog.ExtendedInfo AS extended_info
                INTO tempdb.dbo.tmpStatisticCheck36
                FROM CommandLog
                LEFT OUTER JOIN tempdb.dbo.tmp_stats AS a
@@ -109,6 +99,7 @@ BEGIN
                AND a.table_name = QUOTENAME(CommandLog.[ObjectName])
                AND a.stats_name = QUOTENAME(CommandLog.[StatisticsName])
                WHERE CommandLog.StartTime >= GetDate() - 8
+               AND CommandLog.Command LIKE ''%UPDATE STA%''
                ORDER BY DATEDIFF(ms, CommandLog.StartTime, CommandLog.EndTime) DESC'
 
   /*SELECT @SQL*/

@@ -33,7 +33,7 @@ param
     [parameter(Mandatory=$false)]
     [String] $LogFilePath = "C:\temp\",
     [parameter(Mandatory=$false)]
-    [switch]$Force_sp_GetStatisticInfo_Execution = $true,
+    [switch]$Force_sp_GetStatisticInfo_Execution = $false,
     [switch]$CreateTranscriptLog,
     [switch]$ShowVerboseMessages = $true
 )
@@ -579,7 +579,7 @@ try
 				$Range = $c2 + ':' + $c3 | Out-String
 				$ws.Cells["$Range"].Style.Numberformat.Format = (Expand-NumberFormat -NumberFormat 'yyyy/mm/dd hh:mm:ss')
             }
-            elseif (($ColValue -like '*statement_text*') -Or ($ColValue -like '*object_code_definition*')) {
+            elseif (($ColValue -like '*statement_text*') -Or ($ColValue -like '*object_code_definition*') -Or ($ColValue -like '*referenced_columns*')) {
                 Set-ExcelColumn -Worksheet $ws -Column $i -Width 30
             }
 			elseif ($ColValue -eq $null) {

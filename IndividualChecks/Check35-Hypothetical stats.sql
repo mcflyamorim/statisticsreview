@@ -2,8 +2,11 @@
 Check 35 - Check if there are hypothetical statistics created by DTA.
 
 < ---------------- Description ----------------- >
-Hypothetical indexes are created by the Database Tuning Assistant (DTA) during its tests. 
-If a DTA session was interrupted, these indexes may not be deleted. 
+Hypothetical statistics are created by the Database Tuning Assistant (DTA) during its tests. 
+If a DTA session was interrupted, these objects may not be deleted. 
+
+Note: DTA can recommend to create multi-column statistics, so, it maybe ok to have 
+statistics with "_dta_stat%" name, as they may be those suggested by DTA.
 
 < -------------- What to look for and recommendations -------------- >
 - It is recommended to drop these objects as soon as possible.
@@ -25,12 +28,14 @@ SELECT 'Check 35 - Check if there are hypothetical statistics created by DTA.' A
        a.table_name,
        a.stats_name,
        a.key_column_name,
+       a.stat_all_columns,
        a.statistic_type,
+       a.steps,
        a.current_number_of_rows,
        a.last_updated AS last_updated_datetime,
        t.[comment],
        CASE 
-         WHEN (a.stats_name LIKE '%_dta_stat%')
+         WHEN (a.stats_name LIKE '%_dta_stat%') AND (a.steps IS NULL)
          THEN 'USE ' + a.database_name + '; BEGIN TRY SET LOCK_TIMEOUT 5; DROP STATISTICS '+ a.schema_name +'.'+ a.table_name +'.' + a.stats_name + '; END TRY BEGIN CATCH PRINT ''Error on ' + a.stats_name + '''; PRINT ERROR_MESSAGE() END CATCH;'
          ELSE NULL
        END AS drop_stat_command,
@@ -38,7 +43,7 @@ SELECT 'Check 35 - Check if there are hypothetical statistics created by DTA.' A
 INTO tempdb.dbo.tmpStatisticCheck35
 FROM tempdb.dbo.tmp_stats AS a
 CROSS APPLY (SELECT CASE
-                      WHEN (a.stats_name LIKE '%_dta_stat%')
+                      WHEN (a.stats_name LIKE '%_dta_stat%') AND (a.steps IS NULL)
                       THEN 'Warning - It looks like this is an hypothetical statistic. Hypothetical objects are created by the Database Tuning Assistant (DTA) during its tests. If a DTA session was interrupted, these indexes may not be deleted. It is recommended to drop these objects as soon as possible.'
                       ELSE 'OK'
                     END) AS t([comment])

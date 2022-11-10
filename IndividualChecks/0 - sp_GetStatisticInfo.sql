@@ -1172,7 +1172,7 @@ BEGIN
   RAISERROR (@err_msg, 10, 1) WITH NOWAIT
 
   ALTER TABLE #tmp_stats ADD statistic_percent_sampled DECIMAL(25, 2)
-  UPDATE #tmp_stats SET statistic_percent_sampled = CONVERT(DECIMAL(25, 2), (rows_sampled / (current_number_of_rows * 1.00)) * 100.0)
+  UPDATE #tmp_stats SET statistic_percent_sampled = CONVERT(DECIMAL(25, 2), (rows_sampled / (number_of_rows_at_time_stat_was_updated * 1.00)) * 100.0)
 
   /* Updating dbcc_command column */
   SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Updating dbcc_command column.'

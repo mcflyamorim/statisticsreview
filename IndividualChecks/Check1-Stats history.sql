@@ -102,6 +102,16 @@ SELECT 'Check 1 - Do we have statistics with useful history?' AS [info],
          THEN 'Warning - This statistic had less than 4 updates since it was created. This will limit the results of other checks and may indicate update stats for this obj. is not running'
          ELSE 'OK'
        END AS comment_1,
+       CASE 
+         WHEN (a.table_name LIKE '%bkp%'
+               OR 
+               a.table_name LIKE '%test%'
+               OR 
+               a.table_name LIKE '%backup%'
+               OR 
+               a.table_name LIKE '%temp%') THEN 'Warning - Table name may indicate this table is not really used. Please confirm that update stat on this object is really needed.'
+         ELSE 'OK'
+       END AS comment_2,
        a.dbcc_command
 INTO tempdb.dbo.tmpStatisticCheck1
 FROM tempdb.dbo.tmp_stats a

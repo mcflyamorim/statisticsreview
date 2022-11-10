@@ -2,14 +2,10 @@
 Check 39 - Missing column stats from default trace
 
 < ---------------- Description ----------------- >
-Check if there are statistic but no histogram.
-
-This can lead to poor cardinality estimations and weird situations 
-as queries that require the empty statistic, will show [Columns With No Statistics] 
-warning on execution plans, even with auto create/update statistic enabled.
+Report missing column stats events from default trace.
 
 < -------------- What to look for and recommendations -------------- >
-- Run DBCC SHOW_STATISTICS command to confirm stat exist and is empty.
+- If possible, review query and create the missing statistic.
 
 - If a statistic exist with an empty histogram, queries using this table will have poor 
 cardinality estimates and show [Columns With No Statistics] warning on execution plans. 
