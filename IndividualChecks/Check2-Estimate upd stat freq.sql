@@ -189,7 +189,8 @@ FROM CTE_1
 --WHERE avg_modifications_per_minute_based_on_existing_update_stats_intervals > 0
 
 SELECT * FROM tempdb.dbo.tmpStatisticCheck2
-ORDER BY current_number_of_rows DESC, 
+ORDER BY ISNULL(avg_minutes_between_update_stats,2147483647) ASC, 
+         current_number_of_rows DESC, 
          database_name,
          table_name,
          key_column_name,
