@@ -1,8 +1,8 @@
 /*
-Check 5 - Is there any unused statistics?
+Check 5 - Are there any unused statistics?
 < ---------------- Description ----------------- >
 Check unused statistics.
-If number of modifications is greather than the auto update threshold, 
+If number of modifications is greater than the auto update threshold, 
 then I'm considering there is a very high chance that the statistic is not being used 
 (considering auto update stats is on on DB)
 
@@ -60,11 +60,11 @@ OUTER APPLY (SELECT MAX(Dt) FROM (VALUES(a.last_user_seek),
                                ) AS t(Dt)) AS TabIndexUsage(last_datetime_index_or_a_table_if_obj_is_not_a_index_statistic_was_used)
 WHERE CONVERT(DECIMAL(25, 2), (a.current_number_of_modified_rows_since_last_update / (a.auto_update_threshold * 1.0)) * 100.0) >= 100 /*Only rows with threshold already hit*/
 AND a.is_auto_create_stats_on = 1 /*Considering only DBs with auto update stats on*/
-AND a.no_recompute = 0 /*Considering only stats with no recompute off*/
+AND a.no_recompute = 0 /*Considering only stats that are not set to no recompute*/
 AND a.stats_id <> 1 /*Ignoring clustered keys has they can still be used in lookups and don't trigger update stats*/
 --AND DATEDIFF(HOUR, a.last_updated, GETDATE()) >= 48 /*Only considering statistics that were not updated in past 2 days*/
 
-SELECT 'Check 5 - Is there any unused statistics?' AS [info], 
+SELECT 'Check 5 - Are there any unused statistics?' AS [info], 
        * 
 INTO tempdb.dbo.tmpStatisticCheck5
 FROM #tmpCheck5

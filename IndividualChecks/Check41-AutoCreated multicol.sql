@@ -40,7 +40,8 @@ SELECT 'Check 41 - Check if there are auto created multi-column statistics' AS [
        'USE ' + a.database_name + '; BEGIN TRY SET LOCK_TIMEOUT 5; DROP STATISTICS '+ a.schema_name +'.'+ a.table_name +'.' + a.stats_name + '; END TRY BEGIN CATCH PRINT ''Error on ' + a.stats_name + '''; PRINT ERROR_MESSAGE() END CATCH;' AS drop_stat_command
 INTO tempdb.dbo.tmpStatisticCheck41
 FROM tempdb.dbo.tmp_stats a
-WHERE a.current_number_of_rows > 0 /* Ignoring empty tables */
+WHERE 1=1
+AND a.current_number_of_rows > 0 /* Ignoring empty tables */
 AND a.statistic_type = 'Auto_Created'
 AND a.stat_all_columns COLLATE Latin1_General_BIN2 LIKE '%,%'
 
@@ -50,3 +51,23 @@ ORDER BY current_number_of_rows DESC,
          table_name,
          key_column_name,
          stats_name
+
+/*
+-- Script to show issue
+
+-- Restore a DB
+USE [master]
+ALTER DATABASE dbSQL2000 SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+RESTORE DATABASE dbSQL2000 FROM  DISK = N'D:\Fabiano\Trabalho\WebCasts, Artigos e Palestras\PASS Summit 2022\dbSQL2000.bak' WITH  FILE = 1,  NOUNLOAD,  REPLACE,  STATS = 5
+ALTER DATABASE dbSQL2000 SET MULTI_USER
+GO
+USE dbSQL2000
+GO
+
+EXEC sp_helpstats [LOJAS_VAREJO]
+GO
+EXEC sp_helpindex [LOJAS_VAREJO]
+GO
+DBCC SHOW_STATISTICS(LOJAS_VAREJO, _WA_Sys_DATA_PARA_TRANSFERENCIA_53D07C91)
+GO
+*/

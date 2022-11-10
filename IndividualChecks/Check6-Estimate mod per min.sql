@@ -30,11 +30,17 @@ SELECT 'Check 6 - How many modifications per minute we have?' AS [info],
        a.table_name,
        a.stats_name,
        a.key_column_name,
+       (SELECT COUNT(*) 
+        FROM tempdb.dbo.tmp_exec_history b 
+        WHERE b.rowid = a.rowid) AS number_of_statistic_data_available_for_this_object,
        a.last_updated AS last_updated_datetime,
        a.current_number_of_rows, 
        a.number_of_rows_at_time_stat_was_updated,
        a.unfiltered_rows AS number_of_rows_on_table_at_time_statistics_was_updated_ignoring_filter,
        a.current_number_of_modified_rows_since_last_update,
+       TabIndexUsage.last_datetime_index_or_a_table_if_obj_is_not_a_index_statistic_was_used,
+       CONVERT(VARCHAR(4), DATEDIFF(mi,TabIndexUsage.last_datetime_index_or_a_table_if_obj_is_not_a_index_statistic_was_used,GETDATE()) / 60 / 24) + 'd ' + CONVERT(VARCHAR(4), DATEDIFF(mi,TabIndexUsage.last_datetime_index_or_a_table_if_obj_is_not_a_index_statistic_was_used,GETDATE()) / 60 % 24) + 'hr '
+       + CONVERT(VARCHAR(4), DATEDIFF(mi,TabIndexUsage.last_datetime_index_or_a_table_if_obj_is_not_a_index_statistic_was_used,GETDATE()) % 60) + 'min' AS time_since_last_index_or_a_table_if_obj_is_not_a_index_statistic_usage,
        TabModificationsPerMinute.avg_modifications_per_minute_based_on_existing_update_stats_intervals,
        CASE 
          WHEN TabModificationsPerMinute.avg_modifications_per_minute_based_on_existing_update_stats_intervals >= AVG(TabModificationsPerMinute.avg_modifications_per_minute_based_on_existing_update_stats_intervals) OVER() 
@@ -61,6 +67,10 @@ SELECT 'Check 6 - How many modifications per minute we have?' AS [info],
       dbcc_command
 INTO tempdb.dbo.tmpStatisticCheck6
 FROM tempdb.dbo.tmp_stats AS a
+OUTER APPLY (SELECT MAX(Dt) FROM (VALUES(a.last_user_seek), 
+                                        (a.last_user_scan),
+                                        (a.last_user_lookup)
+                               ) AS t(Dt)) AS TabIndexUsage(last_datetime_index_or_a_table_if_obj_is_not_a_index_statistic_was_used)
 OUTER APPLY (SELECT CASE 
                       WHEN b.inserts_since_last_update IS NULL AND b.deletes_since_last_update IS NULL
                       THEN NULL
@@ -117,7 +127,8 @@ CROSS APPLY (SELECT CONVERT(NUMERIC(25, 2), Tab_TotModifications.tot_modificatio
 WHERE a.current_number_of_rows > 100 /* Ignoring "small" tables */
 
 SELECT * FROM tempdb.dbo.tmpStatisticCheck6
-ORDER BY current_number_of_rows DESC, 
+ORDER BY avg_modifications_per_minute_based_on_existing_update_stats_intervals DESC,
+         current_number_of_rows DESC, 
          database_name,
          table_name,
          key_column_name,
@@ -154,18 +165,18 @@ GO
 -- Modify 1500 rows
 UPDATE TOP (1500) OrdersBigHeap SET OrderDate = OrderDate
 GO
-WAITFOR DELAY '00:01:10'
+WAITFOR DELAY '00:01:05'
 GO
 UPDATE STATISTICS OrdersBigHeap
 GO
 -- Modify 1500 rows
 UPDATE TOP (1500) OrdersBigHeap SET OrderDate = OrderDate
 GO
-WAITFOR DELAY '00:01:10'
+WAITFOR DELAY '00:01:05'
 GO
 UPDATE STATISTICS OrdersBigHeap
 GO
-WAITFOR DELAY '00:01:10'
+WAITFOR DELAY '00:01:05'
 GO
 UPDATE TOP (1500) OrdersBigHeap SET OrderDate = OrderDate
 GO

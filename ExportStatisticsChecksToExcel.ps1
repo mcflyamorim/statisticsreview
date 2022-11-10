@@ -18,7 +18,7 @@
     https://github.com/mcflyamorim
     .EXAMPLE
     Open a PowerShell console and run the following command:
-    PS C:\>& "C:\temp\ExportStatisticsChecksToExcel.ps1" -SQLInstance "SQL2019" -LogFilePath "C:\temp\" -Force_sp_GetStatisticInfo_Execution
+    PS C:\>& "D:\Fabiano\Trabalho\WebCasts, Artigos e Palestras\Index and Statistics review\StatisticsReview - Individual checks\ExportStatisticsChecksToExcel.ps1" -SQLInstance "DELLFABIANO\SQL2019" -LogFilePath "C:\temp\" -Force_sp_GetStatisticInfo_Execution
     .EXAMPLE
     Open a PowerShell console and run the following command:
     PS C:\>& "C:\temp\ExportStatisticsChecksToExcel.ps1" -SQLInstance "DELLFABIANO\SQL2019" -UserName "sa" -Password "@bc12345" -LogFilePath "C:\temp\" -Force_sp_GetStatisticInfo_Execution

@@ -281,3 +281,54 @@ FROM ##tmpHistResults
 
 SELECT * FROM tempdb.dbo.tmpStatisticCheck47
 ORDER BY database_name, schema_name, table_name, index_name, stepnumber
+
+
+/*
+-- Script to test check
+USE Northwind
+GO
+IF OBJECT_ID('OrdersBig') IS NOT NULL
+  DROP TABLE OrdersBig
+GO
+SELECT TOP 1500000
+       IDENTITY(Int, 1,1) AS OrderID,
+       ABS(CheckSUM(NEWID()) / 10000000) AS CustomerID,
+       CONVERT(Date, GETDATE() - (CheckSUM(NEWID()) / 1000000)) AS OrderDate,
+       ISNULL(ABS(CONVERT(Numeric(18,2), (CheckSUM(NEWID()) / 1000000.5))),0) AS Value
+  INTO OrdersBig
+  FROM Orders A
+ CROSS JOIN Orders B CROSS JOIN Orders C CROSS JOIN Orders D
+GO
+INSERT INTO OrdersBig WITH(TABLOCK)
+SELECT TOP 500000
+       ABS(CheckSUM(NEWID()) / 10000000) AS CustomerID,
+       '20220101' AS OrderDate,
+       ISNULL(ABS(CONVERT(Numeric(18,2), (CheckSUM(NEWID()) / 1000000.5))),0) AS Value
+  FROM Orders A
+ CROSS JOIN Orders B CROSS JOIN Orders C CROSS JOIN Orders D
+GO
+INSERT INTO OrdersBig WITH(TABLOCK)
+SELECT TOP 4000000
+       99999 AS CustomerID,
+       '20220101' AS OrderDate,
+       ISNULL(ABS(CONVERT(Numeric(18,2), (CheckSUM(NEWID()) / 1000000.5))),0) AS Value
+  FROM Orders A
+ CROSS JOIN Orders B CROSS JOIN Orders C CROSS JOIN Orders D
+GO
+ALTER TABLE OrdersBig ADD CONSTRAINT xpk_OrdersBig PRIMARY KEY(OrderID)
+GO
+CREATE INDEX ixCustomerID ON OrdersBig(CustomerID)
+CREATE INDEX ixOrderDate ON OrdersBig(OrderDate)
+GO
+UPDATE STATISTICS OrdersBig WITH SAMPLE
+GO
+
+SELECT COUNT(*) FROM OrdersBig
+WHERE OrderDate = '20250101'
+AND 1 = (SELECT 1)
+SELECT COUNT(*) FROM OrdersBig
+WHERE CustomerID <= 1
+AND 1 = (SELECT 1)
+GO 10
+
+*/

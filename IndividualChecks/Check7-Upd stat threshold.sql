@@ -78,7 +78,7 @@ BEGIN TRY
          TabEstimatedMinsUntilNextUpdateStats.estimated_minutes_until_next_auto_update_stats,
          CASE 
             WHEN a.is_auto_update_stats_on = 1
-                  AND estimated_minutes_until_next_auto_update_stats <= 0
+                  AND CONVERT(DECIMAL(25, 2), (a.current_number_of_modified_rows_since_last_update / (a.auto_update_threshold * 1.0)) * 100.0) > = 100
             THEN 'Warning - Auto update stats will be executed on next execution of query using this statistic'
             WHEN a.is_auto_update_stats_on = 1
                   AND estimated_minutes_until_next_auto_update_stats <= 120

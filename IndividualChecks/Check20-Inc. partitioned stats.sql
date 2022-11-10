@@ -94,171 +94,171 @@ ORDER BY current_number_of_rows DESC
 
 Script to test check
 
-USE Northwind;
-GO
--- 2 minutes to run...
-IF OBJECT_ID('TabPartition') IS NOT NULL
-  DROP TABLE TabPartition
-GO
-IF OBJECT_ID('TabPartitionElimination') IS NOT NULL
-  DROP TABLE TabPartitionElimination
-GO
-IF EXISTS(SELECT * FROM sys.partition_schemes WHERE name = 'PartitionScheme1')
-  DROP PARTITION SCHEME PartitionScheme1
-GO
-IF EXISTS(SELECT * FROM sys.partition_functions WHERE name = 'PartitionFunction1')
-  DROP PARTITION FUNCTION PartitionFunction1
-GO
-CREATE PARTITION FUNCTION PartitionFunction1 (INT)
-AS RANGE FOR VALUES
-(   2015,
-    2016,
-    2017,
-    2018,
-    2019,
-    2020,
-    2021,
-    2022,
-    2023,
-    2024,
-    2025
-);
-CREATE PARTITION SCHEME PartitionScheme1 AS PARTITION PartitionFunction1 ALL TO ([PRIMARY]);
-GO
-DROP TABLE IF EXISTS TabPartition
-GO
-CREATE TABLE TabPartition
-(
-    ID          INT NOT NULL,
-    Col1        VARCHAR(MAX),
-    Col2        VARCHAR(MAX),
-    Col3        VARCHAR(MAX),
-    ColDate     DATE DEFAULT GETDATE() NOT NULL,
-    ColDateYear AS YEAR(ColDate) PERSISTED NOT NULL,
-)
-GO
-IF OBJECT_ID('fn_GetDate') IS NOT NULL
-  DROP FUNCTION fn_GetDate
-GO
-CREATE FUNCTION dbo.fn_GetDate(@i INT, @dt DATE)
-RETURNS DATE
-AS
-BEGIN
-  DECLARE @GetDate DATE
-  SET @GetDate = DATEADD(DAY, @i, @dt)
-  RETURN(@GetDate)
-END
-GO
-DECLARE @MaxID INT
-SELECT @MaxID = MAX(ID) FROM TabPartition
-INSERT INTO TabPartition WITH(TABLOCK) (ID, ColDate, Col1, Col2, Col3)
-SELECT TOP 10000 ISNULL(@MaxID, 0) + ROW_NUMBER() OVER(ORDER BY(SELECT 1)) AS ID, '20150101', 
-                 CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)),
-                 CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)),
-                 CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000))
-FROM master.dbo.spt_values A
-CROSS JOIN master.dbo.spt_values B
-CROSS JOIN master.dbo.spt_values C
-CROSS JOIN master.dbo.spt_values D
-OPTION (MAXDOP 8)
-GO
-DECLARE @MaxID INT
-SELECT @MaxID = MAX(ID) FROM TabPartition
-INSERT INTO TabPartition WITH(TABLOCK) (ID, ColDate, Col1, Col2, Col3)
-SELECT TOP 10000 ISNULL(@MaxID, 0) + ROW_NUMBER() OVER(ORDER BY(SELECT 1)) AS ID, '20160101',
-                 CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)),
-                 CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)),
-                 CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000))
-FROM master.dbo.spt_values A
-CROSS JOIN master.dbo.spt_values B
-CROSS JOIN master.dbo.spt_values C
-CROSS JOIN master.dbo.spt_values D
-OPTION (MAXDOP 8)
-GO
-DECLARE @MaxID INT
-SELECT @MaxID = MAX(ID) FROM TabPartition
-INSERT INTO TabPartition WITH(TABLOCK) (ID, ColDate, Col1, Col2, Col3)
-SELECT TOP 10 ISNULL(@MaxID, 0) + ROW_NUMBER() OVER(ORDER BY(SELECT 1)) AS ID, '20170101',
-                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)),
-                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)),
-                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000))
-FROM master.dbo.spt_values A
-CROSS JOIN master.dbo.spt_values B
-CROSS JOIN master.dbo.spt_values C
-CROSS JOIN master.dbo.spt_values D
-OPTION (MAXDOP 8)
-GO
-DECLARE @MaxID INT
-SELECT @MaxID = MAX(ID) FROM TabPartition
-INSERT INTO TabPartition WITH(TABLOCK) (ID, ColDate, Col1, Col2, Col3)
-SELECT TOP 10 ISNULL(@MaxID, 0) + ROW_NUMBER() OVER(ORDER BY(SELECT 1)) AS ID, '20180101',
-                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)),
-                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)),
-                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000))
-FROM master.dbo.spt_values A
-CROSS JOIN master.dbo.spt_values B
-CROSS JOIN master.dbo.spt_values C
-CROSS JOIN master.dbo.spt_values D
-OPTION (MAXDOP 8)
-GO
-DECLARE @MaxID INT
-SELECT @MaxID = MAX(ID) FROM TabPartition
-INSERT INTO TabPartition WITH(TABLOCK) (ID, ColDate, Col1, Col2, Col3)
-SELECT TOP 10 ISNULL(@MaxID, 0) + ROW_NUMBER() OVER(ORDER BY(SELECT 1)) AS ID, '20190101',
-                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)),
-                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)),
-                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000))
-FROM master.dbo.spt_values A
-CROSS JOIN master.dbo.spt_values B
-CROSS JOIN master.dbo.spt_values C
-CROSS JOIN master.dbo.spt_values D
-OPTION (MAXDOP 8)
-GO
-DECLARE @MaxID INT
-SELECT @MaxID = MAX(ID) FROM TabPartition
-INSERT INTO TabPartition WITH(TABLOCK) (ID, ColDate, Col1, Col2, Col3)
-SELECT TOP 10 ISNULL(@MaxID, 0) + ROW_NUMBER() OVER(ORDER BY(SELECT 1)) AS ID, '20200101',
-                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)),
-                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)),
-                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000))
-FROM master.dbo.spt_values A
-CROSS JOIN master.dbo.spt_values B
-CROSS JOIN master.dbo.spt_values C
-CROSS JOIN master.dbo.spt_values D
-OPTION (MAXDOP 8)
-GO
-DECLARE @MaxID INT
-SELECT @MaxID = MAX(ID) FROM TabPartition
-INSERT INTO TabPartition WITH(TABLOCK) (ID, ColDate, Col1, Col2, Col3)
-SELECT TOP 10 ISNULL(@MaxID, 0) + ROW_NUMBER() OVER(ORDER BY(SELECT 1)) AS ID, '20210101',
-                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)),
-                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)),
-                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000))
-FROM master.dbo.spt_values A
-CROSS JOIN master.dbo.spt_values B
-CROSS JOIN master.dbo.spt_values C
-CROSS JOIN master.dbo.spt_values D
-OPTION (MAXDOP 8)
-GO
-DECLARE @MaxID INT
-SELECT @MaxID = MAX(ID) FROM TabPartition
-INSERT INTO TabPartition WITH(TABLOCK) (ID, ColDate, Col1, Col2, Col3)
-SELECT TOP 10000 ISNULL(@MaxID, 0) + ROW_NUMBER() OVER(ORDER BY(SELECT 1)) AS ID,
-                 '20220101',
-                 CONVERT(VarBinary(MAX),CONVERT(VarChar(250), NEWID())),
-                 CONVERT(VarBinary(MAX),CONVERT(VarChar(250), NEWID())),
-                 CONVERT(VarBinary(MAX),CONVERT(VarChar(250), NEWID()))
-FROM master.dbo.spt_values A
-CROSS JOIN master.dbo.spt_values B
-CROSS JOIN master.dbo.spt_values C
-CROSS JOIN master.dbo.spt_values D
-GO
+--USE Northwind;
+--GO
+---- 2 minutes to run...
+--IF OBJECT_ID('TabPartition') IS NOT NULL
+--  DROP TABLE TabPartition
+--GO
+--IF OBJECT_ID('TabPartitionElimination') IS NOT NULL
+--  DROP TABLE TabPartitionElimination
+--GO
+--IF EXISTS(SELECT * FROM sys.partition_schemes WHERE name = 'PartitionScheme1')
+--  DROP PARTITION SCHEME PartitionScheme1
+--GO
+--IF EXISTS(SELECT * FROM sys.partition_functions WHERE name = 'PartitionFunction1')
+--  DROP PARTITION FUNCTION PartitionFunction1
+--GO
+--CREATE PARTITION FUNCTION PartitionFunction1 (INT)
+--AS RANGE FOR VALUES
+--(   2015,
+--    2016,
+--    2017,
+--    2018,
+--    2019,
+--    2020,
+--    2021,
+--    2022,
+--    2023,
+--    2024,
+--    2025
+--);
+--CREATE PARTITION SCHEME PartitionScheme1 AS PARTITION PartitionFunction1 ALL TO ([PRIMARY]);
+--GO
+--DROP TABLE IF EXISTS TabPartition
+--GO
+--CREATE TABLE TabPartition
+--(
+--    ID          INT NOT NULL,
+--    Col1        VARCHAR(MAX),
+--    Col2        VARCHAR(MAX),
+--    Col3        VARCHAR(MAX),
+--    ColDate     DATE DEFAULT GETDATE() NOT NULL,
+--    ColDateYear AS YEAR(ColDate) PERSISTED NOT NULL,
+--)
+--GO
+--IF OBJECT_ID('fn_GetDate') IS NOT NULL
+--  DROP FUNCTION fn_GetDate
+--GO
+--CREATE FUNCTION dbo.fn_GetDate(@i INT, @dt DATE)
+--RETURNS DATE
+--AS
+--BEGIN
+--  DECLARE @GetDate DATE
+--  SET @GetDate = DATEADD(DAY, @i, @dt)
+--  RETURN(@GetDate)
+--END
+--GO
+--DECLARE @MaxID INT
+--SELECT @MaxID = MAX(ID) FROM TabPartition
+--INSERT INTO TabPartition WITH(TABLOCK) (ID, ColDate, Col1, Col2, Col3)
+--SELECT TOP 10000 ISNULL(@MaxID, 0) + ROW_NUMBER() OVER(ORDER BY(SELECT 1)) AS ID, '20150101', 
+--                 CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)),
+--                 CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)),
+--                 CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000))
+--FROM master.dbo.spt_values A
+--CROSS JOIN master.dbo.spt_values B
+--CROSS JOIN master.dbo.spt_values C
+--CROSS JOIN master.dbo.spt_values D
+--OPTION (MAXDOP 8)
+--GO
+--DECLARE @MaxID INT
+--SELECT @MaxID = MAX(ID) FROM TabPartition
+--INSERT INTO TabPartition WITH(TABLOCK) (ID, ColDate, Col1, Col2, Col3)
+--SELECT TOP 10000 ISNULL(@MaxID, 0) + ROW_NUMBER() OVER(ORDER BY(SELECT 1)) AS ID, '20160101',
+--                 CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)),
+--                 CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)),
+--                 CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000))
+--FROM master.dbo.spt_values A
+--CROSS JOIN master.dbo.spt_values B
+--CROSS JOIN master.dbo.spt_values C
+--CROSS JOIN master.dbo.spt_values D
+--OPTION (MAXDOP 8)
+--GO
+--DECLARE @MaxID INT
+--SELECT @MaxID = MAX(ID) FROM TabPartition
+--INSERT INTO TabPartition WITH(TABLOCK) (ID, ColDate, Col1, Col2, Col3)
+--SELECT TOP 10 ISNULL(@MaxID, 0) + ROW_NUMBER() OVER(ORDER BY(SELECT 1)) AS ID, '20170101',
+--                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)),
+--                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)),
+--                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000))
+--FROM master.dbo.spt_values A
+--CROSS JOIN master.dbo.spt_values B
+--CROSS JOIN master.dbo.spt_values C
+--CROSS JOIN master.dbo.spt_values D
+--OPTION (MAXDOP 8)
+--GO
+--DECLARE @MaxID INT
+--SELECT @MaxID = MAX(ID) FROM TabPartition
+--INSERT INTO TabPartition WITH(TABLOCK) (ID, ColDate, Col1, Col2, Col3)
+--SELECT TOP 10 ISNULL(@MaxID, 0) + ROW_NUMBER() OVER(ORDER BY(SELECT 1)) AS ID, '20180101',
+--                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)),
+--                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)),
+--                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000))
+--FROM master.dbo.spt_values A
+--CROSS JOIN master.dbo.spt_values B
+--CROSS JOIN master.dbo.spt_values C
+--CROSS JOIN master.dbo.spt_values D
+--OPTION (MAXDOP 8)
+--GO
+--DECLARE @MaxID INT
+--SELECT @MaxID = MAX(ID) FROM TabPartition
+--INSERT INTO TabPartition WITH(TABLOCK) (ID, ColDate, Col1, Col2, Col3)
+--SELECT TOP 10 ISNULL(@MaxID, 0) + ROW_NUMBER() OVER(ORDER BY(SELECT 1)) AS ID, '20190101',
+--                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)),
+--                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)),
+--                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000))
+--FROM master.dbo.spt_values A
+--CROSS JOIN master.dbo.spt_values B
+--CROSS JOIN master.dbo.spt_values C
+--CROSS JOIN master.dbo.spt_values D
+--OPTION (MAXDOP 8)
+--GO
+--DECLARE @MaxID INT
+--SELECT @MaxID = MAX(ID) FROM TabPartition
+--INSERT INTO TabPartition WITH(TABLOCK) (ID, ColDate, Col1, Col2, Col3)
+--SELECT TOP 10 ISNULL(@MaxID, 0) + ROW_NUMBER() OVER(ORDER BY(SELECT 1)) AS ID, '20200101',
+--                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)),
+--                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)),
+--                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000))
+--FROM master.dbo.spt_values A
+--CROSS JOIN master.dbo.spt_values B
+--CROSS JOIN master.dbo.spt_values C
+--CROSS JOIN master.dbo.spt_values D
+--OPTION (MAXDOP 8)
+--GO
+--DECLARE @MaxID INT
+--SELECT @MaxID = MAX(ID) FROM TabPartition
+--INSERT INTO TabPartition WITH(TABLOCK) (ID, ColDate, Col1, Col2, Col3)
+--SELECT TOP 10 ISNULL(@MaxID, 0) + ROW_NUMBER() OVER(ORDER BY(SELECT 1)) AS ID, '20210101',
+--                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)),
+--                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)),
+--                CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000))
+--FROM master.dbo.spt_values A
+--CROSS JOIN master.dbo.spt_values B
+--CROSS JOIN master.dbo.spt_values C
+--CROSS JOIN master.dbo.spt_values D
+--OPTION (MAXDOP 8)
+--GO
+--DECLARE @MaxID INT
+--SELECT @MaxID = MAX(ID) FROM TabPartition
+--INSERT INTO TabPartition WITH(TABLOCK) (ID, ColDate, Col1, Col2, Col3)
+--SELECT TOP 10000 ISNULL(@MaxID, 0) + ROW_NUMBER() OVER(ORDER BY(SELECT 1)) AS ID,
+--                 '20220101',
+--                 CONVERT(VarBinary(MAX),CONVERT(VarChar(250), NEWID())),
+--                 CONVERT(VarBinary(MAX),CONVERT(VarChar(250), NEWID())),
+--                 CONVERT(VarBinary(MAX),CONVERT(VarChar(250), NEWID()))
+--FROM master.dbo.spt_values A
+--CROSS JOIN master.dbo.spt_values B
+--CROSS JOIN master.dbo.spt_values C
+--CROSS JOIN master.dbo.spt_values D
+--GO
 
--- 35 seconds to create the PK
-ALTER TABLE TabPartition ADD CONSTRAINT PK_TabPartition 
-PRIMARY KEY CLUSTERED (ID, ColDateYear)
-ON PartitionScheme1 (ColDateYear);
-GO
+---- 35 seconds to create the PK
+--ALTER TABLE TabPartition ADD CONSTRAINT PK_TabPartition 
+--PRIMARY KEY CLUSTERED (ID, ColDateYear)
+--ON PartitionScheme1 (ColDateYear);
+--GO
 
 -- 26 seconds to auto create stats on Col1, Col2, Col3 and ColDate
 SELECT DISTINCT TOP 10 Col1,Col2,Col3,ColDate
@@ -409,44 +409,5 @@ SELECT DISTINCT TOP 10 Col1,Col2
 FROM TabPartition
 WHERE 1 = (SELECT 1)
 GO
-
-
-UPDATE STATISTICS TabPartition WITH FULLSCAN
-
--- Testing TF11024
-
-UPDATE TOP(3000) TabPartition SET Col1 = Col1, Col2 = Col2, Col3 = Col3
-WHERE ColDate >= '20220101'
-GO
-UPDATE TOP(3000) TabPartition SET Col1 = Col1, Col2 = Col2, Col3 = Col3
-WHERE ColDate >= '20160101' AND ColDate <= '20161231'
-GO
-UPDATE TOP(3000) TabPartition SET Col1 = Col1, Col2 = Col2, Col3 = Col3
-WHERE ColDate >= '20150101' AND ColDate <= '20151231'
-GO
-
--- is_incremental = 1
-SELECT a.stats_id, a.name, a.auto_created, a.is_incremental, sp.last_updated, sp.rows, sp.rows_sampled, sp.modification_counter
-FROM sys.stats AS a
-CROSS APPLY sys.dm_db_stats_properties(a.object_id, a.stats_id) AS sp
-WHERE a.object_id = OBJECT_ID('TabPartition')
-GO
--- Now I can query data using dm_db_incremental_stats_properties to see per partition info 
-SELECT a.stats_id, a.name, a.auto_created, a.is_incremental, isp.last_updated, isp.partition_number, isp.rows, isp.rows_sampled, isp.modification_counter
-FROM sys.stats AS a
-CROSS APPLY sys.dm_db_incremental_stats_properties(a.object_id, a.stats_id) AS isp
-WHERE a.object_id = OBJECT_ID('TabPartition')
-AND a.name = '_WA_Sys_00000002_19B5BC39'
-ORDER BY isp.partition_number
-GO
-
-SELECT DISTINCT TOP 10 Col1,Col2
-FROM TabPartition
-WHERE 1 = (SELECT 1)
-GO
-
---SELECT partition_number, rows 
---FROM sys.partitions
---WHERE object_id = OBJECT_ID('TabPartition')
 
 */

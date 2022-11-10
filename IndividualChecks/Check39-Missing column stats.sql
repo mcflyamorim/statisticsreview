@@ -117,9 +117,10 @@ AND CONVERT(VARCHAR(MAX), text_data COLLATE Latin1_General_BIN2) NOT IN ('NO STA
 AND CONVERT(VARCHAR(MAX), text_data COLLATE Latin1_General_BIN2) NOT LIKE '%recursion%'
 
 SELECT * FROM tempdb.dbo.tmpStatisticCheck39
-ORDER BY start_datetime ASC, session_id;
+ORDER BY start_datetime DESC, session_id;
 
 /*
+-- Demo 1
 IF OBJECT_ID('Tab1') IS NOT NULL
   DROP TABLE Tab1
 GO
@@ -137,6 +138,91 @@ SELECT MAX(ID) FROM Tab1
 OPTION (USE HINT ('FORCE_DEFAULT_CARDINALITY_ESTIMATION'))
 GO
 */
+
+/*
+ -- Demo 2
+USE Northwind
+GO
+-- 6 secs to run
+IF OBJECT_ID('OrdersBig') IS NOT NULL
+  DROP TABLE OrdersBig
+GO
+SELECT TOP 5000000
+       IDENTITY(Int, 1,1) AS OrderID,
+       ABS(CheckSUM(NEWID()) / 10000) AS CustomerID,
+       CONVERT(Date, GETDATE() - (CheckSUM(NEWID()) / 1000000)) AS OrderDate,
+       ISNULL(ABS(CONVERT(Numeric(18,2), (CheckSUM(NEWID()) / 1000000.5))),0) AS Value
+  INTO OrdersBig
+  FROM Orders A
+ CROSS JOIN Orders B CROSS JOIN Orders C CROSS JOIN Orders D
+GO
+ALTER TABLE OrdersBig ADD CONSTRAINT xpk_OrdersBig PRIMARY KEY(OrderID)
+GO
+CREATE INDEX ixValue ON OrdersBig(Value) 
+GO
+
+IF OBJECT_ID('Tmp1') IS NOT NULL
+  DROP TABLE Tmp1
+GO
+CREATE TABLE Tmp1 (ColValue Numeric(18,2), ColData VARCHAR(250) DEFAULT NEWID())
+GO
+INSERT INTO Tmp1 (ColValue)
+SELECT DISTINCT TOP 10 Value
+FROM OrdersBig
+WHERE NOT EXISTS(SELECT 1 FROM Tmp1 
+                 WHERE Tmp1.ColValue = OrdersBig.Value)
+GO
+
+-- Seek+lookup
+SELECT TOP 500 OrdersBig.*, Tmp1.ColData
+FROM OrdersBig
+INNER JOIN Tmp1
+ON Tmp1.ColValue = OrdersBig.Value
+ORDER BY OrdersBig.OrderDate, Tmp1.ColData
+OPTION (RECOMPILE, MAXDOP 1, USE HINT('FORCE_DEFAULT_CARDINALITY_ESTIMATION'))
+GO
+
+-- Inserting 250 more rows on Tmp1
+INSERT INTO Tmp1 (ColValue)
+SELECT DISTINCT TOP 250 Value
+FROM OrdersBig
+WHERE NOT EXISTS(SELECT 1 FROM Tmp1 
+                 WHERE Tmp1.ColValue = OrdersBig.Value)
+GO
+
+-- Scan on OrdersBig...
+-- Weird missing stats warning on Tmp1.ColValue
+SELECT TOP 500 OrdersBig.*, Tmp1.ColData
+FROM OrdersBig
+INNER JOIN Tmp1
+ON Tmp1.ColValue = OrdersBig.Value
+ORDER BY OrdersBig.OrderDate, Tmp1.ColData
+OPTION (RECOMPILE, MAXDOP 1, USE HINT('FORCE_DEFAULT_CARDINALITY_ESTIMATION'))
+GO
+
+sp_helpstats Tmp1
+GO
+SELECT CONVERT(DATETIME, sp.last_updated), * FROM sys.stats a
+CROSS APPLY sys.dm_db_stats_properties(a.object_id, a.stats_id) AS sp
+WHERE a.object_id = OBJECT_ID('Tmp1')
+GO
+DBCC SHOW_STATISTICS(Tmp1, _WA_Sys_00000001_1BDDFBCD)
+GO
+
+UPDATE STATISTICS Tmp1
+GO
+
+-- Seek + lookup
+SELECT TOP 500 OrdersBig.*, Tmp1.ColData
+FROM OrdersBig
+INNER JOIN Tmp1
+ON Tmp1.ColValue = OrdersBig.Value
+ORDER BY OrdersBig.OrderDate, Tmp1.ColData
+OPTION (RECOMPILE, MAXDOP 1, USE HINT('FORCE_DEFAULT_CARDINALITY_ESTIMATION'))
+GO
+*/
+
+
 
 /*
 -- The following query can be used to identify ColumnsWithNoStatistics

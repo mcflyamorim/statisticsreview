@@ -56,6 +56,8 @@ SELECT TOP 100000
        CONVERT(XML, NULL) AS statement_text,
        creation_time,
        last_execution_time,
+       CONVERT(NUMERIC(25, 2), last_elapsed_time / 1000.) AS last_elapsed_time_ms,
+       CONVERT(NUMERIC(25, 4), (total_elapsed_time / execution_count) / 1000.) AS avg_elapsed_time_ms,
        execution_count, 
        CONVERT(NUMERIC(25, 4), (total_worker_time / execution_count) / 1000.) AS avg_cpu_time_ms,
        CONVERT(NUMERIC(25, 4), total_worker_time / 1000.) AS total_cpu_time_ms,
@@ -215,6 +217,8 @@ SELECT  CONVERT(VARCHAR(800), query_hash, 1) AS query_hash,
         CONVERT(VARCHAR(800), plan_handle, 1) AS plan_handle, 
         creation_time AS creation_datetime,
         last_execution_time AS last_execution_datetime,
+        last_elapsed_time_ms,
+        avg_elapsed_time_ms,
         execution_count,
         avg_cpu_time_ms,
         total_cpu_time_ms,
@@ -239,6 +243,19 @@ SELECT  CONVERT(VARCHAR(800), query_hash, 1) AS query_hash,
                                  Batch.x.value('(//p:StmtReceive/@StatementOptmEarlyAbortReason)[1]', 'sysname'),
                                  Batch.x.value('(//p:StmtUseDb/@StatementOptmEarlyAbortReason)[1]', 'sysname')),
         cached_plan_size = x.value('sum(..//p:QueryPlan/@CachedPlanSize)', 'float'),
+        /* 
+           If there is only one execution, then, the compilation time can be calculated by
+           checking the diff from the creation_time and last_execution_time.
+           This is possible because creation_time is the time which the plan started creation
+           and last_execution_time is the time which the plan started execution.
+           So, for instance, considering the following:
+           creation_time = "2022-11-09 07:56:19.123" 
+           last_execution_time = "2022-11-09 07:56:26.937"
+           This means, the plan started to be created at "2022-11-09 07:56:19.123" 
+           and started execution at "2022-11-09 07:56:26.937", in other words, 
+           it took 7813ms (DATEDIFF(ms, "2022-11-09 07:56:19.123" , "2022-11-09 07:56:26.937")) 
+           to create the plan.
+        */
         CASE 
          WHEN execution_count = 1
          THEN DATEDIFF(ms, creation_time, last_execution_time)
@@ -247,29 +264,30 @@ SELECT  CONVERT(VARCHAR(800), query_hash, 1) AS query_hash,
         compile_time = x.value('sum(..//p:QueryPlan/@CompileTime)', 'float'),
         compile_cpu = x.value('sum(..//p:QueryPlan/@CompileCPU)', 'float'),
         compile_memory = x.value('sum(..//p:QueryPlan/@CompileMemory)', 'float'),
-        CONVERT(VarChar, creation_time, 21) AS exec_plan_creation_start_datetime,
-        associated_stats_update_datetime = (SELECT TOP 1 CONVERT(VarChar, a.last_updated, 21)
-                                          FROM tempdb.dbo.tmp_stats AS a
-                                          WHERE a.last_updated >= creation_time
-                                          ORDER BY a.last_updated ASC),
-        CONVERT(VarChar, DATEADD(ms, x.value('sum(..//p:QueryPlan/@CompileTime)', 'float'), creation_time), 21) AS exec_plan_creation_end_datetime,
+        exec_plan_creation_start_datetime = CONVERT(VARCHAR, creation_time, 21),
+        associated_stats_update_datetime = (SELECT TOP 1 CONVERT(VARCHAR, a.last_updated, 21)
+                                            FROM tempdb.dbo.tmp_stats AS a
+                                            WHERE a.last_updated >= creation_time
+                                            ORDER BY a.last_updated ASC),
+        /* Creation time plus the compilation time in milliseconds is the datetime the plan finished to compile */
+        exec_plan_creation_end_datetime = CONVERT(VARCHAR, DATEADD(ms, x.value('sum(..//p:QueryPlan/@CompileTime)', 'float'), creation_time), 21),
         associated_stats_name = (SELECT TOP 1 a.stats_name
-                                   FROM tempdb.dbo.tmp_stats AS a
-                                   WHERE a.last_updated >= creation_time
-                                   ORDER BY a.last_updated ASC),
+                                 FROM tempdb.dbo.tmp_stats AS a
+                                 WHERE a.last_updated >= creation_time
+                                 ORDER BY a.last_updated ASC),
         statistic_associated_with_compile = (SELECT TOP 1
-                                                      'Statistic ' + a.stats_name + 
-                                                      ' on table ' + a.database_name + '.' + a.table_name + ' ('+ CONVERT(VarChar, a.current_number_of_rows) +' rows)' +
-                                                      ' was updated about the same time (' + CONVERT(VarChar, a.last_updated, 21) + ') that the plan was created, that may be the reason of the high compile time.'
-                                                FROM tempdb.dbo.tmp_stats AS a
-                                                WHERE a.last_updated >= creation_time
-                                                ORDER BY a.last_updated ASC),
+                                                    'Statistic ' + a.stats_name + 
+                                                    ' on table ' + a.database_name + '.' + a.table_name + ' ('+ CONVERT(VARCHAR, a.current_number_of_rows) +' rows)' +
+                                                    ' was updated about the same time (' + CONVERT(VARCHAR, a.last_updated, 21) + ') that the plan was created, that may be the reason of the high compile time.'
+                                             FROM tempdb.dbo.tmp_stats AS a
+                                             WHERE a.last_updated >= creation_time
+                                             ORDER BY a.last_updated ASC),
         statement_text,
         statement_plan
 INTO #tmp1
 FROM #tmpdm_exec_query_stats qp
 OUTER APPLY statement_plan.nodes('//p:Batch') AS Batch(x)
-WHERE x.value('sum(..//p:QueryPlan/@CompileTime)', 'float') >= 500 /* Only plans taking more than 500ms to create */
+WHERE x.value('sum(..//p:QueryPlan/@CompileTime)', 'float') >= 200 /* Only plans taking more than 200ms to create */
 OPTION (RECOMPILE);
 
 SELECT 'Check 3 - Do I have plans with high compilation time due to an auto update/create stats?' AS [info], 
@@ -277,14 +295,17 @@ SELECT 'Check 3 - Do I have plans with high compilation time due to an auto upda
 INTO tempdb.dbo.tmpStatisticCheck3
 FROM #tmp1
 WHERE 1=1
-AND associated_stats_update_datetime <= exec_plan_creation_end_datetime
+/* 
+   Adding 50ms on exec_plan_creation_end_datetime because I've seen some cases where there 
+   was a small diff between the last update stats datetime and the time it took to create 
+   the plan. Maybe due to a rounding issue? Anyway, add 50ms should be enough to fix this.
+*/
+AND associated_stats_update_datetime <= DATEADD(ms, 50, exec_plan_creation_end_datetime)
 AND CONVERT(VarChar(MAX), statement_plan) COLLATE Latin1_General_BIN2 LIKE '%' + REPLACE(REPLACE(associated_stats_name, '[', ''), ']', '') + '%'
-OR associated_stats_name IS NULL
-
+/* OR associated_stats_name IS NULL */ -- Uncomment this if you want to see info about all plans, I mean, including plans where an associated stat was not found
 
 SELECT * FROM tempdb.dbo.tmpStatisticCheck3
 ORDER BY compile_time DESC
-
 
 /*
   Script to test the check:
@@ -295,73 +316,75 @@ IF OBJECT_ID('TabTestStats') IS NOT NULL
   DROP TABLE TabTestStats
 GO
 CREATE TABLE TabTestStats (ID Int IDENTITY(1,1) PRIMARY KEY,
-                   Col1 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col2 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col3 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col4 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col5 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col6 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col7 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col8 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col9 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col10 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col11 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col12 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col13 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col14 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col15 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col16 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col17 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col18 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col19 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col20 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col21 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col22 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col23 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col24 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col25 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col26 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col27 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col28 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col29 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col30 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col31 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col32 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col33 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col34 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col35 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col36 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col37 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col38 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col39 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col40 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col41 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col42 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col43 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col44 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col45 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col46 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col47 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col48 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
-                   Col49 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
+                   Col1 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())),  5)) ,
+                   Col2 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())),  5)) ,
+                   Col3 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())),  5)) ,
+                   Col4 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())),  5)) ,
+                   Col5 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())),  5)) ,
+                   Col6 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())),  5)) ,
+                   Col7 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())),  5)) ,
+                   Col8 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())),  5)) ,
+                   Col9 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())),  5)) ,
+                   Col10 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col11 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col12 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col13 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col14 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col15 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col16 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col17 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col18 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col19 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col20 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col21 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col22 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col23 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col24 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col25 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col26 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col27 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col28 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col29 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col30 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col31 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col32 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col33 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col34 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col35 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col36 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col37 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col38 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col39 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col40 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col41 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col42 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col43 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col44 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col45 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col46 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col47 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col48 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
+                   Col49 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5)) ,
                    Col50 VarBinary(MAX) DEFAULT CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) ,
                    ColFoto VarBinary(MAX))
 GO
 
--- This will take a while to run
-INSERT INTO TabTestStats (Col1, ColFoto)
-SELECT TOP 1000
-       CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000))  AS Col1, 
-       CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) )), 5000)) 
+-- 5 seconds to run
+INSERT INTO TabTestStats (Col1)
+SELECT TOP 5000
+       CONVERT(VarBinary(MAX),REPLICATE(CONVERT(VarBinary(MAX), CONVERT(VarChar(250), NEWID())), 5000)) AS Col1
   FROM sysobjects a, sysobjects b, sysobjects c, sysobjects d
 GO
 
-sp_helpstats TabTestStats
-
-drop statistics TabTestStats.[_WA_Sys_00000033_01892CED]
-
+-- 4 seconds to run
 SELECT COUNT(*) FROM TabTestStats
 WHERE Col50 IS NULL
 AND 1 = (SELECT 1)
 GO
+
+--EXEC sp_helpstats TabTestStats
+--GO
+
+--DROP STATISTICS TabTestStats.[_WA_Sys_00000033_01892CED]
+--GO
 */

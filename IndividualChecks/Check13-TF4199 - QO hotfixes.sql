@@ -64,97 +64,97 @@ SELECT * FROM tempdb.dbo.tmpStatisticCheck13
 /*
   Code sample to show issue
 
-USE Northwind
-GO
-IF OBJECT_ID('vw_NewID', 'V') IS NOT NULL
-  DROP VIEW vw_NewID
-GO
-CREATE VIEW vw_NewID
-AS
-  SELECT NEWID() AS "NewID"
-GO
-IF OBJECT_ID('fn_cKeys') IS NOT NULL
-  DROP FUNCTION fn_cKeys
-GO
-CREATE FUNCTION dbo.fn_cKeys()
-RETURNS VarChar(200)
-AS
-BEGIN
-  DECLARE @Str VarChar(200)
-  SELECT TOP 1 @Str = t1.pdws
-    FROM (VALUES ('teste'), ('TESTE'),('Teste'), ('password'), ('qwerty'),
-                 ('football'), ('baseball'), ('welcome'), ('abc123'),('ABC123'),
-                 ('1qaz2wsx'), ('dragon'), ('master'), ('moncKey'), ('letmein'),
-                 ('login'), ('princess'), ('qwertyuiop'), ('solo'), ('passw0rd'), 
-                 ('starwars'), ('teste123'), ('TESTE123'), ('deuseamor'), ('jesuscristo'),
-                 ('iloveyou'), ('MARCELO'), ('jc2512'), ('maria'), ('jose'), ('batman'),
-                 ('123123'), ('123123123'), ('FaMiLia'), (''), (' '), ('sexy'),
-                 ('abel123'), ('freedom'), ('whatever'), ('qazwsx'), ('trustno1'), ('sucesso'),
-                 ('1q2w3e4r'), ('1qaz2wsx'), ('1qazxsw2'), ('zaq12wsx'), ('! qaz2wsx'),
-                 ('!qaz2wsx'), ('123mudar'), ('gabriel'), ('102030'), ('010203'), ('101010'), ('131313'),
-                 ('vitoria'), ('flamengo'), ('felipe'), ('brasil'), ('felicidade'), ('mariana'), ('101010')) t1(pdws)
-   ORDER BY (SELECT "NewID" FROM vw_NewID)
-  RETURN(@Str)
-END
-GO
-IF OBJECT_ID('CustomersBig') IS NOT NULL
-  DROP TABLE CustomersBig
+--USE Northwind
+--GO
+--IF OBJECT_ID('vw_NewID', 'V') IS NOT NULL
+--  DROP VIEW vw_NewID
+--GO
+--CREATE VIEW vw_NewID
+--AS
+--  SELECT NEWID() AS "NewID"
+--GO
+--IF OBJECT_ID('fn_cKeys') IS NOT NULL
+--  DROP FUNCTION fn_cKeys
+--GO
+--CREATE FUNCTION dbo.fn_cKeys()
+--RETURNS VarChar(200)
+--AS
+--BEGIN
+--  DECLARE @Str VarChar(200)
+--  SELECT TOP 1 @Str = t1.pdws
+--    FROM (VALUES ('teste'), ('TESTE'),('Teste'), ('password'), ('qwerty'),
+--                 ('football'), ('baseball'), ('welcome'), ('abc123'),('ABC123'),
+--                 ('1qaz2wsx'), ('dragon'), ('master'), ('moncKey'), ('letmein'),
+--                 ('login'), ('princess'), ('qwertyuiop'), ('solo'), ('passw0rd'), 
+--                 ('starwars'), ('teste123'), ('TESTE123'), ('deuseamor'), ('jesuscristo'),
+--                 ('iloveyou'), ('MARCELO'), ('jc2512'), ('maria'), ('jose'), ('batman'),
+--                 ('123123'), ('123123123'), ('FaMiLia'), (''), (' '), ('sexy'),
+--                 ('abel123'), ('freedom'), ('whatever'), ('qazwsx'), ('trustno1'), ('sucesso'),
+--                 ('1q2w3e4r'), ('1qaz2wsx'), ('1qazxsw2'), ('zaq12wsx'), ('! qaz2wsx'),
+--                 ('!qaz2wsx'), ('123mudar'), ('gabriel'), ('102030'), ('010203'), ('101010'), ('131313'),
+--                 ('vitoria'), ('flamengo'), ('felipe'), ('brasil'), ('felicidade'), ('mariana'), ('101010')) t1(pdws)
+--   ORDER BY (SELECT "NewID" FROM vw_NewID)
+--  RETURN(@Str)
+--END
+--GO
+--IF OBJECT_ID('CustomersBigTF4199') IS NOT NULL
+--  DROP TABLE CustomersBigTF4199
 
--- 37 seconds to run
-SELECT TOP 500000
-       IDENTITY(Int, 1,1) AS CustomerID,
-       CONVERT(VARCHAR(250), t4.CompanyName) AS CompanyName, 
-       CONVERT(VARCHAR(250), t3.ContactName) AS ContactName,
-       CONVERT(VARCHAR(250), dbo.fn_cKeys()) AS cKey,
-       CONVERT(DATETIME, NULL) AS InsertedDate,
-       CONVERT(IMAGE, CONVERT(VARCHAR(200), NEWID())) AS Col1,
-       CONVERT(VARCHAR(250), NEWID()) AS Col2
-  INTO CustomersBig
-  FROM master.dbo.spt_values A
- CROSS JOIN master.dbo.spt_values B
- CROSS JOIN master.dbo.spt_values C
- CROSS JOIN master.dbo.spt_values D
- CROSS APPLY (SELECT CRYPT_GEN_RANDOM (10)) AS t1(ContactName)
- CROSS APPLY (SELECT CRYPT_GEN_RANDOM (15)) AS t2(CompanyName)
- CROSS APPLY (SELECT REPLACE(REPLACE(REPLACE(CONVERT(XML, '').value('xs:base64Binary(sql:column("t1.ContactName"))', 'VARCHAR(MAX)'), '=', ''), '/', ''), '+', '')) AS t3(ContactName)
- CROSS APPLY (SELECT REPLACE(REPLACE(REPLACE(CONVERT(XML, '').value('xs:base64Binary(sql:column("t2.CompanyName"))', 'VARCHAR(MAX)'), '=', ''), '/', ''), '+', '')) AS t4(CompanyName)
-OPTION (MAXDOP 4)
-GO
-UPDATE CustomersBig SET InsertedDate = DATEADD(second, CONVERT(BIGINT, CustomerID * (CONVERT(INT, RAND() * (100 - 1) + 1))), CONVERT(DATETIME, '20100101'))
-GO
+---- 37 seconds to run
+--SELECT TOP 500000
+--       IDENTITY(Int, 1,1) AS CustomerID,
+--       CONVERT(VARCHAR(250), t4.CompanyName) AS CompanyName, 
+--       CONVERT(VARCHAR(250), t3.ContactName) AS ContactName,
+--       CONVERT(VARCHAR(250), dbo.fn_cKeys()) AS cKey,
+--       CONVERT(DATETIME, NULL) AS InsertedDate,
+--       CONVERT(IMAGE, CONVERT(VARCHAR(200), NEWID())) AS Col1,
+--       CONVERT(VARCHAR(250), NEWID()) AS Col2
+--  INTO CustomersBigTF4199
+--  FROM master.dbo.spt_values A
+-- CROSS JOIN master.dbo.spt_values B
+-- CROSS JOIN master.dbo.spt_values C
+-- CROSS JOIN master.dbo.spt_values D
+-- CROSS APPLY (SELECT CRYPT_GEN_RANDOM (10)) AS t1(ContactName)
+-- CROSS APPLY (SELECT CRYPT_GEN_RANDOM (15)) AS t2(CompanyName)
+-- CROSS APPLY (SELECT REPLACE(REPLACE(REPLACE(CONVERT(XML, '').value('xs:base64Binary(sql:column("t1.ContactName"))', 'VARCHAR(MAX)'), '=', ''), '/', ''), '+', '')) AS t3(ContactName)
+-- CROSS APPLY (SELECT REPLACE(REPLACE(REPLACE(CONVERT(XML, '').value('xs:base64Binary(sql:column("t2.CompanyName"))', 'VARCHAR(MAX)'), '=', ''), '/', ''), '+', '')) AS t4(CompanyName)
+--OPTION (MAXDOP 4)
+--GO
+--UPDATE CustomersBigTF4199 SET InsertedDate = DATEADD(second, CONVERT(BIGINT, CustomerID * (CONVERT(INT, RAND() * (100 - 1) + 1))), CONVERT(DATETIME, '20100101'))
+--GO
 
--- 37 seconds to run
-INSERT INTO CustomersBig WITH(TABLOCK)
-(
-    CompanyName,
-    ContactName,
-    cKey,
-    InsertedDate,
-    Col1,
-    Col2
-)
-SELECT TOP 5000000
-       CONVERT(VARCHAR(250), t4.CompanyName) AS CompanyName, 
-       CONVERT(VARCHAR(250), t3.ContactName) AS ContactName,
-       CONVERT(VARCHAR(250), 'ChaveInicial') AS cKey,
-       CONVERT(DATETIME, '20220101') AS InsertedDate,
-       CONVERT(IMAGE, CONVERT(VARCHAR(200), NEWID())) AS Col1,
-       CONVERT(VARCHAR(250), NEWID()) AS Col2
-  FROM master.dbo.spt_values A
- CROSS JOIN master.dbo.spt_values B
- CROSS JOIN master.dbo.spt_values C
- CROSS JOIN master.dbo.spt_values D
- CROSS APPLY (SELECT CRYPT_GEN_RANDOM (10)) AS t1(ContactName)
- CROSS APPLY (SELECT CRYPT_GEN_RANDOM (15)) AS t2(CompanyName)
- CROSS APPLY (SELECT REPLACE(REPLACE(REPLACE(CONVERT(XML, '').value('xs:base64Binary(sql:column("t1.ContactName"))', 'VARCHAR(MAX)'), '=', ''), '/', ''), '+', '')) AS t3(ContactName)
- CROSS APPLY (SELECT REPLACE(REPLACE(REPLACE(CONVERT(XML, '').value('xs:base64Binary(sql:column("t2.CompanyName"))', 'VARCHAR(MAX)'), '=', ''), '/', ''), '+', '')) AS t4(CompanyName)
-OPTION (MAXDOP 4)
-GO
--- 11 seconds to run
-ALTER TABLE CustomersBig ADD CONSTRAINT xpk_CustomersBig PRIMARY KEY(CustomerID)
--- DROP INDEX IF EXISTS ixcKey ON CustomersBig
-CREATE INDEX ixcKey ON CustomersBig(cKey)
-GO
+---- 37 seconds to run
+--INSERT INTO CustomersBigTF4199 WITH(TABLOCK)
+--(
+--    CompanyName,
+--    ContactName,
+--    cKey,
+--    InsertedDate,
+--    Col1,
+--    Col2
+--)
+--SELECT TOP 5000000
+--       CONVERT(VARCHAR(250), t4.CompanyName) AS CompanyName, 
+--       CONVERT(VARCHAR(250), t3.ContactName) AS ContactName,
+--       CONVERT(VARCHAR(250), 'ChaveInicial') AS cKey,
+--       CONVERT(DATETIME, '20220101') AS InsertedDate,
+--       CONVERT(IMAGE, CONVERT(VARCHAR(200), NEWID())) AS Col1,
+--       CONVERT(VARCHAR(250), NEWID()) AS Col2
+--  FROM master.dbo.spt_values A
+-- CROSS JOIN master.dbo.spt_values B
+-- CROSS JOIN master.dbo.spt_values C
+-- CROSS JOIN master.dbo.spt_values D
+-- CROSS APPLY (SELECT CRYPT_GEN_RANDOM (10)) AS t1(ContactName)
+-- CROSS APPLY (SELECT CRYPT_GEN_RANDOM (15)) AS t2(CompanyName)
+-- CROSS APPLY (SELECT REPLACE(REPLACE(REPLACE(CONVERT(XML, '').value('xs:base64Binary(sql:column("t1.ContactName"))', 'VARCHAR(MAX)'), '=', ''), '/', ''), '+', '')) AS t3(ContactName)
+-- CROSS APPLY (SELECT REPLACE(REPLACE(REPLACE(CONVERT(XML, '').value('xs:base64Binary(sql:column("t2.CompanyName"))', 'VARCHAR(MAX)'), '=', ''), '/', ''), '+', '')) AS t4(CompanyName)
+--OPTION (MAXDOP 4)
+--GO
+---- 11 seconds to run
+--ALTER TABLE CustomersBigTF4199 ADD CONSTRAINT xpk_CustomersBigTF4199 PRIMARY KEY(CustomerID)
+---- DROP INDEX IF EXISTS ixcKey ON CustomersBigTF4199
+--CREATE INDEX ixcKey ON CustomersBigTF4199(cKey)
+--GO
 
 -- Scan
 DECLARE @cKey VARCHAR(250)
@@ -165,7 +165,7 @@ SELECT CustomerID,
        InsertedDate,
        cKey,
        Col1
-  FROM CustomersBig
+  FROM CustomersBigTF4199
  WHERE cKey = @cKey
     OR cKey = LOWER(@cKey)
     OR cKey = UPPER(@cKey)
@@ -181,7 +181,7 @@ SELECT CustomerID,
        InsertedDate,
        cKey,
        Col1
-  FROM CustomersBig
+  FROM CustomersBigTF4199
  WHERE cKey = @cKey
     OR cKey = LOWER(@cKey)
     OR cKey = UPPER(@cKey)
@@ -201,7 +201,7 @@ SELECT CustomerID,
        InsertedDate,
        cKey,
        Col1
-  FROM CustomersBig
+  FROM CustomersBigTF4199
  WHERE cKey = @cKey
     OR cKey = LOWER(@cKey)
     OR cKey = UPPER(@cKey)

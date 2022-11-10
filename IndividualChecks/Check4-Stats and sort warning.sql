@@ -111,27 +111,32 @@ BEGIN TRY
          a.stats_name,
          a.key_column_name,
          a.number_of_rows_at_time_stat_was_updated,
-         a.last_updated AS last_updated_datetime,
          (SELECT COUNT(*) 
           FROM tempdb.dbo.tmp_exec_history b 
           WHERE b.rowid = a.rowid) AS number_of_statistic_data_available_for_this_object,
+         a.last_updated AS last_updated_datetime,
          Tab1.closest_sort_warning AS closest_sort_warning_datetime,
          DATEDIFF(MILLISECOND, Tab1.closest_sort_warning, a.last_updated) AS diff_of_update_stats_to_the_sort_warning_in_ms,
-         CASE 
-           WHEN DATEDIFF(MILLISECOND, Tab1.closest_sort_warning, a.last_updated) BETWEEN 0 AND 10 THEN 'Sort Warning was VERY CLOSE (less than 10ms diff) to the update stats, very high chances this was triggered by the update stats'
-           WHEN DATEDIFF(MILLISECOND, Tab1.closest_sort_warning, a.last_updated) BETWEEN 11 AND 50 THEN 'Sort Warning was CLOSE (between than 11 and 50ms diff) to the update stats, still very high chances this was triggered by the update stats'
-           WHEN DATEDIFF(MILLISECOND, Tab1.closest_sort_warning, a.last_updated) BETWEEN 51 AND 100 THEN 'Sort Warning was CLOSE (between than 51 and 100ms diff) to the update stats, high chances this was triggered by the update stats'
-           WHEN DATEDIFF(MILLISECOND, Tab1.closest_sort_warning, a.last_updated) BETWEEN 101 AND 500 THEN 'Sort Warning was NEAR (between than 101 and 500ms diff) to the update stats, high chances this was triggered by the update stats'
+         CASE
+           WHEN DATEDIFF(MILLISECOND, Tab1.closest_sort_warning, a.last_updated) BETWEEN 0 AND 10 THEN 'Sort Warning was VERY CLOSE (less than 10ms diff) to the update stats, high probability this was triggered by the update stats'
+           WHEN DATEDIFF(MILLISECOND, Tab1.closest_sort_warning, a.last_updated) BETWEEN 11 AND 50 THEN 'Sort Warning was CLOSE (between than 11 and 50ms diff) to the update stats, high probability this was triggered by the update stats'
+           WHEN DATEDIFF(MILLISECOND, Tab1.closest_sort_warning, a.last_updated) BETWEEN 51 AND 100 THEN 'Sort Warning was CLOSE (between than 51 and 100ms diff) to the update stats, high probability this was triggered by the update stats'
+           WHEN DATEDIFF(MILLISECOND, Tab1.closest_sort_warning, a.last_updated) BETWEEN 101 AND 500 THEN 'Sort Warning was NEAR (between than 101 and 500ms diff) to the update stats, high probability this was triggered by the update stats'
            WHEN a.number_of_rows_at_time_stat_was_updated >= 1000000 AND DATEDIFF(MILLISECOND, Tab1.closest_sort_warning, a.last_updated) BETWEEN 501 AND 20000 THEN 'Sort Warning was not close (between than 501 and 20000ms diff) to the update stats, but, since number of rows on table is greater than 1mi, depending on how much time spill took, update stat may still be related to this Warning'
            ELSE 'Very unlikely this was related to the update stats, but, may be.'
-         END comment_1
+         END comment_1,
+         CASE
+           WHEN Tab1.cnt > 1 THEN 'Found ' + CONVERT(VARCHAR(30), Tab1.cnt) + ' sort warning events happening at ' + CONVERT(VARCHAR(30), Tab1.closest_sort_warning, 21) + '. This probably means the update stats ran in parallel and there was multiple threads spilling data to tempdb.'
+           ELSE NULL
+         END comment_2
   INTO tempdb.dbo.tmpStatisticCheck4
   FROM tempdb.dbo.tmp_stats a
-  CROSS APPLY (SELECT TOP 1 tmp_default_trace.start_time 
+  CROSS APPLY (SELECT TOP 1 WITH TIES tmp_default_trace.start_time, COUNT(*) AS cnt 
                FROM tempdb.dbo.tmp_default_trace
                WHERE tmp_default_trace.start_time <= a.last_updated
                AND tmp_default_trace.event_name = 'Sort Warnings'
-               ORDER BY tmp_default_trace.start_time DESC) AS Tab1(closest_sort_warning)
+               GROUP BY tmp_default_trace.start_time
+               ORDER BY tmp_default_trace.start_time DESC) AS Tab1(closest_sort_warning, cnt)
   WHERE (a.number_of_rows_at_time_stat_was_updated >= 10000 or a.is_lob = 1) /* Ignoring small tables unless is LOB*/
 END TRY
 BEGIN CATCH
@@ -146,20 +151,25 @@ BEGIN CATCH
             a.stats_name,
             a.key_column_name,
             a.number_of_rows_at_time_stat_was_updated,
-            a.last_updated AS last_updated_datetime,
             (SELECT COUNT(*) 
              FROM tempdb.dbo.tmp_exec_history b 
              WHERE b.rowid = a.rowid) AS number_of_statistic_data_available_for_this_object,
+            a.last_updated AS last_updated_datetime,
             Tab1.closest_sort_warning AS closest_sort_warning_datetime,
             0 AS diff_of_update_stats_to_the_sort_warning_in_ms,
-            'Unable to check datediff... check the diff manually' comment_1
+            'Unable to check datediff... check the diff manually' comment_1,
+            CASE
+              WHEN Tab1.cnt > 1 THEN 'Found ' + CONVERT(VARCHAR(30), Tab1.cnt) + ' sort warning events happening at ' + CONVERT(VARCHAR(30), Tab1.closest_sort_warning, 21) + '. This probably means the update stats ran in parallel and there was multiple threads spilling data to tempdb.'
+              ELSE NULL
+            END comment_2
       INTO tempdb.dbo.tmpStatisticCheck4
       FROM tempdb.dbo.tmp_stats a
-      CROSS APPLY (SELECT TOP 1 tmp_default_trace.start_time 
+      CROSS APPLY (SELECT TOP 1 WITH TIES tmp_default_trace.start_time, COUNT(*) AS cnt 
                    FROM tempdb.dbo.tmp_default_trace
                    WHERE tmp_default_trace.start_time <= a.last_updated
                    AND tmp_default_trace.event_name = 'Sort Warnings'
-                   ORDER BY tmp_default_trace.start_time DESC) AS Tab1(closest_sort_warning)
+                   GROUP BY tmp_default_trace.start_time
+                   ORDER BY tmp_default_trace.start_time DESC) AS Tab1(closest_sort_warning, cnt)
       WHERE (a.number_of_rows_at_time_stat_was_updated >= 10000 or a.is_lob = 1) /* Ignoring small tables unless is LOB*/
   END
   ELSE
@@ -172,3 +182,94 @@ END CATCH
 
 SELECT * FROM tempdb.dbo.tmpStatisticCheck4
 ORDER BY number_of_rows_at_time_stat_was_updated DESC
+
+
+/*
+-- Script to show issue
+
+USE Northwind
+GO
+DROP TABLE IF EXISTS TestSortWarning
+GO
+CREATE TABLE TestSortWarning (RowID INT NOT NULL, Col1 INT NOT NULL, Col2 VARCHAR(100))
+GO
+-- 1 second to run
+DECLARE @RowID INT
+SELECT @RowID = MAX(RowID) FROM TestSortWarning
+INSERT INTO TestSortWarning WITH(TABLOCK) (RowID, Col1, Col2) 
+SELECT TOP 5000000
+       ISNULL(@RowID,0) + ROW_NUMBER() OVER(ORDER BY (SELECT 1)) AS RowID, 
+       CHECKSUM(NEWID()) AS Col1,
+       REPLICATE('X', 100)
+  FROM master.dbo.spt_values a
+ CROSS JOIN  master.dbo.spt_values b
+ CROSS JOIN  master.dbo.spt_values c
+ CROSS JOIN  master.dbo.spt_values d
+OPTION (MAXDOP 8)
+GO
+
+-- Optional: Start profiler an capture actual plan
+-- 5-7 seconds to run
+SELECT COUNT(*) 
+FROM TestSortWarning
+WHERE Col2 IS NULL
+OPTION (MAXDOP 1)
+GO
+-- Why is this taking so much time to run?
+-- Bonus question
+-- How could a MAXDOP 1 query have CXPACKET and CXCONSUMER waits?
+
+-- 0 second to run
+SELECT COUNT(*) 
+FROM TestSortWarning
+WHERE Col2 IS NULL
+OPTION (MAXDOP 1)
+GO
+
+
+--sp_helpstats TestSortWarning
+--GO
+--DROP STATISTICS TestSortWarning.[_WA_Sys_00000003_50D0E6F9]
+--GO
+
+
+-- While query is running
+EXEC sp_whoisactive @get_task_info = 2
+GO
+SELECT * FROM sys.dm_os_waiting_tasks
+WHERE session_id >= 50
+GO
+
+--------------------------------------------
+-- DON'T FORGET TO SET TEMPDB BACK TO SSD --
+--------------------------------------------
+
+-- SET TEMPDB on SSD
+USE master
+GO
+ALTER DATABASE TempDB MODIFY FILE
+(NAME = tempdev, FILENAME = 'D:\DBs\tempdb1_sql2019.mdf', SIZE = 100MB, FILEGROWTH = 1MB)
+GO
+ALTER DATABASE TempDB MODIFY FILE
+(NAME = templog, FILENAME = 'D:\DBs\log_tempdb_sql2019.ldf', SIZE = 25MB , FILEGROWTH = 1MB)
+GO
+EXEC xp_cmdShell 'net stop MSSQL$SQL2019 && net start MSSQL$SQL2019'
+GO
+SELECT * FROM tempdb.dbo.sysfiles
+GO
+
+-- SET TEMPDB on flashdrive
+USE master
+GO
+ALTER DATABASE TempDB MODIFY FILE
+(NAME = tempdev, FILENAME = 'E:\DBs\tempdb1_sql2019.mdf', SIZE = 100MB, FILEGROWTH = 1MB)
+GO
+ALTER DATABASE TempDB MODIFY FILE
+(NAME = templog, FILENAME = 'E:\DBs\log_tempdb_sql2019.ldf', SIZE = 25MB , FILEGROWTH = 1MB)
+GO
+EXEC xp_cmdShell 'net stop MSSQL$SQL2019 && net start MSSQL$SQL2019'
+GO
+SELECT * FROM tempdb.dbo.sysfiles
+GO
+
+*/

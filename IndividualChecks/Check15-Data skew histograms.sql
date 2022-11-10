@@ -267,13 +267,13 @@ CROSS APPLY (SELECT CASE
                             OR key_column_data_type LIKE '%int%' OR key_column_data_type LIKE '%bigint%'
                             OR key_column_data_type LIKE '%float%' OR key_column_data_type LIKE '%decimal%')
                         THEN CONVERT(VARCHAR(800), CONVERT(NUMERIC(28,0), tMax_By_avg_range_rows.range_hi_key) - CONVERT(NUMERIC(28,0), tMax_By_avg_range_rows_PreviousStep.range_hi_key))
-                      WHEN (key_column_data_type LIKE '%datetime%' OR key_column_data_type LIKE '%time%')
+                      WHEN (key_column_data_type LIKE '%date%' OR key_column_data_type LIKE '%time%')
                         THEN CONVERT(VARCHAR(800), DATEDIFF(DAY, CONVERT(DATETIME, tMax_By_avg_range_rows_PreviousStep.range_hi_key), CONVERT(DATETIME, tMax_By_avg_range_rows.range_hi_key)))
                       ELSE NULL
                     END - CONVERT(NUMERIC(28,0), 1)) AS t4(distinct_range_values_based_on_hi_keys)
 CROSS APPLY (SELECT CASE 
                      WHEN (t4.distinct_range_values_based_on_hi_keys IS NOT NULL)
-                       AND (tMax_By_avg_range_rows.[distinct_range_values] > 0)
+                       AND (tMax_By_avg_range_rows.[distinct_range_values] > 1)
                      THEN 'Warning - The distinct number of values on histogram for the range ' + 
                           '(' + QUOTENAME(key_column_name) + ' > [' + CONVERT(VARCHAR(800), tMax_By_avg_range_rows_PreviousStep.range_hi_key, 21) + '] AND ' + QUOTENAME(key_column_name) + ' < [' + CONVERT(VARCHAR(800), tMax_By_avg_range_rows.range_hi_key, 21) + '] )'
                           +' is ' + 
@@ -292,6 +292,57 @@ ORDER BY current_number_of_rows DESC,
          table_name,
          key_column_name,
          stats_name
+
+/*
+-- Script to test check
+USE Northwind
+GO
+IF OBJECT_ID('OrdersBig') IS NOT NULL
+  DROP TABLE OrdersBig
+GO
+SELECT TOP 1500000
+       IDENTITY(Int, 1,1) AS OrderID,
+       ABS(CheckSUM(NEWID()) / 10000000) AS CustomerID,
+       CONVERT(Date, GETDATE() - (CheckSUM(NEWID()) / 1000000)) AS OrderDate,
+       ISNULL(ABS(CONVERT(Numeric(18,2), (CheckSUM(NEWID()) / 1000000.5))),0) AS Value
+  INTO OrdersBig
+  FROM Orders A
+ CROSS JOIN Orders B CROSS JOIN Orders C CROSS JOIN Orders D
+GO
+INSERT INTO OrdersBig WITH(TABLOCK)
+SELECT TOP 500000
+       ABS(CheckSUM(NEWID()) / 10000000) AS CustomerID,
+       '20220101' AS OrderDate,
+       ISNULL(ABS(CONVERT(Numeric(18,2), (CheckSUM(NEWID()) / 1000000.5))),0) AS Value
+  FROM Orders A
+ CROSS JOIN Orders B CROSS JOIN Orders C CROSS JOIN Orders D
+GO
+INSERT INTO OrdersBig WITH(TABLOCK)
+SELECT TOP 4000000
+       99999 AS CustomerID,
+       '20220101' AS OrderDate,
+       ISNULL(ABS(CONVERT(Numeric(18,2), (CheckSUM(NEWID()) / 1000000.5))),0) AS Value
+  FROM Orders A
+ CROSS JOIN Orders B CROSS JOIN Orders C CROSS JOIN Orders D
+GO
+ALTER TABLE OrdersBig ADD CONSTRAINT xpk_OrdersBig PRIMARY KEY(OrderID)
+GO
+CREATE INDEX ixCustomerID ON OrdersBig(CustomerID)
+CREATE INDEX ixOrderDate ON OrdersBig(OrderDate)
+GO
+UPDATE STATISTICS OrdersBig WITH SAMPLE
+GO
+
+SELECT COUNT(*) FROM OrdersBig
+WHERE OrderDate = '20250101'
+AND 1 = (SELECT 1)
+SELECT COUNT(*) FROM OrdersBig
+WHERE CustomerID <= 1
+AND 1 = (SELECT 1)
+GO 10
+
+*/
+
 /*
 How to use Kimberly's scripts:
 
@@ -377,3 +428,4 @@ EXEC sp_SQLskills_AnalyzeAllLeadingIndexColumnSkew
   @numofsteps = 1,
   @percentofsteps = 1
 */
+

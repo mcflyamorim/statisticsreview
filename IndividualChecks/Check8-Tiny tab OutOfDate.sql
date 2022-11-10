@@ -11,11 +11,10 @@ The effect of joining a few-hundred million rows fact table with some small dime
 might be dramatic - in a negative sense.
 This problem is much easier to avoid with huge tables, but if you add 1 row to a 1-row table you double the data.
 
+https://learn.microsoft.com/en-us/archive/blogs/mssqlisv/sql-optimizations-manual-update-statistics-on-small-tables-may-provide-a-big-impact
+
 < -------------- What to look for and recommendations -------------- >
-- The key question is: How often should the statistics be updated ? 
-If changes on small tables happens too often (e.g. with every new single insert, update or delete) 
-it might thrash the whole system.
-To avoid those issues, make sure you're updating stats for those small tables.
+- To avoid issues, make sure you're updating stats for those small tables.
 
 - To avoid outdated or obsolete statistics on those tiny tables (in terms of number of rows),
 make sure you're manually updating it, it will not take too much time and may help query optimizer.

@@ -112,3 +112,65 @@ ORDER BY steps_diff_pct ASC,
          table_name,
          key_column_name,
          stats_name
+
+
+/*
+-- Script to show issue
+
+USE Northwind
+GO
+-- 6 secs to run
+IF OBJECT_ID('OrdersBig') IS NOT NULL
+  DROP TABLE OrdersBig
+GO
+SELECT TOP 1000000
+       IDENTITY(Int, 1,1) AS OrderID,
+       ABS(CheckSUM(NEWID()) / 10000) AS CustomerID,
+       CONVERT(Date, GETDATE() - (CheckSUM(NEWID()) / 1000000)) AS OrderDate,
+       ISNULL(ABS(CONVERT(Numeric(18,2), (CheckSUM(NEWID()) / 1000000.5))),0) AS Value
+  INTO OrdersBig
+  FROM Orders A
+ CROSS JOIN Orders B CROSS JOIN Orders C CROSS JOIN Orders D
+GO
+ALTER TABLE OrdersBig ADD CONSTRAINT xpk_OrdersBig PRIMARY KEY(OrderID)
+GO
+
+-- This will trigger auto-create stats on column Value
+SELECT * 
+FROM OrdersBig
+WHERE Value <= 1
+AND 1 = (SELECT 1)
+GO
+
+sp_helpstats OrdersBig
+GO
+
+-- Rows Sampled = 316540
+DBCC SHOW_STATISTICS (OrdersBig, _WA_Sys_00000004_32C16125)
+GO
+
+UPDATE STATISTICS OrdersBig WITH FULLSCAN
+GO
+
+-- Rows Sampled = 1000000
+DBCC SHOW_STATISTICS (OrdersBig, _WA_Sys_00000004_32C16125)
+GO
+
+
+UPDATE TOP(700000) OrdersBig SET Value = Value
+GO
+
+
+-- This will trigger auto-update stats on column Value
+SELECT * 
+FROM OrdersBig
+WHERE Value <= 1
+AND 1 = (SELECT 1)
+GO
+
+
+-- Back to sampled stats
+-- Rows Sampled = 316540
+DBCC SHOW_STATISTICS (OrdersBig, _WA_Sys_00000004_32C16125)
+GO
+*/
