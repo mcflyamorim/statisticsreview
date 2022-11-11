@@ -22,7 +22,7 @@ AS (
 
    --Percent of stats considered out-of-date (more than 24 hours since last update):: <N>
    SELECT CONVERT(VARCHAR(8000), 'Percent of stats considered out-of-date (more than 24 hours since last update): ') AS [info],
-          CONVERT(VARCHAR(200), CONVERT(NUMERIC(18, 2), (COUNT(*) / t1.cnt) * 100)) AS [result],
+          CONVERT(VARCHAR(200), CONVERT(NUMERIC(18, 0), (COUNT(*) / t1.cnt) * 100)) AS [result],
           'High' AS prioritycol,
           'Check30' AS more_info,
           '' AS quick_fix
