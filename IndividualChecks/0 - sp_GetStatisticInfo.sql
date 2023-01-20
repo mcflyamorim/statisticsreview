@@ -1072,8 +1072,20 @@ BEGIN
   ALTER TABLE #tmp_stats ADD last_user_lookup         DATETIME
   ALTER TABLE #tmp_stats ADD range_scan_count         BIGINT
   ALTER TABLE #tmp_stats ADD singleton_lookup_count   BIGINT
+  ALTER TABLE #tmp_stats ADD leaf_insert_count BIGINT
+  ALTER TABLE #tmp_stats ADD leaf_delete_count BIGINT
+  ALTER TABLE #tmp_stats ADD leaf_update_count BIGINT
+  ALTER TABLE #tmp_stats ADD forwarded_fetch_count BIGINT
+
   ALTER TABLE #tmp_stats ADD page_latch_wait_count    BIGINT
+  ALTER TABLE #tmp_stats ADD page_latch_wait_in_ms BIGINT
+  ALTER TABLE #tmp_stats ADD avg_page_latch_wait_in_ms NUMERIC(25, 2)
+  ALTER TABLE #tmp_stats ADD page_latch_wait_time_d_h_m_s VARCHAR(10)
+
   ALTER TABLE #tmp_stats ADD page_io_latch_wait_count BIGINT
+  ALTER TABLE #tmp_stats ADD page_io_latch_wait_in_ms BIGINT
+  ALTER TABLE #tmp_stats ADD avg_page_io_latch_wait_in_ms NUMERIC(25, 2)
+  ALTER TABLE #tmp_stats ADD page_io_latch_wait_time_d_h_m_s VARCHAR(10)
 
   IF OBJECT_ID('tempdb.dbo.#tmp_dm_db_index_usage_stats') IS NOT NULL
     DROP TABLE #tmp_dm_db_index_usage_stats
@@ -1096,19 +1108,37 @@ BEGIN
   BEGIN TRY
     /* Creating a copy of sys.dm_db_index_operational_stats because this is too slow to access without an index */
     /* Aggregating the results, to have total for all partitions */
-    SELECT ios.database_id, 
-           ios.object_id, 
-           ios.index_id, 
-           SUM(ios.range_scan_count) AS range_scan_count,
-           SUM(ios.singleton_lookup_count) AS singleton_lookup_count,
-           SUM(ios.page_latch_wait_count) AS page_latch_wait_count,
-           SUM(ios.page_io_latch_wait_count) AS page_io_latch_wait_count
+    SELECT t.database_id,
+           object_id, 
+           index_id, 
+           SUM(range_scan_count) AS range_scan_count,
+           SUM(singleton_lookup_count) AS singleton_lookup_count,
+           SUM(page_latch_wait_count) AS page_latch_wait_count,
+           SUM(page_io_latch_wait_count) AS page_io_latch_wait_count,
+           SUM(leaf_insert_count) AS leaf_insert_count,
+           SUM(leaf_delete_count) AS leaf_delete_count,
+           SUM(leaf_update_count) AS leaf_update_count,
+           SUM(forwarded_fetch_count) AS forwarded_fetch_count,
+           SUM(page_latch_wait_in_ms) AS page_latch_wait_in_ms,
+           CONVERT(NUMERIC(25, 2),
+           CASE 
+             WHEN SUM(page_latch_wait_count) > 0 THEN SUM(page_latch_wait_in_ms) / (1. * SUM(page_latch_wait_count))
+             ELSE 0 
+           END) AS avg_page_latch_wait_in_ms,
+           CONVERT(VARCHAR(10), (SUM(page_latch_wait_in_ms) / 1000) / 86400) + ':' + CONVERT(VARCHAR(20), DATEADD(s, (SUM(page_latch_wait_in_ms) / 1000), 0), 108) AS page_latch_wait_time_d_h_m_s,
+           SUM(page_io_latch_wait_in_ms) AS page_io_latch_wait_in_ms,
+           CONVERT(NUMERIC(25, 2), 
+           CASE 
+             WHEN SUM(page_io_latch_wait_count) > 0 THEN SUM(page_io_latch_wait_in_ms) / (1. * SUM(page_io_latch_wait_count))
+             ELSE 0 
+           END) AS avg_page_io_latch_wait_in_ms,
+           CONVERT(VARCHAR(10), (SUM(page_io_latch_wait_in_ms) / 1000) / 86400) + ':' + CONVERT(VARCHAR(20), DATEADD(s, (SUM(page_io_latch_wait_in_ms) / 1000), 0), 108) AS page_io_latch_wait_time_d_h_m_s
       INTO #tmp_dm_db_index_operational_stats
       FROM (SELECT DISTINCT database_id FROM #tmp_stats) AS t
      CROSS APPLY sys.dm_db_index_operational_stats (t.database_id, NULL, NULL, NULL) AS ios
-     GROUP BY ios.database_id, 
-           ios.object_id, 
-           ios.index_id
+     GROUP BY t.database_id, 
+           object_id, 
+           index_id
   END TRY
   BEGIN CATCH
     SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Error while trying to read data from sys.dm_db_index_operational_stats. You may see limited results because of it.'
@@ -1123,17 +1153,27 @@ BEGIN
     be good enough.
   */
   UPDATE #tmp_stats 
-  SET user_seeks               = ius.user_seeks,
-      user_scans               = ius.user_scans,
-      user_lookups             = ius.user_lookups,
-      user_updates             = ius.user_updates,
-      last_user_seek           = ius.last_user_seek,
-      last_user_scan           = ius.last_user_scan,
-      last_user_lookup         = ius.last_user_lookup,
-      range_scan_count         = ios.range_scan_count,
-      singleton_lookup_count   = ios.singleton_lookup_count,
-      page_latch_wait_count    = ios.page_latch_wait_count,
-      page_io_latch_wait_count = ios.page_io_latch_wait_count
+  SET user_seeks                      = ius.user_seeks,
+      user_scans                      = ius.user_scans,
+      user_lookups                    = ius.user_lookups,
+      user_updates                    = ius.user_updates,
+      last_user_seek                  = ius.last_user_seek,
+      last_user_scan                  = ius.last_user_scan,
+      last_user_lookup                = ius.last_user_lookup,
+      range_scan_count                = ios.range_scan_count,
+      singleton_lookup_count          = ios.singleton_lookup_count,
+      page_latch_wait_count           = ios.page_latch_wait_count,
+      page_io_latch_wait_count        = ios.page_io_latch_wait_count,
+      leaf_insert_count               = ios.leaf_insert_count,
+      leaf_delete_count               = ios.leaf_delete_count,
+      leaf_update_count               = ios.leaf_update_count,
+      forwarded_fetch_count           = ios.forwarded_fetch_count,
+      page_latch_wait_in_ms           = ios.page_latch_wait_in_ms,
+      avg_page_latch_wait_in_ms       = ios.avg_page_latch_wait_in_ms,
+      page_latch_wait_time_d_h_m_s    = ios.page_latch_wait_time_d_h_m_s,
+      page_io_latch_wait_in_ms        = ios.page_io_latch_wait_in_ms,
+      avg_page_io_latch_wait_in_ms    = ios.avg_page_io_latch_wait_in_ms,
+      page_io_latch_wait_time_d_h_m_s = ios.page_io_latch_wait_time_d_h_m_s
   FROM #tmp_stats
   LEFT OUTER JOIN #tmp_dm_db_index_usage_stats AS ius WITH (NOLOCK)
   ON ius.database_id = #tmp_stats.database_id

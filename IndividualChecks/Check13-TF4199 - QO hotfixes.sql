@@ -157,8 +157,6 @@ SELECT * FROM tempdb.dbo.tmpStatisticCheck13
 --GO
 
 -- Scan
-DECLARE @cKey VARCHAR(250)
-SET @cKey = 'teste123' --dbo.fn_cKeys()
 SELECT CustomerID,
        CompanyName,
        ContactName,
@@ -166,15 +164,11 @@ SELECT CustomerID,
        cKey,
        Col1
   FROM CustomersBigTF4199
- WHERE cKey = @cKey
-    OR cKey = LOWER(@cKey)
-    OR cKey = UPPER(@cKey)
+ WHERE cKey = LOWER('teste123')
  OPTION(RECOMPILE)
 GO
 
 -- Seek
-DECLARE @cKey VARCHAR(250)
-SET @cKey = 'teste123' --dbo.fn_cKeys()
 SELECT CustomerID,
        CompanyName,
        ContactName,
@@ -182,9 +176,7 @@ SELECT CustomerID,
        cKey,
        Col1
   FROM CustomersBigTF4199
- WHERE cKey = @cKey
-    OR cKey = LOWER(@cKey)
-    OR cKey = UPPER(@cKey)
+ WHERE cKey = LOWER('teste123')
 OPTION(RECOMPILE, USE HINT('ENABLE_QUERY_OPTIMIZER_HOTFIXES'))
 GO
 
@@ -193,8 +185,6 @@ DBCC TRACEON(4199)
 -- DBCC TRACEOFF(4199)
 GO
 
-DECLARE @cKey VARCHAR(250)
-SET @cKey = 'teste123' --dbo.fn_cKeys()
 SELECT CustomerID,
        CompanyName,
        ContactName,
@@ -202,9 +192,7 @@ SELECT CustomerID,
        cKey,
        Col1
   FROM CustomersBigTF4199
- WHERE cKey = @cKey
-    OR cKey = LOWER(@cKey)
-    OR cKey = UPPER(@cKey)
+ WHERE cKey = LOWER('teste123')
  OPTION(RECOMPILE)
 GO
 */

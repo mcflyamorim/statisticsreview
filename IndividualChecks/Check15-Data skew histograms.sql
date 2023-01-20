@@ -336,6 +336,7 @@ GO
 SELECT COUNT(*) FROM OrdersBig
 WHERE OrderDate = '20250101'
 AND 1 = (SELECT 1)
+GO
 SELECT COUNT(*) FROM OrdersBig
 WHERE CustomerID <= 1
 AND 1 = (SELECT 1)

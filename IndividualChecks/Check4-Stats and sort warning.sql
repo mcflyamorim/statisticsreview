@@ -187,6 +187,7 @@ ORDER BY number_of_rows_at_time_stat_was_updated DESC
 /*
 -- Script to show issue
 
+
 USE Northwind
 GO
 DROP TABLE IF EXISTS TestSortWarning
@@ -197,7 +198,7 @@ GO
 DECLARE @RowID INT
 SELECT @RowID = MAX(RowID) FROM TestSortWarning
 INSERT INTO TestSortWarning WITH(TABLOCK) (RowID, Col1, Col2) 
-SELECT TOP 5000000
+SELECT TOP 7000000
        ISNULL(@RowID,0) + ROW_NUMBER() OVER(ORDER BY (SELECT 1)) AS RowID, 
        CHECKSUM(NEWID()) AS Col1,
        REPLICATE('X', 100)
@@ -209,7 +210,7 @@ OPTION (MAXDOP 8)
 GO
 
 -- Optional: Start profiler an capture actual plan
--- 5-7 seconds to run
+-- 7-9 seconds to run
 SELECT COUNT(*) 
 FROM TestSortWarning
 WHERE Col2 IS NULL
@@ -229,7 +230,7 @@ GO
 
 --sp_helpstats TestSortWarning
 --GO
---DROP STATISTICS TestSortWarning.[_WA_Sys_00000003_50D0E6F9]
+--DROP STATISTICS TestSortWarning.[_WA_Sys_00000003_75D84E76]
 --GO
 
 
@@ -271,5 +272,6 @@ EXEC xp_cmdShell 'net stop MSSQL$SQL2019 && net start MSSQL$SQL2019'
 GO
 SELECT * FROM tempdb.dbo.sysfiles
 GO
+
 
 */

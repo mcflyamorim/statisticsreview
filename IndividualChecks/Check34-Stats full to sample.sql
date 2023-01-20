@@ -8,7 +8,7 @@ degradation of query plan efficiency.
   
 In this check I'm returning all stats that have a diff in the number of steps, make sure you review all of those 
 (not only the ones with a warning) to confirm you identified all the cases.
-I understand that having more or less steps in a statistic object is not always  synonym of better key value coverage and 
+I understand that having more or less steps in a statistic object is not always synonym of better key value coverage and 
 estimations, but, that's a good indication we can use as a starting point to identify those full to sample issue.
 
 Ideally, this check should be executed after the update stat maintenance, the longer the diff after the maintenance the
@@ -115,62 +115,95 @@ ORDER BY steps_diff_pct ASC,
 
 
 /*
--- Script to show issue
+--EXEC xp_cmdshell 'del D:\Fabiano\Trabalho\WebCasts, Artigos e Palestras\PASS Summit 2022\Dica151.bak', no_output
+--BACKUP DATABASE Dica151 TO 
+--DISK = 'D:\Fabiano\Trabalho\WebCasts, Artigos e Palestras\PASS Summit 2022\Dica151.bak'
+--WITH INIT , NOUNLOAD , NAME = 'Dica151 backup', NOSKIP , STATS = 10, NOFORMAT, COMPRESSION
+--GO
 
-USE Northwind
-GO
--- 6 secs to run
-IF OBJECT_ID('OrdersBig') IS NOT NULL
-  DROP TABLE OrdersBig
-GO
-SELECT TOP 1000000
-       IDENTITY(Int, 1,1) AS OrderID,
-       ABS(CheckSUM(NEWID()) / 10000) AS CustomerID,
-       CONVERT(Date, GETDATE() - (CheckSUM(NEWID()) / 1000000)) AS OrderDate,
-       ISNULL(ABS(CONVERT(Numeric(18,2), (CheckSUM(NEWID()) / 1000000.5))),0) AS Value
-  INTO OrdersBig
-  FROM Orders A
- CROSS JOIN Orders B CROSS JOIN Orders C CROSS JOIN Orders D
-GO
-ALTER TABLE OrdersBig ADD CONSTRAINT xpk_OrdersBig PRIMARY KEY(OrderID)
-GO
+--USE master
+--GO
+--ALTER DATABASE Dica151 SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+--DROP DATABASE Dica151
+---- 26 seconds to run
+--RESTORE DATABASE [Dica151] FROM DISK = N'D:\Fabiano\Trabalho\WebCasts, Artigos e Palestras\PASS Summit 2022\Dica151.bak' 
+--WITH  FILE = 1, MOVE N'ClearTraceFabiano' TO N'C:\DBs\Dica151.mdf',  
+--                MOVE N'ClearTraceFabiano_log' TO N'C:\DBs\Dica151_log.ldf',  
+--NOUNLOAD,  STATS = 5
 
--- This will trigger auto-create stats on column Value
-SELECT * 
-FROM OrdersBig
-WHERE Value <= 1
-AND 1 = (SELECT 1)
+USE Dica151
 GO
 
-sp_helpstats OrdersBig
+-- Maintenance job ran and updated stat to FULLSCAN
+-- 7 seconds to run
+UPDATE STATISTICS FATURAMENTO_PROD XIE2FATURAMENTO_PROD WITH FULLSCAN
 GO
 
--- Rows Sampled = 316540
-DBCC SHOW_STATISTICS (OrdersBig, _WA_Sys_00000004_32C16125)
+-- Query takes avg of 1 second to run
+SELECT C.CAIXA,
+       A.FILIAL,
+       A.NF_SAIDA,
+       A.SERIE_NF,
+       A.NOME_CLIFOR
+FROM FATURAMENTO A
+    INNER JOIN FATURAMENTO_PROD B
+        ON A.NF_SAIDA = B.NF_SAIDA
+           AND A.SERIE_NF = B.SERIE_NF
+           AND A.FILIAL = B.FILIAL
+    INNER JOIN FATURAMENTO_CAIXAS C
+        ON B.CAIXA = C.CAIXA
+WHERE A.STATUS_NFE = 5
+      AND C.NOME_CLIFOR_DESTINO_FINAL IS NOT NULL
+      AND C.NOME_CLIFOR_DESTINO_FINAL <> C.NOME_CLIFOR
+      AND C.CHAVE_NFE IS NULL
+      AND B.PEDIDO IS NOT NULL
+GROUP BY C.CAIXA,
+         A.FILIAL,
+         A.NF_SAIDA,
+         A.SERIE_NF,
+         A.NOME_CLIFOR
+OPTION (RECOMPILE, MAXDOP 1);
 GO
 
-UPDATE STATISTICS OrdersBig WITH FULLSCAN
+-- Yes, this will not actually change anything, but will 
+-- increase internal modification counter
+BEGIN TRAN
+TRUNCATE TABLE FATURAMENTO_PROD
+ROLLBACK TRAN
 GO
 
--- Rows Sampled = 1000000
-DBCC SHOW_STATISTICS (OrdersBig, _WA_Sys_00000004_32C16125)
+-- Modification counter...
+SELECT a.name, a.stats_id, sp.last_updated, sp.rows, sp.rows_sampled, sp.modification_counter 
+FROM sys.stats AS a
+        CROSS APPLY sys.dm_db_stats_properties(a.object_id, a.stats_id) AS sp
+WHERE a.object_id = OBJECT_ID('FATURAMENTO_PROD')
 GO
 
-
-UPDATE TOP(700000) OrdersBig SET Value = Value
-GO
-
-
--- This will trigger auto-update stats on column Value
-SELECT * 
-FROM OrdersBig
-WHERE Value <= 1
-AND 1 = (SELECT 1)
-GO
-
-
--- Back to sampled stats
--- Rows Sampled = 316540
-DBCC SHOW_STATISTICS (OrdersBig, _WA_Sys_00000004_32C16125)
+-- This will trigger auto-update stats which 
+-- will use sample
+-- Query takes 7 seconds to run
+SELECT C.CAIXA,
+       A.FILIAL,
+       A.NF_SAIDA,
+       A.SERIE_NF,
+       A.NOME_CLIFOR
+FROM FATURAMENTO A
+    INNER JOIN FATURAMENTO_PROD B
+        ON A.NF_SAIDA = B.NF_SAIDA
+           AND A.SERIE_NF = B.SERIE_NF
+           AND A.FILIAL = B.FILIAL
+    INNER JOIN FATURAMENTO_CAIXAS C
+        ON B.CAIXA = C.CAIXA
+WHERE A.STATUS_NFE = 5
+      AND C.NOME_CLIFOR_DESTINO_FINAL IS NOT NULL
+      AND C.NOME_CLIFOR_DESTINO_FINAL <> C.NOME_CLIFOR
+      AND C.CHAVE_NFE IS NULL
+      AND B.PEDIDO IS NOT NULL
+GROUP BY C.CAIXA,
+         A.FILIAL,
+         A.NF_SAIDA,
+         A.SERIE_NF,
+         A.NOME_CLIFOR
+OPTION (RECOMPILE, MAXDOP 1);
 GO
 */
