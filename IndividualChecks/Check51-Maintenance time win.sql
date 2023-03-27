@@ -1,16 +1,18 @@
 /* 
+Check51 - Maintenance time window
+Description:
 Check 51 - Maintenance time window 
-< ---------------- Description ----------------- >
-Tries to identify what is the maintenance time window based on the number of 
-statistics updated in a hour interval.
+Tries to identify what is the maintenance time window based on the number of statistics updated in an hour interval.
+Estimated Benefit:
+Low
+Estimated Effort:
+Low
+Recommendation:
+Quick recommendation:
+Review recommendation and if possible, run review a few hours after maintenance window.
+Detailed recommendation:
+- The bigger the difference between the maintenance window EndTime to the execution of sp_GetStatisticInfo the better the chances of more interesting data the checks will return. For instance, considering an environment with maintenance ending at 4am, if you run sp_GetStatisticInfo at 1am, you'll have more chances to capture auto-updated statistic info, but, if you run it at 8am, you'll miss the whole day worthy data.
 
-< -------------- What to look for and recommendations -------------- >
-- The bigger the diference between the maintenance window EndTime to 
-the execution of sp_GetStatisticInfo the better the chances of more interesting
-data the checks will return. For instance, considering a env with maintenance 
-ending at 4am, if you run sp_GetStatisticInfo at 1am, you'll have more chances 
-to capture auto-updated statistic info, but, if you run it at 8am, you'll miss the
-whole day worthy data.
 */
 
 -- Fabiano Amorim

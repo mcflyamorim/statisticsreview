@@ -1,33 +1,27 @@
 /*
+Check30 - Out-of-date statistics
+Description:
 Check 30 - Check if there are outdated (latest update older than 24 hours) statistics
-
-< ---------------- Description ----------------- >
-Statistics become out-of-date after modifications from insert, update, delete, or merge operations 
-change the data distribution in the table or indexed view.
-
-< -------------- What to look for and recommendations -------------- >
-- In some cases, you can improve the query plan and therefore improve query performance by 
-updating statistics more frequently.
-
-- The frequency with which you should update statistics depends greatly on how much data 
-modification you have and depends on your application. You may require some experimentation to 
-determine when to do it to ensures that queries compile with up-to-date statistics.
-Another important aspect you should consider is to look at the execution plans 
-and check if you estimated number of rows differ from your actual rows. You can use 
-the following xEvents to help you to identify those cases:
+Statistics become out-of-date after modifications from insert, update, delete, or merge operations change the data distribution in the table or indexed view.
+Estimated Benefit:
+Very High
+Estimated Effort:
+High
+Recommendation:
+Quick recommendation:
+Update out of date statistics.
+Detailed recommendation:
+In some cases, you can improve the query plan and therefore improve query performance by updating statistics more frequently.
+The frequency with which you should update statistics depends greatly on how much data modification you have and depends on your application. You may require some experimentation to determine when to do it to ensures that queries compile with up-to-date statistics. Another important aspect you should consider is to look at the execution plans and check if you estimated number of rows differ from your actual rows. You can use the following xEvents to help you to identify those cases:
 * inaccurate_cardinality_estimate (I would start by tracking this one)
 * large_cardinality_misestimate
 * query_optimizer_cardinality_guess
 * query_optimizer_estimate_cardinality
 * large_cardinality_misestimate
 
-However, keep in mind that update statistic will case queries to recompile, therefore, 
-there is a performance tradeoff between improving query plans and the time/cost it takes to recompile queries. 
-The specific tradeoffs depend on your application. Usually, the cost overhead of using out-of-date
-statistic is higher than the recompile.
-A good starting point for the frequency of fullscan update is that if the table under 
-consideration has a high update rate, run fullscan statistics update nightly. 
-If the table has a low update rate, run fullscan statistics update weekly.
+However, keep in mind that update statistic will case queries to recompile, therefore, there is a performance tradeoff between improving query plans and the time/cost it takes to recompile queries. The specific tradeoffs depend on your application. Usually, the cost overhead of using out-of-date statistic is higher than the recompile.
+A good starting point for the frequency of fullscan update is that if the table under consideration has a high update rate, run fullscan statistics update nightly. If the table has a low update rate, run fullscan statistics update weekly.
+
 */
 
 -- Fabiano Amorim

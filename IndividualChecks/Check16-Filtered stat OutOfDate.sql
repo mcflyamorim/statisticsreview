@@ -1,27 +1,19 @@
 /*
-Check 16 - Are filtered stats are out of date ?
-
-< ---------------- Description ----------------- >
-For filtered indexes the threshold invalidation algorithm is tied solely to the column and not just to the filtered set. 
-So, if your table has 10,000 rows it takes 2,500 modifications in that column to update statistics. 
-If your filtered index only has 1,000 rows, then you could theoretically modify this specific 
-filtered set 2.5 times before it would be updated.
-
-So, there is a limitation of the automatic update logic is that it only tracks changes to columns in the statistics, 
-but not changes to columns in the predicate. 
-If there are many changes to the columns used in predicates of filtered statistics, consider using manual updates to keep up with the changes.
-
-In other words, if you have an stat "create statistics Stats1 on Customers(ContactName) where Active = 1",
-if you update Active column from 1 to 0 for 100% of table, it will not trigger auto update stats,
-as column ContactName doesn't have any modification.
-
-Note: For the leading columns, the modification counter is adjusted by the selectivity of the filter 
-before these conditions are tested. 
-For example, for filtered statistics with predicate selecting 50% of the rows, the modification counter
-is multiplied by 0.5.
-
-< -------------- What to look for and recommendations -------------- >
-- Create a job to update these filtered stats manually and more frequently
+Check16 - Filtered out-of-date statistics
+Description:
+Check 16 - Are filtered stats are out of date?
+For filtered indexes the threshold invalidation algorithm is tied solely to the column and not just to the filtered set. So, if your table has 10,000 rows it takes 2,500 modifications in that column to update statistics. 
+If your filtered index only has 1,000 rows, then you could theoretically modify this specific filtered set 2.5 times before it would be updated. There is a limitation of the automatic update logic is that it only tracks changes to columns in the statistics, but not changes to columns in the predicate. If there are many changes to the columns used in predicates of filtered statistics, consider using manual updates to keep up with the changes. In other words, if you have a stat "create statistics Stats1 on Customers (ContactName) where Active = 1", if you update Active column from 1 to 0 for 100% of table, it will not trigger auto update stats, as column ContactName doesn't have any modification.
+Note: For the leading columns, the modification counter is adjusted by the selectivity of the filter before these conditions are tested. For example, for filtered statistics with predicate selecting 50% of the rows, the modification counter is multiplied by 0.5.
+Estimated Benefit:
+High
+Estimated Effort:
+Low
+Recommendation:
+Quick recommendation:
+Review outdated filtered statistics and update them more often.
+Detailed recommendation:
+- Create a job to update these filtered stats manually and more frequently.
 
 */
 

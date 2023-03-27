@@ -1,17 +1,20 @@
 /*
+Check38 - Anti-matter columns
+Description:
 Check 38 - Check if there are "anti-matter" columns, as this may cause issues with update stats.
-
-< ---------------- Description ----------------- >
 During the build phase, rows in the new "in-build" index may be in an intermediate state called antimatter. 
-This mechanism allows concurrent DELETE statements to leave a trace for the index builder transaction 
-to avoid inserting deleted rows. At the end of the index build operation 
-all antimatter rows should be cleared. If an error occurs and antimatter rows remain in the index.
+This mechanism allows concurrent DELETE statements to leave a trace for the index builder transaction to avoid inserting deleted rows. At the end of the index build operation all antimatter rows should be cleared. If an error occurs and antimatter rows remain in the index.
 Rebuilding the index will remove the antimatter rows and resolve the error.
+Estimated Benefit:
+Low
+Estimated Effort:
+Medium
+Recommendation:
+Quick recommendation:
+Rebuild indexes to remove anti-matter column.
+Detailed recommendation:
+- I had weird (stats blob was not saved) issues when table had "anti-matter" columns. For now, I'd say to go ahead and rebuild the index to avoid issues.
 
-< -------------- What to look for and recommendations -------------- >
-- I had weird (stats blob was not saved) issues when table had "anti-matter" columns.
-I didn't had time to create a repro, I'll do it later. For now I'd say to 
-go ahead and rebuild the index to avoid issues.
 */
 
 -- Fabiano Amorim

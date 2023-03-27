@@ -1,57 +1,44 @@
 /*
+Check15 - Data skew histograms
+Description:
 Check 15 - Analyze and find data skew issues with limited histogram causing poor estimations
-
-< ---------------- Description ----------------- >
-Skew is a term from statistics when a normal distribution is not symmetric. 
-In other words, it simply mean that some values appear more often than others.
-In case of uniformly distributed data, we usually don't have to do anything, but, if data is skewed, 
-we may have to help query optimizer to avoid bad cardinality estimations.
-
-In this script, I'm reading the maximum value of avg_range_rows in a histogram, and based on this, I'm trying to 
-create a SELECT query to read one value between the range. This will make SQL use the avg_range_rows as the
-estimation and if value is off the average, the estimation will be bad.
-
-< -------------- What to look for and recommendations -------------- >
-- Run the query (column sample_query_to_show_bad_cardinality_estimation) using the filter on the value
-and check the estimated vs the actual number of rows.
-
-- The first thing you should do it to update the statistic with fullscan, 
-as this may provide a better histogram, if this do not help, try filtered stats.
-
+Skew is a term from statistics when a normal distribution is not symmetric. In other words, it simply means that some values appear more often than others. In case of uniformly distributed data, we usually don't have to do anything, but, if data is skewed, we may have to help query optimizer to avoid bad cardinality estimations.
+In this script, I'm reading the maximum value of avg_range_rows in a histogram, and based on this, I'm trying to create a SELECT query to read one value between the range. This will make SQL use the avg_range_rows as the estimation and if value is off the average, the estimation will be bad.
+Estimated Benefit:
+High
+Estimated Effort:
+Very High
+Recommendation:
+Quick recommendation:
+Review reported statistics, comments and recommendations.
+Detailed recommendation:
+- Run the query (column sample_query_to_show_bad_cardinality_estimation) using the filter on the value and check the estimated vs the actual number of rows.
+- The first thing you should do it to update the statistic with fullscan, as this may provide a better histogram, if this do not help, try filtered stats.
 - Check with the developers if those values are indeed used in a query.
-
 - Columns with dates are good candidates to review as usually, users can query by any date.
-
-- Make sure you review all columns with comments and suggestions
-
+- Make sure you review all columns with comments and suggestions.
 - To help you identify queries with bad estimations, you can use the following xEvents:
-* inaccurate_cardinality_estimate (I would start by tracking this one)
-* large_cardinality_misestimate
-* query_optimizer_cardinality_guess
-* query_optimizer_estimate_cardinality
-* large_cardinality_misestimate
-Once you've identified the queries, you can check if bad estimation is due to 
-data skew.
-
+- - - - inaccurate_cardinality_estimate (I would start by tracking this one)
+- - - - large_cardinality_misestimate
+- - - - query_optimizer_cardinality_guess
+- - - - query_optimizer_estimate_cardinality
+- - - - large_cardinality_misestimate
+- Once you've identified the queries, you can check if bad estimation is due to data skew.
 - If we identify "skewed" data sets, it may be worth thinking about:
-* Filtered stats
-* Update statistics with fullscan
-* Use hints to help query optimizer
+- - - - Filtered stats
+- - - - Update statistics with fullscan
+- - - - Use hints to help query optimizer
+- Filtered stats can help with those columns, good candidates for this are:
+- - - - Big tables (usually over 1mi rows)
+- - - - Columns with lots of unique values (low density)
+- - - - Statistics already using almost all steps available (200 + 1 for NULL)
+- Kimberly's scripts can help to analyze analyzes data skew and identify where you can create filtered statistics to provide more Information to the Query Optimizer.
+https://www.sqlskills.com/blogs/kimberly/sqlskills-procs-analyze-data-skew-create-filtered-statistics/ 
 
-- Filtered stats can help witht those columns, good candidates for this are:
-* Big tables (usually over 1mi rows)
-* Columns with lot's of unique values (low density)
-* Statistics already using almost all steps available (200 + 1 for NULL)
+Note 1: Kimberly's scripts will only analyze data if a base index is available, this may be good for almost all cases since we're expecting you to have indexes on filtered columns, but you may want to check it manually for non-indexed columns
 
-- Kimberly's scripts can help to analyze analyzes data skew and identify 
-where you can create filtered statistics to provide more Information to the Query Optimizer.
-https://www.sqlskills.com/blogs/kimberly/sqlskills-procs-analyze-data-skew-create-filtered-statistics/
+Note 2: Kimberly's scripts will NOT check for wrong estimations due to data that doesn't exist on statistic. In other words, if estimated number of rows is 1000 and actual number of rows is 0, it will not identify those cases.
 
-Note 1: Kimberly's scripts will only analyze data if a base index is available, this may be good for almost all cases
-since we're expecting you to have indexes on filtered columns, but, you may want to check it manually for non-indexed columns
-
-Note 2: Kimberly's scripts will NOT check for wrong estimations due to data that doesn't exist on statistic... In other words,  
-if estimated number of rows is 1000 and actual number of rows is 0, it will not identify those cases.
 */
 
 -- Fabiano Amorim
@@ -285,6 +272,7 @@ WHERE a.current_number_of_rows >= 1000 /*Only considering table with more than 1
 AND a.is_unique = 0
 AND a.key_column_data_type NOT LIKE '%BINARY%'
 AND a.key_column_data_type NOT LIKE '%IMAGE%'
+AND a.key_column_data_type NOT LIKE '%TIMESTAMP%'
 
 SELECT * FROM tempdb.dbo.tmpStatisticCheck15
 ORDER BY current_number_of_rows DESC, 

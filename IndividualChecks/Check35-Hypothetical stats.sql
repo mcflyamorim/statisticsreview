@@ -1,20 +1,20 @@
 /*
+Check35 - Hypothetical statistics
+Description:
 Check 35 - Check if there are hypothetical statistics created by DTA.
-
-< ---------------- Description ----------------- >
-Hypothetical statistics are created by the Database Tuning Assistant (DTA) during its tests. 
-If a DTA session was interrupted, these objects may not be deleted. 
-
-Note: DTA can recommend to create multi-column statistics, so, it maybe ok to have 
-statistics with "_dta_stat%" name, as they may be those suggested by DTA.
-
-Note:
-"All statistics, views, partition functions, and partition schemes that Database Engine Tuning Advisor 
-creates are real objects and cannot be distinguished from objects that existed prior to tuning."
-https://learn.microsoft.com/en-us/previous-versions/sql/sql-server-2005/ms190172(v=sql.90)?redirectedfrom=MSDN
-
-< -------------- What to look for and recommendations -------------- >
+Hypothetical statistics are created by the Database Tuning Assistant (DTA) during its tests. If a DTA session was interrupted, these objects may not be deleted. 
+Note: DTA can recommend to create multi-column statistics, so, it maybe ok to have statistics with "_dta_stat%" name, as they may be those suggested by DTA.
+Note: "All statistics, views, partition functions, and partition schemes that Database Engine Tuning Advisor creates are real objects and cannot be distinguished from objects that existed prior to tuning." https://learn.microsoft.com/en-us/previous-versions/sql/sql-server-2005/ms190172(v=sql.90)?redirectedfrom=MSDN 
+Estimated Benefit:
+Medium
+Estimated Effort:
+Low
+Recommendation:
+Quick recommendation:
+Remove hypothetical statistics.
+Detailed recommendation:
 - It is recommended to drop these objects as soon as possible.
+
 */
 
 -- Fabiano Amorim

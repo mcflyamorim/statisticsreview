@@ -1,18 +1,18 @@
 /*
+Check37 - Sample on partitioned table
+Description:
 Check 37 - Check if table is partitioned and warn that alter index rebuild will update stats with default sampling rate.
+SQL Server 2012 changed the auto update sample behavior for partitioned table. This change was made because SQL started to support large number of partitions (up to 15000) by default. With partitioned table, ALTER INDEX REBUILD actually first rebuilds index and then do a sample scan to update stats in order to reduce memory consumption.
+Estimated Benefit:
+High
+Estimated Effort:
+Low
+Recommendation:
+Quick recommendation:
+Don’t rely on index rebuild to get a full scan statistic update.
+Detailed recommendation:
+- If a table is partitioned, ALTER INDEX REBUILD will only update statistics for that index with default sampling rate. In other words, it is no longer a FULLSCAN, if you want fullscan, you will need to run UPDATE STATISTCS WITH FULLSCAN.
 
-< ---------------- Description ----------------- >
-SQL Server 2012 changed the auto update sample behavior for partitioned table.
-
-This change was made because SQL started to support large number of partitions (up to 15000) by default.
-With partitioned table, ALTER INDEX REBUILD actually first rebuilds index and then do a sample 
-scan to update stats in order to reduce memory consumption.
-
-< -------------- What to look for and recommendations -------------- >
-- If a table is partitioned, ALTER INDEX REBUILD will only update statistics 
-for that index with default sampling rate. 
-In other words, it is no longer a FULLSCAN, if you want fullscan, 
-you will need to run UPDATE STATISTCS WITH FULLSCAN.
 
 */
 

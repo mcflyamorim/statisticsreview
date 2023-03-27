@@ -1,22 +1,20 @@
 /*
+Check26 - Statistics on LOB columns
+Description:
 Check 26 - Check statistic key column with large value types.
+Check if there are statistics on LOB columns. The LOBs (Large Objects) can be broadly classified as Character Large Objects (CLOBs) or Binary Large Objects (BLOBs).
+Tables that are smaller than 8MB (1024 pages) are always fully scanned to update/create statistics. But, SQL only consider in-row data, that is, all data types except LOB data types. Because the number of LOB pages is not directly considered the sample percentage remain a large value and the first and last 100 bytes are retrieved it can trigger a large LOB scan operation.
+Estimated Benefit:
+Very High
+Estimated Effort:
+Medium
+Recommendation:
+Quick recommendation:
+Review reported statistics set it to NoRecompute and create a job to manually update them.
+Detailed recommendation:
+- Statistics creation/update on LOB columns may take a lot of time to run. I'd recommend to re-create them as NoRecompute and create a job to manually update them. The idea is to avoid auto-update on those stats as it may take a while to run.
+- Check on Command log (considering it exists) how much time it is taking to update the stat.
 
-< ---------------- Description ----------------- >
-Check if there are statistics on LOB columns.
-The LOBs (Large Objects) can be broadly classified as 
-Character Large Objects (CLOBs) or Binary Large Objects (BLOBs).
-
-Tables that are smaller than 8MB (1024 pages) are always fully scanned to update/create statistics.
-But, SQL only consider in-row data, that is, all data types except LOB data types. 
-Because the number of BLOB pages is not directly considered the sample percentage remain a large value 
-and the first and last 100 bytes are retrieved it can trigger a large BLOB scan operation.
-
-< -------------- What to look for and recommendations -------------- >
-- Statistics creation/update on LOB columns may take a lot of time to run. 
-I'd recomend to re-create them as NoRecompute and create a job to manually update them. 
-The idea is to avoid auto-update on those stats as it may take a while to run.
-
-- Check on Command log (considering it exists) how much time it is taking to update the stat
 */
 
 -- Fabiano Amorim

@@ -1,25 +1,24 @@
 /*
+Check8 - Tiny table with out-of-date statistic
+Description:
 Check 8 - Is there any tiny (less than or equal to 500 rows) table with out-of-date statistics?
-
-< ---------------- Description ----------------- >
 Check if there are small tables (less than or equal to 500 rows) with poor statistics. 
-Small tables will only trigger auto-update stats if modification counter is >= 501, 
-depending on the environment this may take a while or never happen.
-SQL Server ignores very small tables (normal tables not temp tables) for automatic statistics. 
-Unfortunately this might happen quite often in relational data warehouse solutions which use star schemas. 
-The effect of joining a few-hundred million rows fact table with some small dimensions the wrong way 
-might be dramatic - in a negative sense.
+Small tables will only trigger auto-update stats if modification counter is >= 501, depending on the environment this may take a while or never happen. SQL Server ignores very small tables (normal tables not temp tables) for automatic statistics. Unfortunately, this might happen quite often in relational data warehouse solutions which use star schemas. 
+The effect of joining a few-hundred million rows fact table with some small dimensions the wrong way might be dramatic - in a negative sense.
 This problem is much easier to avoid with huge tables, but if you add 1 row to a 1-row table you double the data.
-
-https://learn.microsoft.com/en-us/archive/blogs/mssqlisv/sql-optimizations-manual-update-statistics-on-small-tables-may-provide-a-big-impact
-
-< -------------- What to look for and recommendations -------------- >
+https://learn.microsoft.com/en-us/archive/blogs/mssqlisv/sql-optimizations-manual-update-statistics-on-small-tables-may-provide-a-big-impact 
+Estimated Benefit:
+Medium
+Estimated Effort:
+Low
+Recommendation:
+Quick recommendation:
+Make sure you're updating stats for small tables.
+Detailed recommendation:
 - To avoid issues, make sure you're updating stats for those small tables.
-
-- To avoid outdated or obsolete statistics on those tiny tables (in terms of number of rows),
-make sure you're manually updating it, it will not take too much time and may help query optimizer.
-
+- To avoid outdated or obsolete statistics on those tiny tables (in terms of number of rows), make sure you're manually updating it, it will not take too much time and may help query optimizer.
 - You can use column query_plan_associated_with_last_usage to investigate query plan.
+
 */
 
 -- Fabiano Amorim

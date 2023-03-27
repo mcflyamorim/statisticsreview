@@ -1,17 +1,19 @@
 /*
+Check41 - AutoCreated multi column statistics
+Description:
 Check 41 - Check if there are auto created multi-column statistics
+Auto create statistics only creates single-column statistics, never multi-column statistics. If auto created multi-column stats exists, it is very likely is being there since SQL2000 (when SQL used to do it).
+Estimated Benefit:
+Medium
+Estimated Effort:
+High
+Recommendation:
+Quick recommendation:
+Review reported statistics and consider to remove them.
+Detailed recommendation:
+- If those stats are taking too much time to update, it may be a good idea to evaluate whether they are really needed.
+- Capture auto_stats extended event for a few days and use the captured data to identify whether the stat is being loaded or not, if not then drop it.
 
-< ---------------- Description ----------------- >
-Auto create statistics only creates single-column statistics, never multi-column statistics.
-If auto created multi-column stats exists, it is very likely is being there since 
-SQL2000 (when SQL used to do it).
-
-< -------------- What to look for and recommendations -------------- >
-- If those stats are taking too much time to update, it may be a good ideia to 
-evaluate whether they are really needed.
-
-- Capture auto_stats extended event for a few days and use the captured data to identify 
-whether the stat is being loaded or not, if not then drop it.
 */
 
 -- Fabiano Amorim

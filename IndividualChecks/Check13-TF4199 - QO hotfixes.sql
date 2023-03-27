@@ -1,27 +1,23 @@
 /*
+Check13 - TF4199 – Query Optimizer hotfixes
+Description:
 Check 13 - Trace flag check - TF4199, enables query optimizer changes released in SQL Server Cumulative Updates and Service Packs
-
-< ---------------- Description ----------------- >
 Check TF4199, TF4199 enables query optimizer changes released in SQL Server Cumulative Updates and Service Packs.
+Query Optimizer fixes released for previous SQL Server versions under trace flag 4199 become automatically enabled in the default compatibility level of a newer SQL Server version. Post-RTM Query Optimizer fixes still need to be explicitly enabled via QUERY_OPTIMIZER_HOTFIXES option in ALTER DATABASE SCOPED CONFIGURATION or via trace flag 4199.
+Following is a sample of a very common query with a fix only applied under TF4199: 
+FIX: Slow query performance when using query predicates with UPPER, LOWER or RTRIM with default CE in SQL Server 2017 and 2019 https://support.microsoft.com/en-us/topic/kb4538497-fix-slow-query-performance-when-using-query-predicates-with-upper-lower-or-rtrim-with-default-ce-in-sql-server-2017-and-2019-5619b55c-b0b4-0a8e-2bce-2ffe6b7eb70e 
+Estimated Benefit:
+Medium
+Estimated Effort:
+Low
+Recommendation:
+Quick recommendation:
+Consider to enable trace flag 4199.
+Detailed recommendation:
+- You still need TF4199 (or QUERY_OPTIMIZER_HOTFIXES DB scope config) to get post-RTM Query Optimizer fixes. It is recommended to enable it.
+- You can use query store to experiment queries using QUERY_OPTIMIZER_HOTFIXES/TF4199 and see if you got better/regressed plans and confirm whether you have a plan-choice related performance issue or not.
+Warning Note: Customers should always test changes related to trace flags or/and to the compatibility level carefully. You should always test and evaluate those changes before apply it in production. Use mitigation technologies, such as the Query Store, if there is a plan-choice related performance issue.
 
-Query Optimizer fixes released for previous SQL Server versions under trace flag 4199 
-become automatically enabled in the default compatibility level of a newer SQL Server version.
-Post-RTM Query Optimizer fixes still need to be explicitly enabled via QUERY_OPTIMIZER_HOTFIXES option 
-in ALTER DATABASE SCOPED CONFIGURATION or via trace flag 4199.
-
-Following is a sample of a very commom query with a fix only applied under TF4199: 
-FIX: Slow query performance when using query predicates with UPPER, LOWER or RTRIM with default CE in SQL Server 2017 and 2019
-https://support.microsoft.com/en-us/topic/kb4538497-fix-slow-query-performance-when-using-query-predicates-with-upper-lower-or-rtrim-with-default-ce-in-sql-server-2017-and-2019-5619b55c-b0b4-0a8e-2bce-2ffe6b7eb70e
-
-< -------------- What to look for and recommendations -------------- >
-- You STILL NEED TF4199 (or QUERY_OPTIMIZER_HOTFIXES DB scope config) to get post-RTM Query Optimizer fixes. If it is not enabled, please, do it.
-
-- You can use query store to experiment queries using QUERY_OPTIMIZER_HOTFIXES/TF4199 and see if you 
-got better/regressed plans and confirm whether you have a plan-choice related performance issue or not.
-
-Warning Note: Customers should always test changes related to trace flags or/and to the compatibility level carefully. 
-You should always test and evaluate those changes before apply it in production. 
-Use mitigation technologies, such as the Query Store, if there is a plan-choice related performance issue.
 */
 
 -- Fabiano Amorim

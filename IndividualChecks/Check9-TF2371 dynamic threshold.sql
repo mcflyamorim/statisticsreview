@@ -1,34 +1,25 @@
 /*
+Check9 - TF2371 dynamic threshold
+Description:
 Check 9 - Trace flag check - TF2371 (Changes the fixed update statistics threshold to a linear update statistics threshold.)
-
-< ---------------- Description ----------------- >
-By default, statistics are updated after 20% +500 rows of data have been modified, 
-this may be too much for big tables. 
-TF2371 can be used to reduce the number of modifications required for automatic updates to statistics to occur.
-
-While recommended for all scenarios, enabling the trace flag is optional. 
-However, you can use the following guidance for enabling the trace flag 2371 in your SQL Server environment:
+By default, statistics are updated after 20% +500 rows of data have been modified, this may be too much for big tables. 
+TF2371 can be used to reduce the number of modifications required for automatic updates to statistics to occur. While recommended for many scenarios, enabling the trace flag is optional. However, you can use the following guidance for enabling the trace flag 2371 in your SQL Server environment:
 - If you are on a SAP system, enable this trace flag. Refer to this blog for additional Information.
+- If you have to rely on nightly job to update statistics because current automatic update is not triggered frequently enough, consider enabling trace flag 2371 to adjust the threshold to table cardinality.
+- In SQL Server 2008 R2 through SQL Server 2014 (12.x), or in SQL Server 2016 (13.x) and later builds, if you have databases under compatibility level 120 and lower, you'll need to enable trace flag 2371 to make SQL Server uses a decreasing, dynamic statistics update threshold.
+Estimated Benefit:
+Medium
+Estimated Effort:
+Low
+Recommendation:
+Quick recommendation:
+Consider to enable trace flag 2371.
+Detailed recommendation:
+- If you have databases under compatibility level 120 and lower, you still need to enable TF2371, even on SQL Server 2016 and newer builds.
+- For a large majority of SQL Server installations, it is a best practice to enable TF2371.
+- A friendly and good reminder: It is very important and a good practice to update statistics on a regular basis through a scheduled job and leaving the auto update enabled as a safety.
+Warning Note: Customers should always test changes related to trace flags or/and to the compatibility level carefully. You should always test and evaluate those changes before apply it in production. Use mitigation technologies, such as the Query Store, if there is a plan-choice related performance issue.
 
-- If you have to rely on nightly job to update statistics because current automatic 
-update is not triggered frequently enough, consider enabling trace flag 2371 to adjust the threshold to table cardinality.
-
-- In SQL Server 2008 R2 through SQL Server 2014 (12.x), or in SQL Server 2016 (13.x) and later builds, 
-if you have databases under compatibility level 120 and lower, you'll need to enable trace flag 2371 
-to make SQL Server uses a decreasing, dynamic statistics update threshold.
-
-< -------------- What to look for and recommendations -------------- >
-- If you have databases under compatibility level 120 and lower, you still need to enable TF2371, 
-even on SQL Server 2016 and newer builds.
-
-- I (and Microsoft) recommend to enable this trace flag for all scenarios.
-
-- A friendly and good reminder: It is very important and a good practice to update statistics on a 
-regular basis through a scheduled job and leaving the auto update enabled as a safety.
-
-Warning Note: Customers should always test changes related to trace flags or/and to the compatibility level carefully. 
-You should always test and evaluate those changes before apply it in production. 
-Use mitigation technologies, such as the Query Store, if there is a plan-choice related performance issue.
 */
 
 -- Fabiano Amorim

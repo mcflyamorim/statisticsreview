@@ -1,25 +1,20 @@
 /* 
-Check 48 - Check if there are clustered ColumStore indexes
-< ---------------- Description ----------------- >
-
-Check if there are clustered columStore indexes.
-
-There is an issue on how SQL tracks statistics modifications on tables with a clustered 
-columnstore index. 
-If you have a clustered columnstore, SQL reports more modifications than actually 
-occurred, SQL will include modifications for columns that were not modified.
-This may trigger unecessary auto-update statistics and problems with update maintenance script 
-since the modification counter is useful for knowing approximately how much has changed since 
-statistics were last updated.
-
-< -------------- What to look for and recommendations -------------- >
+Check48 - Clustered columnstore
+Description:
+Check 48 - Check if there are clustered ColumnStore indexes
+Check if there are clustered ColumnStore indexes. There is an issue on how SQL tracks statistics modifications on tables with a clustered columnstore index.  If you have a clustered columnstore, SQL reports more modifications than actually occurred, SQL will include modifications for columns that were not modified. This may trigger unnecessary auto-update statistics and problems with update maintenance script since the modification counter is useful for knowing approximately how much has changed since statistics were last updated.
+Estimated Benefit:
+High
+Estimated Effort:
+Low
+Recommendation:
+Quick recommendation:
+Create a job to manually run an update on the reported statistics.
+Detailed recommendation:
 - Not much we can do about it, since it looks like it is a bug. 
+- This script will probably return a high number of modifications for statistics on tables with a clustered columnstore. This confirms there is a bug on SQL.
+- If you can't afford to pay for the auto-updates, you may need to update the statistics using NoRecompute and create a job to manually update them.
 
-- This script will probably return a high number of modifications for statistics
-on tables with a clustered columnstore. This confirms there is a bug on SQL.
-
-- If you can't afford to pay for the auto-updates, you may need to update the statistics
-using NoRecompute and create a job to manually update them.
 */
 
 -- Fabiano Amorim

@@ -1,33 +1,24 @@
 /*
+Check11 - TF4139 histogram amendment
+Description:
 Check 11 - Trace flag check - TF4139 (Enable automatically generated quick statistics (histogram amendment) regardless of key column status.)
-
-< ---------------- Description ----------------- >
 Check TF4139, TF4139 Enable automatically generated quick statistics (histogram amendment) regardless of key column status. 
-If trace flag 4139 is set, regardless of the leading statistics column status (ascending, descending, unknown or stationary), 
-the histogram used to estimate cardinality will be adjusted at query compile time.
-
-When fewer than 90 percent of the inserted rows have values that are beyond the highest RANGE_HI_KEY value in the histogram, 
-the column is considered stationary instead of ascending. 
-Therefore, the ascending key is not detected, and trace flags 4139 (new CE), 2389 and 2390 that 
-are usually used to fix the ascending keys problem do not work. 
-This causes poor cardinality estimation when you use predicates that are beyond 
-the RANGE_HI_KEY value of the existing statistics.
-
-< -------------- What to look for and recommendations -------------- >
-- Check whether you have statistics with number of inserted rows that are beyond the highest RANGE_HI_KEY 
-value in the histogram, and those statistics are still considered unknown or stationary. 
-If so, queries trying to read those recent rows would be benefitial of automatically generate quick 
-statistics (histogram amendment) regardless of key column status.
-
-- If you have databases with cardinality estimation model version >= 120 (new CE). Enable TF4139 to automatically generate quick 
-statistics (histogram amendment) regardless of key column status.
-
+If trace flag 4139 is set, regardless of the leading statistics column status (ascending, descending, unknown or stationary), the histogram used to estimate cardinality will be adjusted at query compile time.
+When fewer than 90 percent of the inserted rows have values that are beyond the highest RANGE_HI_KEY value in the histogram, the column is considered stationary instead of ascending. Therefore, the ascending key is not detected, and trace flags 4139 (new CE), 2389 and 2390 that are usually used to fix the ascending keys problem do not work. This causes poor cardinality estimation when you use predicates that are beyond the RANGE_HI_KEY value of the existing statistics.
+Estimated Benefit:
+Medium
+Estimated Effort:
+High
+Recommendation:
+Quick recommendation:
+Consider to enable trace flag 4139.
+Detailed recommendation:
+- Check whether you have statistics with number of inserted rows that are beyond the highest RANGE_HI_KEY value in the histogram, and those statistics are still considered unknown or stationary. If so, queries trying to read those recent rows would be beneficial of automatically generate quick statistics (histogram amendment) regardless of key column status.
+- If you have databases with cardinality estimation model version >= 120 (new CE). Enable TF4139 to automatically generate quick statistics (histogram amendment) regardless of key column status.
 Note 1: This trace flag does not apply to CE version 70 (legacy CE). Use trace flags 2389 and 2390 instead.
 
-Note 2: On KB3189645 (SQL2014 SP1 CU9(12.00.4474) and SP2 CU2(12.00.5532)) filtered indexes are exempted 
-from quickstats queries because it had a bug with filtered indexes and columnstore, but, that ended up fixing another
-problem that when the quickstats query was issued for filtered index stats it has no filter, 
-which was making a full scan (unless a nonfiltered index with the same first column happens to be around to help).
+Note 2: On KB3189645 (SQL2014 SP1 CU9(12.00.4474) and SP2 CU2(12.00.5532)) filtered indexes are exempted from quickstats queries because it had a bug with filtered indexes and columnstore, but that ended up fixing another problem that when the quickstats query was issued for filtered index stats it has no filter, which was making a full scan (unless a nonfiltered index with the same first column happens to be around to help).
+
 */
 
 -- Fabiano Amorim

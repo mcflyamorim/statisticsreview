@@ -187,11 +187,12 @@ Clear-Host
 
 $global:ProgressPreference = 'Continue'
 
+$ScriptPath = split-path -parent $MyInvocation.MyCommand.Definition
 if ($CreateTranscriptLog){
     $TranscriptTimestamp = Get-Date -format "yyyyMMdd_HH_mm_ss_fff"
-    Write-Msg -Message "Creating TranscriptLog on $PSScriptRoot\Log\StatisticCheck_LogOutput_$TranscriptTimestamp.txt" -VerboseMsg
+    Write-Msg -Message "Creating TranscriptLog on $ScriptPath\Log\StatisticCheck_LogOutput_$TranscriptTimestamp.txt" -VerboseMsg
     try {Stop-Transcript -ErrorAction SilentlyContinue | Out-Null} catch{}
-    try {Start-Transcript -Path "$PSScriptRoot\Log\StatisticCheck_LogOutput_$TranscriptTimestamp.txt" -Force -ErrorAction | Out-Null} catch {Start-Transcript "$PSScriptRoot\Log\StatisticCheck_LogOutput_$TranscriptTimestamp.txt" | Out-Null}
+    try {Start-Transcript -Path "$ScriptPath\Log\StatisticCheck_LogOutput_$TranscriptTimestamp.txt" -Force -ErrorAction | Out-Null} catch {Start-Transcript "$ScriptPath\Log\StatisticCheck_LogOutput_$TranscriptTimestamp.txt" | Out-Null}
 }
 
 $User = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -223,7 +224,6 @@ if(!(Test-Path $LogFilePath ))
     }
 }
 
-$ScriptPath = split-path -parent $MyInvocation.MyCommand.Definition
 $CurrentDate = Get-Date
 $StatisticChecksFolderPath = "$ScriptPath\IndividualChecks\"
 $instance = $SQLInstance
@@ -618,7 +618,7 @@ try
 									-TableName "Summary0" -Style $style `
 									-StartRow 8 -MoveToStart -PassThru -Numberformat '#,##0'
 
-    $ReportLogo = "$PSScriptRoot/ReportLogo.png"
+    $ReportLogo = "$ScriptPath/ReportLogo.png"
     $image = [System.Drawing.Image]::FromFile($ReportLogo)
     $xlpkg.Summary | Add-ExcelImage -Image $image -Row 1 -Column 5 -ResizeCell
     

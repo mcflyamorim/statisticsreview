@@ -1,13 +1,18 @@
 /*
+Check40 - Missing multi column statistics
+Description:
 Check 40 - Multi column statistics missing on foreign keys.
-
-< ---------------- Description ----------------- >
-Creating manual statistics on both columns together (a, b) could allow the 
-Database Engine to make a better estimate for the query, because the statistics 
-also contain the average number of distinct values for the combination of columns a and b.
-
-< -------------- What to look for and recommendations -------------- >
+Creating manual statistics on both columns together (a, b) could allow the Database Engine to make a better estimate for the query, because the statistics also contain the average number of distinct values for the combination of columns a and b.
+Estimated Benefit:
+Medium
+Estimated Effort:
+Medium
+Recommendation:
+Quick recommendation:
+Consider to create a statistic or index on the multi-column foreign.
+Detailed recommendation:
 - Check if the multi-column foreign key should have an index or a statistic.
+
 */
 
 -- Fabiano Amorim

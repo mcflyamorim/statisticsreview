@@ -1,14 +1,19 @@
 /* 
+Check22 - Modules running update statistic
+Description:
 Check 22 - Modules manually running UPDATE STATISTICS
-< ---------------- Description ----------------- >
-It is not usual to run update statistics in a user module (proc, function and etc). 
+It is not usual to run update statistics in a user module (proc, function and etc.).
+Estimated Benefit:
+Medium
+Estimated Effort:
+Medium
+Recommendation:
+Quick recommendation:
+Avoid run update statistics in user defined modules.
+Detailed recommendation:
+- It is not usual to run update statistics in a user module (proc, function and etc.). If you find any, review those to make sure that's it is ok and really needed.
+Note: A common case where you may want to do it, is with temporary tables to avoid issues with temporary table cache and statistics.
 
-< -------------- What to look for and recommendations -------------- >
-- It is not usual to run update statistics in a user module (proc, function and etc). If you find any, 
-review those to make sure that's it is ok and really needed.
-
-Note: A commom case where you may want to do it, is with temporary tables to avoid issues with 
-temporary table cache and statistics.
 */
 
 -- Fabiano Amorim

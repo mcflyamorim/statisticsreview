@@ -1,19 +1,20 @@
 /* 
+Check45 - Statistics load and linked-server
+Description:
 Check 45 - Check if there are too many linked server query calls to sp_table_statistics2_rowset
-< ---------------- Description ----------------- >
-Every time a linked server SQL Server query compiles, it calls sp_table_statistics2_rowset to load SQL Server statistics. 
-Depending on the number of calls and resultset (with statistics info) it may take a while to run it. 
-I've seen cases with SOSHOST_MUTEX waits when there was more than 200 simultaneously calls for sp_table_statistics2_rowset.
-
+Every time a linked server SQL Server query compiles, it calls sp_table_statistics2_rowset to load SQL Server statistics. Depending on the number of calls and resultset (with statistics info) it may take a while to run it. I've seen cases with SOSHOST_MUTEX waits when there was more than 200 simultaneously calls for sp_table_statistics2_rowset.
 In this check, I'm looking at plan cache to identify how many calls per minute we've for sp_table_statistics2_rowset
+Estimated Benefit:
+Medium
+Estimated Effort:
+Low
+Recommendation:
+Quick recommendation:
+Identify linked server queries calling sp_table_statistics2_rowset and reduce number of compilations/requests.
+Detailed recommendation:
+- Try to identify linked servers and source queries calling sp_table_statistics2_rowset and if possible, reduce number of compilations (avoid ad-hoc queries). 
+- Reduce number of statistics on table to reduce network traffic between linked servers. I would be concerned with a [Executions per minute] greater than 100.
 
-< -------------- What to look for and recommendations -------------- >
-- Try to identify linked servers and source queries calling sp_table_statistics2_rowset and
-if possible, reduce number of compilations (avoid ad-hoc queries). 
-
-- Reduce number of statistics on table to reduce network traffic between linked servers
-
-- I would be concerned with a [Executions per minute] greater than 100
 */
 
 -- Fabiano Amorim

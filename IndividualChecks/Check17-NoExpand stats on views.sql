@@ -1,17 +1,19 @@
 /*
-Check 17 - Statistics on views are only created and used when using noexpand
+Check17 - NoExpand statistics on views
+Description:
+Check 17 - Statistics on views are only created and used when using noexpand.
+SQL Server can create statistics automatically to assist with cardinality estimation and cost-based decision-making during query optimization. 
+This feature works with indexed views as well as base tables, but, for indexed views, it only create/uses the statistic if the view is explicitly named in the query and the NOEXPAND hint is specified.
+Estimated Benefit:
+High
+Estimated Effort:
+Low
+Recommendation:
+Quick recommendation:
+Use noexpand hint to enable auto create and usage of statistics on indexes views.
+Detailed recommendation:
+- If you have query using an indexed view, it may be worthy to review all queries using it and make sure you're using NOEXPAND to enable auto create and usage of statistics to have more accurate estimates.
 
-< ---------------- Description ----------------- >
-SQL Server can create statistics automatically to assist with cardinality estimation 
-and cost-based decision-making during query optimization. 
-This feature works with indexed views as well as base tables, 
-but, for indexed views, it only create/uses the statistic if the view is explicitly 
-named in the query and the NOEXPAND hint is specified.
-
-< -------------- What to look for and recommendations -------------- >
-- If you have query using an indexed view, it maybe worthy to review all queries using it
-and make sure you're using NOEXPAND to enable auto create and usage of statistics to have 
-more accurate estimates.
 */
 
 -- Fabiano Amorim

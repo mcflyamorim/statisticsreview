@@ -1,17 +1,19 @@
 /*
+Check54 - Queries with distinct
+Description:
 Check 54 - Look on cached plans to find queries with several columns on distinct clause
+Use query plan cache to search for queries with several columns on distinct clause. SQL will trigger auto create/update stats for each column specified on distinct. This may cause long compilation time and create unnecessary (or not very useful) statistics.
+Estimated Benefit:
+Medium
+Estimated Effort:
+High
+Recommendation:
+Quick recommendation:
+Review reported queries and check distinct is really necessary.
+Detailed recommendation:
+- Review queries and check if distinct is really necessary, sometimes a query re-write with exists/not exists clause can be used to avoid unnecessary distinct operations.
+- Check if auto created statistics are really useful.
 
-< ---------------- Description ----------------- >
-Use query plan cache to search for queries with several columns on distinct clause.
-
-SQL will trigger auto create/update stats for each column specified on distinct.
-This may cause long compilation time and create unecessary (or not very usefull) statistics.
-
-< -------------- What to look for and recommendations -------------- >
-- Review queries and check if distinct is really necessary, sometimes a query re-write with 
-exists/not exists clause can be used to avoid unecessary distinct operations.
-
-- Check if auto created statistics are really usefull.
 */
 
 -- Fabiano Amorim

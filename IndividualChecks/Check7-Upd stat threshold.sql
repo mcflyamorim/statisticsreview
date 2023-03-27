@@ -1,46 +1,26 @@
 /* 
-Check 7 - What is the updatestat threshold for each statistic?
-
-< ---------------- Description ----------------- >
+Check7 - Update statistics threshold
+Description:
+Check 7 - What is the update statistic threshold for each statistic?
 This check returns the auto update statistic threshold for each statistic.
-When the AUTO_UPDATE_STATISTICS is ON, the Query Optimizer determines when 
-statistics might be out-of-date and then updates them when they are used by a query.
-The Query Optimizer determines when statistics might be out-of-date by counting the 
-number of row modifications since the last statistics update and comparing the number of row modifications to a threshold. 
-The threshold is based on the table cardinality, which can be defined as the number of rows in the table or indexed view.
-
-Up to SQL Server 2014 (12.x), the Database Engine uses a recompilation threshold based on 
-the number of rows in the table or indexed view at the time statistics were evaluated. 
-
-Starting with SQL Server 2016 (13.x) and under the database compatibility level 130, the 
-Database Engine also uses a decreasing, dynamic statistics recompilation threshold that adjusts 
-according to the table cardinality at the time statistics were evaluated. 
-With this change, statistics on large tables will be updated more frequently. 
+When the AUTO_UPDATE_STATISTICS is ON, the Query Optimizer determines when statistics might be out-of-date and then updates them when they are used by a query.
+The Query Optimizer determines when statistics might be out-of-date by counting the number of row modifications since the last statistics update and comparing the number of row modifications to a threshold. The threshold is based on the table cardinality, which can be defined as the number of rows in the table or indexed view. Up to SQL Server 2014 (12.x), the Database Engine uses a recompilation threshold based on the number of rows in the table or indexed view at the time statistics were evaluated. 
+Starting with SQL Server 2016 (13.x) and under the database compatibility level 130, the Database Engine also uses a decreasing, dynamic statistics recompilation threshold that adjusts according to the table cardinality at the time statistics were evaluated. With this change, statistics on large tables will be updated more frequently. 
 However, if a database has a compatibility level below 130, then the SQL Server 2014 (12.x) thresholds apply.
+Estimated Benefit:
+Medium
+Estimated Effort:
+High
+Recommendation:
+Quick recommendation:
+Review reported statistics and consider to update them in a specific maintenance plan/job to update.
+Detailed recommendation:
+- Queries using statistics that already hit the threshold will be recompiled on next execution, depending on the size of the table, this may take a while to complete. You may want to avoid those cases to achieve a more predictable query response time. For instance, a query that has an average response time of 50ms may take 300ms because of the auto update stats/recompilation, depending on the scenario, this may not be an acceptable response time.
+- For most workloads, a full scan is not required and default sampling is adequate. However, certain workloads that are sensitive to widely varying data distributions may require an increased sample size, or even a full scan.
+- Certain workloads that are sensitive to widely varying data distributions may require an increased sample size, or even a full scan. That means a sample update may create poor query plans which may lead to performance problems. It may be a good idea to create an exclusive maintenance plan to update those statistics with a higher sample size.
+- Review statistics with estimated frequency less than 60 minutes and consider to create a job to update these stats manually and more frequently.
+- Starting with SQL Server 2016 (13.x) SP1 CU4, use the PERSIST_SAMPLE_PERCENT option of CREATE STATISTICS (Transact-SQL) or UPDATE STATISTICS (Transact-SQL), to set and retain a specific sampling percentage for subsequent statistic updates that do not explicitly specify a sampling percentage.
 
-< -------------- What to look for and recommendations -------------- >
-- Queries using statistics that already hit the threshold will be recompiled on next execution, 
-depending on the size of the table, this may take a while to complete. 
-You may want to avoid those cases to achieve a more predictable query response time. 
-For instance, a query that has an average response time of 50ms may take 300ms because 
-of the auto update stats/recompilation, depending on the scenario, this may not be an acceptable response time.
-
-- For most workloads, a full scan is not required and default sampling is adequate. 
-However, certain workloads that are sensitive to widely varying data distributions 
-may require an increased sample size, or even a full scan.
-
-- Certain workloads that are sensitive to widely varying data distributions 
-may require an increased sample size, or even a full scan. 
-That means an sample update may create poor query plans which may lead to performance problems. 
-It maybe a good idea to create an exclusive maintenance plan to update those statistics with a higher sample size.
-
-- Review statistics with estimated frequency less than 60 minutes and consider to create a 
-job to update these stats manually and more frequently.
-
-- Starting with SQL Server 2016 (13.x) SP1 CU4, use the PERSIST_SAMPLE_PERCENT option 
-of CREATE STATISTICS (Transact-SQL) or UPDATE STATISTICS (Transact-SQL), 
-to set and retain a specific sampling percentage for subsequent statistic updates that
-do not explicitly specify a sampling percentage.
 */
 
 -- Fabiano Amorim

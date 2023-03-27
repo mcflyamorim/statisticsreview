@@ -1,36 +1,27 @@
 /*
+Check3 - High query plan compilation time
+Description:
 Check 3 - Do I have plans with high compilation time due to an auto update/create stats?
-
-< ---------------- Description ----------------- >
 Check if statistic used in a query plan caused a long query plan compilation and optimization time.
-If last update timestamp of statistic is close to the query plan creation time, then, it is very likely that 
-the update/create stat caused a higher query plan creation duration.
+If last update timestamp of statistic is close to the query plan creation time, then, it is very likely that the update/create stat caused a higher query plan creation duration.
+Estimated Benefit:
+High
+Estimated Effort:
+High
+Recommendation:
+Quick recommendation:
+Review queries with high compilation due to auto update/create statistic.
+Detailed recommendation:
+- If this is happening, I recommend to enable auto update stats asynchronous option. With asynchronous statistics updates, queries compile with existing statistics even if the existing statistics are out-of-date. The Query Optimizer could choose a suboptimal query plan if statistics are out-of-date when the query compiles. Statistics are typically updated soon thereafter and queries that compile after the stats updates complete will benefit from using the updated statistics. 
+- Another option to avoid the high compilation time is to deal with case by case and update the statistic causing the problem using no_recompute, then create a job to update it manually and don't rely on auto update stat. 
+- Check if statistic causing high compilation time is new, if so, it may be an auto created stat and not auto updated, avoid those cases are harder as there is no easy way to disable auto update stats for a specific table/column. An option you have is to pre-create the statistic with no_recompute and update it using a job.
+- If problem is happening with an important query that you need achieve a more predictable query response time, consider to use OPTION (KEEPFIXED PLAN) query hint.
+Note 1: Keep in mind that this check is an attempt to identify those cases based on what we've in the plan cache. Ideally, if you want to identify all those cases you may want to create an extended event to capture sqlserver.auto_stats event with duration > 0 (or maybe 100ms). In my opinion, use the extended event is a safer and a good practice.
 
-< -------------- What to look for and recommendations -------------- >
-- If this is happening, I recommend to enable auto update stats asynchronous option. With asynchronous 
-statistics updates, queries compile with existing statistics even if the existing statistics are out-of-date. 
-The Query Optimizer could choose a suboptimal query plan if statistics are out-of-date when the query compiles. 
-Statistics are typically updated soon thereafter and queries that compile after the stats updates complete 
-will benefit from using the updated statistics. 
+Note 2: https://techcommunity.microsoft.com/t5/azure-sql/diagnostic-data-for-synchronous-statistics-update-blocking/ba-p/386280 
 
-- Another option to avoid the high compilation time is to deal with case by case and update the statistic 
-causing the problem using no_recompute, then create a job to update it manually and don't rely on auto update stat. 
+Note 3: Ideally, this check should be executed several hours after the maintenance plan, as the idea is to capture long plan compilations due to the auto update/create stats.
 
-- Check if statistic causing high compilation time is new, if so, it may be an auto created stat and not auto updated, 
-avoid those cases are harder as there is no easy way to disable auto update stats for an specific table/column. 
-An option you have is to pre-create the statistic with no_recompute and update it using a job.
-
-- If problem is hapenning with an important query that you need achieve a more predictable query response time, 
-consider to use OPTION (KEEPFIXED PLAN) query hint.
-
-Note 1: Keep in mind that this check is an attempt to identify those cases based on what we've in the plan cache. 
-Ideally, if you want to identify all those cases you may want to create an extended event to capture sqlserver.auto_stats 
-event with duration > 0 (or maybe 100ms). In my opinion, use the extended event is a safer and a good practice.
-
-Note 2: https://techcommunity.microsoft.com/t5/azure-sql/diagnostic-data-for-synchronous-statistics-update-blocking/ba-p/386280
-
-Note 3: Ideally, this check should be executed several hours after the maintenance plan, as the idea is to capture long plan
-compilations due to the auto update/create stats.
 */
 
 -- Fabiano Amorim

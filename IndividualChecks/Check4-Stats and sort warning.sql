@@ -1,29 +1,24 @@
 /*
+Check4 - Statistics and sort warning
+Description:
 Check 4 - Is there a sort warning on default trace at the same time last update stats happened? 
-
-< ---------------- Description ----------------- >
-Check if auto update/create statistic StatMan query is spilling data to disk
-In this check I'm looking at the default trace and I'm searching for sort warnings 
-that may happened at the same time that a statistic was updated.
-
-< -------------- What to look for and recommendations -------------- >
-- Ideally, you don't want that the Sort operation of update stat/StatMan query to spill to tempdb.
-
-- If this is happening, I would confirm that the auto update stat is indeed spilling data to 
-disk by re-running the auto update statistic command and looking at actual exec query plan on profiler 
-to confirm this is causing the sort warning.
-
--- On SQL Azure DB, we could use guide plan hints to force a MIN_MEMORY_GRANT to avoid the spill, but, 
-on SQL on-premise there are not many alternatives to avoid it.
-
+Check if auto update/create statistic StatMan query is spilling data to disk.
+In this check I'm looking at the default trace and I'm searching for sort warnings that may happened at the same time that a statistic was updated.
+Estimated Benefit:
+Medium
+Estimated Effort:
+Medium
+Recommendation:
+Quick recommendation:
+Isolate reported statistic to run update in a maintenance window.
+Detailed recommendation:
+- Ideally, you don't want that the Sort operation of update stat/StatMan query to spill to tempdb. If this is happening, I would confirm that the auto update stat is indeed spilling data to disk by re-running the auto update statistic command and looking at actual exec query plan on profiler to confirm this is causing the sort warning.
+- On SQL Azure DB and SQL Server 2022, we could use guide plan hints to force a MIN_MEMORY_GRANT to avoid the spill, but on older versions, there are not many alternatives to avoid it.
 - My recommendation is to isolate this statistic to run in a maintenance window that you are ok to pay for the spill on tempdb.
-
-- A not very elegant solution would be update the statistic with rowcount/pagecount with a big number before run the update stat
-and run DBCC CHECKTABLE or another update statistics with rowcount/pagecount to reset the values after the update stats.
-
+- A not very elegant solution would be update the statistic with rowcount/pagecount with a big number before run the update stat and run DBCC CHECKTABLE or another update statistics with rowcount/pagecount to reset the values after the update stats. This would make query optimizer to grant more memory to the update statistic query and may be enough to avoid the spill. The problem is that there is no way to make this chance in a scope only session, so, all other sessions trying to access the table at that time, will use the updated rowcount/pagecount, which may cause QO to create an inaccurate query plan.
 - Another option to try is to reduce MAXDOP or maybe create a dummy column store to enable sort to run on batch mode.
+Note 1: If number_of_statistic_data_available_for_this_object is equal to 1, it is very likely this was related to an auto created statistic.
 
-Note 1: If number_of_statistic_data_available_for_this_object is equal to 1, it is very likely this was related to a auto created statistic.
 */
 
 -- Fabiano Amorim

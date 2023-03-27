@@ -1,40 +1,27 @@
 /*
+Check34 - Statistics full to sample
+Description:
 Check 34 - Check if there was an event of an auto update stat using a sample smaller than the last sample used
-
-< ---------------- Description ----------------- >
 A DBA can choose to manually update statistics by using a fixed sampling rate that can better represent the distribution of data.
-However, a subsequent Automatic Update Statistics operation will reset back to the default sampling rate, and possibly introduce 
-degradation of query plan efficiency.
-  
-In this check I'm returning all stats that have a diff in the number of steps, make sure you review all of those 
-(not only the ones with a warning) to confirm you identified all the cases.
-I understand that having more or less steps in a statistic object is not always synonym of better key value coverage and 
-estimations, but, that's a good indication we can use as a starting point to identify those full to sample issue.
-
-Ideally, this check should be executed after the update stat maintenance, the longer the diff after the maintenance the
-better the chances we capture histogram diff due to an auto update stat.
-For instance, if the maintenance plan runs at 12AM, it would be nice to run this at  5PM to see if there was any auto 
-update that caused histogram change during the day.
-
-< -------------- What to look for and recommendations -------------- >
-- If number of steps in the current statistic is different than the last update, then, check if the current statistic created 
-is worse than the last one. 
-To compare it, you can use DBCC SHOW_STATISTICS to see the existing histogram and open a new session, run an update statistic 
-with fullscan and DBCC SHOW_STATISTICS again, then, compare the histograms and see if they're different. 
-
+However, a subsequent Automatic Update Statistics operation will reset back to the default sampling rate, and possibly introduce degradation of query plan efficiency.
+In this check I'm returning all stats that have a diff in the number of steps, make sure you review all of those (not only the ones with a warning) to confirm you identified all the cases. I understand that having more or less steps in a statistic object is not always synonym of better key value coverage and estimations, but, that's a good indication we can use as a starting point to identify those full to sample issue.
+Ideally, this check should be executed after the update stat maintenance, the longer the diff after the maintenance the better the chances we capture histogram diff due to an auto update stat.
+For instance, if the maintenance plan runs at 12AM, it would be nice to run this at 5PM to see if there was any auto update that caused histogram change during the day.
+Estimated Benefit:
+High
+Estimated Effort:
+Very High
+Recommendation:
+Quick recommendation:
+Review reported statistics and make sure cardinality estimates are good even after the statistic change.
+Detailed recommendation:
+- If number of steps in the current statistic is different than the last update, then, check if the current statistic created is worse than the last one. To compare it, you can use DBCC SHOW_STATISTICS to see the existing histogram and open a new session, run an update statistic with fullscan and DBCC SHOW_STATISTICS again, then, compare the histograms and see if they're different. 
 - PERSIST_SAMPLE_PERCENT command can be used to avoid this issue.
-Starting with SQL Server 2016 (13.x) SP1 CU4 and 2017 CU1, you can use the PERSIST_SAMPLE_PERCENT option of CREATE STATISTICS 
-or UPDATE STATISTICS, to set and retain a specific sampling percentage for subsequent statistic updates that do not 
-explicitly specify a sampling percentage.
+- Starting with SQL Server 2016 (13.x) SP1 CU4 and 2017 CU1, you can use the PERSIST_SAMPLE_PERCENT option of CREATE STATISTICS or UPDATE STATISTICS, to set and retain a specific sampling percentage for subsequent statistic updates that do not explicitly specify a sampling percentage.
+- Another option is to add a job to manually update the stats more frequently, or to recreate the stats with NO_RECOMPUTE and make sure you have your own job taking care of it.
+- You may don't want to take any action now, but it may be a good idea to create a job to be notified if an auto-update run for an important table.
+- Another option is to re-create the statistic using NoRecompute clause. That would avoid the statistic to be updated with sample. But, make sure you've a maintenance plan taking care of those statistics.
 
-- Another option is to add a job to manually update the stats more frequently, or to recreate the 
-stats with NO_RECOMPUTE and make sure you have your own job taking care of it.
-
-- You may don't want to take any action now, but it may be a good idea to create a job to be notified if a auto-update 
-run for an important table.
-
-- Another option is to re-create the statistic using NoRecompute clause. That would avoid the
-statistic to be updated with sample. But, make sure you've a maintenance plan taking care of those statistics.
 */
 
 -- Fabiano Amorim

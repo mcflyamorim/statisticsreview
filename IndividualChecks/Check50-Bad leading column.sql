@@ -1,12 +1,18 @@
 /* 
+Check50 - Bad leading column
+Description:
 Check 50 - Statistics with a bad leading column
-< ---------------- Description ----------------- >
-Identify multi-column statistics with a bad leading key column
+Identify multi-column statistics with a bad leading key column.
+Estimated Benefit:
+Medium
+Estimated Effort:
+High
+Recommendation:
+Quick recommendation:
+Consider to reorder the columns and use specify a more selective column as the leading key.
+Detailed recommendation:
+- If number of unique values on the leading key column is low, this may lead to a poor histogram, consider to reorder the columns and use specify a more selective column as the leading key.
 
-< -------------- What to look for and recommendations -------------- >
-- If number of unique values on the leading key column is low, this may lead 
-to a poor histogram, consider to reorder the columns and use specify a more 
-selective column as the leading key.
 */
 
 /*

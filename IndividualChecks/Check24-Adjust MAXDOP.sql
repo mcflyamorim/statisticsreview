@@ -1,15 +1,19 @@
 /*
+Check24 - Adjust MAXDOP
+Description:
 Check 24 - Check if it may be good to adjust MAXDOP on UPDATE STATISTIC command
-
-< ---------------- Description ----------------- >
 This is checking if MAXDOP at instance is lower than available CPUs and recommend to increate MAXDOP.
-
-< -------------- What to look for and recommendations -------------- >
-- If table is too big (over a million rows), it may be a good idea to specify MAXDOP to increase 
-number of CPUs available on update stats command.
-Default is to use whatever is specified on MAXDOP at the instance level.
-
+Estimated Benefit:
+High
+Estimated Effort:
+Low
+Recommendation:
+Quick recommendation:
+Consider to use MAXDOP on update statistics commands.
+Detailed recommendation:
+- If table is too big (over a million rows), it may be a good idea to specify MAXDOP to increase number of CPUs available on update stats command. Default is to use whatever is specified on MAXDOP at the instance level.
 Note: MAXDOP option is only available on SQL Server 2014 (SP3), 2016 (SP2), 2017 (CU3) and higher builds.
+
 */
 
 -- Fabiano Amorim

@@ -1,27 +1,23 @@
 /*
+Check14 - Filtered statistics
+Description:
 Check 14 - Do I have filtered statistics?
-
-< ---------------- Description ----------------- >
-Filtered statistics can improve query performance for queries that select from well-defined subsets of data. 
-Well-designed filtered statistics can improve the query execution plan compared with full-table statistics.
-Filtered statistics are more accurate than full-table statistics because they cover only the rows in the filtered index.
-
-< -------------- What to look for and recommendations -------------- >
-- Filtered stats may don't play well with ad-hoc queries and constant values, for those cases,
-it may be necessary to use "WHERE Col = (Select 1)" to be able to avoid auto/forced param.
-
+Filtered statistics can improve query performance for queries that select from well-defined subsets of data. Well-designed filtered statistics can improve the query execution plan compared with full-table statistics. Filtered statistics are more accurate than full-table statistics because they cover only the rows in the filtered index.
+Estimated Benefit:
+Medium
+Estimated Effort:
+Very High
+Recommendation:
+Quick recommendation:
+Consider to create filtered statistics to improve query performance.
+Detailed recommendation:
+- Filtered stats may don't play well with ad-hoc queries and constant values, for those cases, it may be necessary to use "WHERE Col = (Select 1)" to be able to avoid auto/forced param.
 - Filtered stats may take a lot of time to auto-update, make sure you're not relying on it.
+- Filtered stats may not be used due to parameter sniffing. May necessary to add OPTION (RECOMPILE) or use dynamic queries.
+- Filtered statistics are not necessarily needed, but you should definitely consider them. Review application queries and validate the benefit of using it. Make sure that the performance gain for queries that a filtered statistic provides outweigh the additional maintenance for adding it to the database.
 
-- Filtered stats may not be used due to parameter sniffing. May necessary to add OPTION (RECOMPILE) or use
-dynamic queries.
+Note: All columns used in a filtered statistics predicate will have a referencing dependency, therefore, you will not be able to drop, rename, or alter the definition of a table column that is defined in a filtered statistics predicate.
 
-- Filtered statistics are not necessarily needed, but, you should definitely consider them. Review 
-application queries and validate the benefit of using it. Make sure that the performance gain for queries 
-that a filtered statistic provides outweigh the additional maintenance for adding it to the database.
-
-Note: All columns used in a filtered statistics predicate will have a referencing dependency, therefore, 
-you will not be able to drop, rename, or alter the definition of a table column that is defined in a 
-filtered statistics predicate.
 */
 
 -- Fabiano Amorim

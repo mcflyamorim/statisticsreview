@@ -1,37 +1,23 @@
 /*
+Check10 - Ascending statistics
+Description:
 Check 10 - Check if there are statistics set as ascending/descending
+Statistics on ascending or descending key columns, such as IDENTITY or real-time timestamp columns, might require more frequent statistics updates than the Query Optimizer performs. 
+Insert operations append new values to ascending or descending columns. The number of rows added might be too small to trigger a statistics update. If statistics are not up-to-date and queries select from the most recently added rows, the current statistics will not have cardinality estimates for these new values. This can result in inaccurate cardinality estimates and slow query performance.
+For example, a query that selects from the most recent sales order dates will have inaccurate cardinality estimates if the statistics are not updated to include cardinality estimates for the most recent sales order dates.
+Estimated Benefit:
+Medium
+Estimated Effort:
+High
+Recommendation:
+Quick recommendation:
+Update statistics on ascending columns more often.
+Detailed recommendation:
+- Check if queries using tables are trying to read latest inserted rows, I mean, check if queries are using predicates beyond the RANGE_HI_KEY value of the existing statistics, if so, make sure you've a script to update the statistic more often to guarantee those queries will have Information about newest records.
+- Review column query_plan_associated_with_last_usage that may return a plan associated with the statistic.
+- If you can't spend time looking at all queries using those tables, go a-head and create a job to update those statistics more often. Make sure your script is smart enough to only run update if number of modified rows changed. Probably an update with sample is enough, as long as you do a bigger sample in the regular maintenance window update.
+Note: On KB3189645 (SQL2014 SP1 CU9(12.00.4474) and SP2 CU2(12.00.5532)) filtered indexes are exempted from quickstats queries because it had a bug with filtered indexes and columnstore, but that ended up fixing another problem that when the quickstats query was issued for filtered index stats it has no filter, which was making a full scan (unless a nonfiltered index with the same first column happens to be around to help).
 
-< ---------------- Description ----------------- >
-Statistics on ascending or descending key columns, such as IDENTITY or real-time timestamp columns, 
-might require more frequent statistics updates than the Query Optimizer performs. 
-Insert operations append new values to ascending or descending columns. The number of rows 
-added might be too small to trigger a statistics update. If statistics are not up-to-date 
-and queries select from the most recently added rows, the current statistics will not 
-have cardinality estimates for these new values. This can result in inaccurate cardinality 
-estimates and slow query performance.
-
-For example, a query that selects from the most recent sales order dates will have inaccurate 
-cardinality estimates if the statistics are not updated to include cardinality estimates 
-for the most recent sales order dates.
-
-< -------------- What to look for and recommendations -------------- >
-- Check if queries using tables are trying to read latest inserted rows, I mean, 
-check if queries are using predicates beyond the RANGE_HI_KEY value of the existing statistics, if so, 
-make sure you've a script to update the statistic more often to guarantee those queries 
-will have Information about newest records.
-
-- If you're lucky, column query_plan_associated_with_last_usage may return you a plan associated 
-with the statistic.
-
-- If you can't spend time looking at all queries using those tables, go a-head and create a job to update
-those statistics more often. Make sure your script is smart enough to only run update if number of modified 
-rows changed. Probably an update with sample is enough, as long as you do a bigger sample in the regular
-maintenance window update.
-
-Note: On KB3189645 (SQL2014 SP1 CU9(12.00.4474) and SP2 CU2(12.00.5532)) filtered indexes are exempted 
-from quickstats queries because it had a bug with filtered indexes and columnstore, but, that ended up fixing another
-problem that when the quickstats query was issued for filtered index stats it has no filter, 
-which was making a full scan (unless a nonfiltered index with the same first column happens to be around to help).
 
 */
 

@@ -1,14 +1,19 @@
 /*
+Check43 - Search maintenance plan
+Description:
 Check 43 - Search for an update statistic maintenance plan
-< ---------------- Description ----------------- >
-Looking at modules and jobs to see if I can find a statistic maintenance plan
+Looking at modules and jobs to see if I can find a statistic maintenance plan.
+Estimated Benefit:
+High
+Estimated Effort:
+Low
+Recommendation:
+Quick recommendation:
+Make sure you have an update statistic maintenance plan.
+Detailed recommendation:
+- If the maintenance plan is not identified, double check there is one, and if not, make sure you add it.
+- Avoid sp_updatestats, this proc is not very smart, it simple does a "@ind_rowmodctr <> 0", I think you can do better. I would always vote for Ola's maintenance script.
 
-< -------------- What to look for and recommendations -------------- >
-- If the maintenance plan is not identified, double check there is one, and if not, 
-make sure you add it.
-
-- Avoid sp_updatestats, this proc is not very smart, it simple does a "@ind_rowmodctr <> 0", I think you can do better.
-I would always vote for Ola's maintenance script.
 */
 
 -- Fabiano Amorim

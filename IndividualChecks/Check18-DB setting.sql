@@ -1,44 +1,28 @@
 /*
-Check 18 - Database seetings
-
-< ---------------- Description ----------------- >
+Check18 - Database settings
+Description:
+Check 18 - Database settings
 This check is reviewing DB level statistics settings.
-
-< -------------- What to look for and recommendations -------------- >
-AUTO_CREATE_STATISTICS and AUTO_UPDATE_STATISTICS:
-For a large majority of SQL Server installations, it is a best practice to use 
-auto create and auto update statistics database-wide. 
-Auto create and auto update statistics are on by default. 
-If you observe bad plans and suspect that missing or out of date statistics are at fault, 
-verify that auto create and auto update statistics are on.
-
-AUTO_UPDATE_STATISTICS_ASYNC:
-When the setting is off and a statistics update is initiated due to out-of-date 
-statistics in the execution plan, the query must wait until the statistics update 
-is complete before compiling and then returning the result set.  
-When the setting is on, the query does not need to wait as the statistics 
-update are handled by a background process. 
-The query will not get the benefit of the statistics update, however future queries will.
-
-Consider using asynchronous statistics to achieve more predictable query response times 
-for the following scenarios:
-  Your application frequently executes the same query, similar queries, or similar cached query plans. 
-  Your query response times might be more predictable with asynchronous statistics updates 
-  than with synchronous statistics updates because the query optimizer can execute incoming 
-  queries without waiting for up-to-date statistics. 
-  This avoids delaying some queries and not others.
-
-  Your application has experienced client request time outs caused by one or more queries waiting for 
-  updated statistics. In some cases, waiting for synchronous statistics could cause applications with 
-  aggressive time outs to fail.
-
-Note 1: Auto update stats async is SYNC when the current transaction holds a schema modification lock on the 
-table referenced for statistics. I'll repeat, auto update will ALWAYS be synchronous in this case.
+Estimated Benefit:
+High
+Estimated Effort:
+Low
+Recommendation:
+Quick recommendation:
+Review best practices and recommendations for DB setting.
+Detailed recommendation:
+- AUTO_CREATE_STATISTICS and AUTO_UPDATE_STATISTICS: For a large majority of SQL Server installations, it is a best practice to use auto create and auto update statistics database-wide. Auto create and auto update statistics are on by default. If you observe bad plans and suspect that missing or out of date statistics are at fault, verify that auto create and auto update statistics are on.
+- AUTO_UPDATE_STATISTICS_ASYNC: When the setting is off and a statistics update is initiated due to out-of-date statistics in the execution plan, the query must wait until the statistics update is complete before compiling and then returning the result set.  When the setting is on, the query does not need to wait as the statistics update are handled by a background process. The query will not get the benefit of the statistics update, however future queries will.
+- - Consider using asynchronous statistics to achieve more predictable query response times for the following scenarios:
+- - - - Your application frequently executes the same query, similar queries, or similar cached query plans. 
+- - - - Your query response times might be more predictable with asynchronous statistics updates than with synchronous statistics updates because the query optimizer can execute incoming queries without waiting for up-to-date statistics. 
+- - - - Your application has experienced client request time outs caused by one or more queries waiting for updated statistics. In some cases, waiting for synchronous statistics could cause applications with aggressive time outs to fail.
+Note 1: Auto update stats async is SYNC when the current transaction holds a schema modification lock on the table referenced for statistics. I'll repeat, auto update will ALWAYS be synchronous in this case.
 
 Note 2: Auto update stats async has a limit of 100 requests in the queue.
 
-Note 3: Be careful with auto update stats async and statis using persisted sample, as the background
-task may take A LOT of time to run with a big persisted sample and cause statistics to be out-dated.
+Note 3: Be careful with auto update stats async and statis using persisted sample, as the background task may take A LOT of time to run with a big persisted sample and cause statistics to be outdated.
+
 */
 
 -- Fabiano Amorim

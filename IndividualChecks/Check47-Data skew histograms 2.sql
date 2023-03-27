@@ -1,28 +1,14 @@
 /* 
+Check47 - Data skew histograms 2
+Description:
 Check 47 - Check data skew histograms for top 10 (by user_seeks + user_lookups) indexes 
-
-< ---------------- Description ----------------- >
-Skew is a term from statistics when a normal distribution is not symmetric. 
-In other words, it simply mean that some values appear more often than others.
-In case of uniformly distributed data, we usually don't have to do anything, but, if data is skewed, 
-we may have to help query optimizer to avoid bad cardinality estimations.
-
-In this script, I'm trying to help you to identify those "skewed" cases and I'm pretty much doing it by 
-validating a statistic histogram accuracy.
-
+Skew is a term from statistics when a normal distribution is not symmetric.  In other words, it simply means that some values appear more often than others. In case of uniformly distributed data, we usually don't have to do anything, but, if data is skewed, we may have to help query optimizer to avoid bad cardinality estimations. In this script, I'm trying to help you to identify those "skewed" cases and I'm pretty much doing it by validating a statistic histogram accuracy.
 So, based in a histogram, I'm checking the following: 
------------------------------------------------------------------------------------------------------
-1 - RANGE_HI_KEY - EQ_rows
-Based in the key value (upper bound value for a histogram step), I'm querying the statistic table
-to get the actual number of rows for the key value and I'm comparing this with the value
-stored on EQ_rows (estimated number of rows whose value equals the upper bound of the histogram step).
-That would help us to identify cases where a "select * where col = <RANGE_HI_KEY value>" would have
-bad cardinality estimation because the estimated value stored in the statistic not very accurate.
 
-2 - RANGE_rows
-RANGE_rows has the estimated number of rows whose column value falls within a histogram step, 
-excluding the upper bound. So, a histogram with:
+1 - RANGE_HI_KEY - EQ_rows - Based in the key value (upper bound value for a histogram step), I'm querying the statistic table to get the actual number of rows for the key value and I'm comparing this with the value stored on EQ_rows (estimated number of rows whose value equals the upper bound of the histogram step).
+That would help us to identify cases where a "select * where col = <RANGE_HI_KEY value>" would have bad cardinality estimation because the estimated value stored in the statistic not very accurate.
 
+2 - RANGE_rows - RANGE_rows has the estimated number of rows whose column value falls within a histogram step, excluding the upper bound. So, a histogram with:
 STEPNUMBER |RANGE_HI_KEY |RANGE_rows	|EQ_rows	 |DISTINCT_RANGE_rows	|AVG_RANGE_rows
 1          |0	           |0	         |232.5905 |0	                  |1
 2          |32	          |7310.733	  |154.4944 |31	                 |235.8301
@@ -31,35 +17,22 @@ STEPNUMBER |RANGE_HI_KEY |RANGE_rows	|EQ_rows	 |DISTINCT_RANGE_rows	|AVG_RANGE_r
 5          |119	         |6380.71	   |50.93223 |26	                 |245.4119
 6          |139	         |4728.471	  |91.67802 |19	                 |248.8669
 
-Based on this histogram, we can say that there are 7772.338 rows between values 33 and 65.
-So, a query "select * where col > 32 AND col < 66" would have a cardinality estimation of 
-7772.338.
-Again, I'm checking the statistic table to get the actual number of rows within the histogram 
-step range.
-If the RANGE_rows is not accurate, you may have not only bad estimations with queries reading
-the range, but you may have a bad AVG_RANGE_rows as it is based on the range.
+Based on this histogram, we can say that there are 7772.338 rows between values 33 and 65. So, a query "select * where col > 32 AND col < 66" would have a cardinality estimation of 7772.338. Again, I'm checking the statistic table to get the actual number of rows within the histogram step range. If the RANGE_rows is not accurate, you may have not only bad estimations with queries reading the range, but you may have a bad AVG_RANGE_rows as it is based on the range.
 
-3 - DISTINCT_RANGE_rows
-DISTINCT_RANGE_rows has the estimated number of rows with a distinct column value within a 
-histogram step, excluding the upper bound. I think this column name should be DISTINCT_RANGE_VALUES, 
-not rows, but, anyway.
-I'm checking the statistics table to get the actual number of distinct values in the histogram 
-step range.
-Since this is used to calculate the AVG_RANGE_rows, it is important to get this as much accurate
-as possible.
+3 - DISTINCT_RANGE_rows - DISTINCT_RANGE_rows has the estimated number of rows with a distinct column value within a histogram step, excluding the upper bound. I think this column name should be DISTINCT_RANGE_VALUES, not rows, but, anyway. I'm checking the statistics table to get the actual number of distinct values in the histogram step range. Since this is used to calculate the AVG_RANGE_rows, it is important to get this as much accurate as possible.
 
-4 - AVG_RANGE_rows
-AVG_RANGE_rows has the average number of rows with duplicate column values within a histogram step, 
-excluding the upper bound. AVG_RANGE_rows is calculated by dividing RANGE_rows by DISTINCT_RANGE_rows.
-I'm checking the statistics table to get the actual number of average rows in the histogram 
-step range.
-I'm also checking what is the value with the biggest difference within the histogram step range.
-This would give us a sample values that is off the average.
+4 - AVG_RANGE_rows - AVG_RANGE_rows has the average number of rows with duplicate column values within a histogram step, excluding the upper bound. AVG_RANGE_rows is calculated by dividing RANGE_rows by DISTINCT_RANGE_rows. I'm checking the statistics table to get the actual number of average rows in the histogram step range. I'm also checking what is the value with the biggest difference within the histogram step range. This would give us a sample values that is off the average.
 
-< -------------- What to look for and recommendations -------------- >
+Estimated Benefit:
+High
+Estimated Effort:
+Very High
+Recommendation:
+Quick recommendation:
+Review reported statistics, comments and recommendations.
+Detailed recommendation:
 - The biggest the diff between the values, the least accurate the histogram. 
-Review the histogram accuracy and if necessary update the statistic with a bigger sample, 
-or create filtered statistics.
+- Review the histogram accuracy and if necessary, update the statistic with a bigger sample or create filtered statistics.
 */
 
 -- Fabiano Amorim

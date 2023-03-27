@@ -1,17 +1,20 @@
 /* 
+Check6 - Estimated modifications per minute
+Description:
 Check 6 - How many modifications per minute we've? 
-
-< ---------------- Description ----------------- >
-This check returns number of modifications per minute for each table.
-This uses the average of modifications per minute based on existing update stats intervals, 
-for instance, if statistic was updated on 8AM and 11AM, it calculates how many motifications 
-it has between that interval and divides by the number of minutes.
+This check returns number of modifications per minute for each table. This uses the average of modifications per minute based on existing update stats intervals, for instance, if statistic was updated on 8AM and 11AM, it calculates how many modifications it has between that interval and divides by the number of minutes. 
 The idea is to identify what are the most modified tables and statistics.
-
-< -------------- What to look for and recommendations -------------- >
+Estimated Benefit:
+High
+Estimated Effort:
+Medium
+Recommendation:
+Quick recommendation:
+Consider to update those statistics in a specific maintenance plan/job to update them more often.
+Detailed recommendation:
 - Statistics with high number of modifications may require more attention.
+- Consider to move those statistics into a specific maintenance plan/job to update them more often.
 
-- Consider to move those statistics into an specific maintenance plan/job to update them more often.
 */
 
 -- Fabiano Amorim

@@ -1,17 +1,20 @@
 /*
+Check32 - TF7471 parallel update statistic
+Description:
 Check 32 - Check if there are tables with more than 10mi rows and need to do a parallel update stats with TF7471
-
-< ---------------- Description ----------------- >
 If there are big tables, is very likely that the maintenance window is taking a lot of time to run.
-To reduce the update stats maintenance duration we can use a parallel statistic maintenance plan 
-that runs multiple UPDATE STATISTICS for different statistics on a single table concurrently.
+To reduce the update stats maintenance duration we can use a parallel statistic maintenance plan that runs multiple UPDATE STATISTICS for different statistics on a single table concurrently.
+Estimated Benefit:
+High
+Estimated Effort:
+High
+Recommendation:
+Quick recommendation:
+Consider to enable trace flag 7471 to allow parallel statistics update.
+Detailed recommendation:
+- If you have big tables, you can leverage of service broker or multiple parallel jobs and Ola's maintenance script to do it.
+- Implement a parallel statistics update using a script that can do a parallel command execution and make sure you're enabling TF7471 to be able to run multiple update statistics in a table at same time.
 
-< -------------- What to look for and recommendations -------------- >
-- If you have big tables, you can leaverage of service broker or multiple parallel jobs and 
-Ola's maintenance script to do it.
-
-- Implement a parallel statistics update using sp_Parallel_Execution procedure and make sure you're
-enabling TF7471 to be able to run multiple update statistics in a table at same time.
 */
 
 -- Fabiano Amorim

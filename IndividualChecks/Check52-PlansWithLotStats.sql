@@ -1,23 +1,20 @@
 /*
+Check52 – Query plans using a lot of statistics
+Description:
 Check 52 - Plans with lot of loaded statistics
-
-< ---------------- Description ----------------- >
 Check StatisticsInfo from query plan cache.
-
 Note 1: Requires SQL Server 2016 SP2+
+Note 2: Query impact is a calculated metric which represents the overall impact of the query on the server. This allows you to identify the queries which need most attention. The query impact is calculated from multiple metrics. The calculation is: log((TotalCPUTime × 3) + TotalLogicalReads + TotalLogicalWrites)
+Estimated Benefit:
+Medium
+Estimated Effort:
+High
+Recommendation:
+Quick recommendation:
+Review reported execution plans and statistic usage.
+Detailed recommendation:
+- There is a high relation between the number of statistics and the "Compilation Time"/"Statement Optimization Early Abort Reason". Check if all stats are really needed as the more stats you have, higher will be the compilation time, which will also increase chances of a time-out plan.
 
-Note 2: 
-Query impact is a calculated metric which represents the overall impact of 
-the query on the server. 
-This allows you to identify the queries which need most attention.
-The query impact is calculated from multiple metrics. The calculation is:
-log((TotalCPUTime × 3) + TotalLogicalReads + TotalLogicalWrites)
-
-< -------------- What to look for and recommendations -------------- >
-- There is a high relation between the number of statistics and the 
-"Compilation Time"/"Statement Optmization Early Abort Reason". Check if 
-all stats are really needed as the more stats you have, higher will be the 
-compilation time, which will also increase chances of a time-out plan.
 */
 
 -- Fabiano Amorim

@@ -1,14 +1,19 @@
 /*
+Check29 - Tables 10mi and sample
+Description:
 Check 29 - Check if there are tables with more than 10mi rows
+The bigger the table, the smaller the auto-update sample. That means, those big objects will probably require a special attention.
+Estimated Benefit:
+High
+Estimated Effort:
+High
+Recommendation:
+Quick recommendation:
+Review queries using reported statistics and make sure cardinality estimates are good.
+Detailed recommendation:
+- Make sure the number or rows sampled is enough to provide good statistics.
+- Review queries using those objects and make sure cardinality estimates are good.
 
-< ---------------- Description ----------------- >
-The bigger the table, the smaller the auto-update sample. That means, those big objects
-will probably require a special attention. 
-
-< -------------- What to look for and recommendations -------------- >
-- Make sure the number or rows sampled is enough to provide good statistics
-
-- Review queries using those objects and make sure cardinality estimates are good
 */
 
 -- Fabiano Amorim

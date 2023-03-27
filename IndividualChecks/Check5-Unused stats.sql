@@ -1,22 +1,22 @@
 /*
+Check5 - Unused statistics
+Description:
 Check 5 - Are there any unused statistics?
-< ---------------- Description ----------------- >
 Check unused statistics.
-If number of modifications is greater than the auto update threshold, 
-then I'm considering there is a very high chance that the statistic is not being used 
-(considering auto update stats is on on DB)
-
-< -------------- What to look for and recommendations -------------- >
-- If the number of changes is higher than the threshold but the statistic is not updated, 
-that means this statistic is not used since last update time (or Auto Update Statistics option is set to OFF). 
-If it was, the auto update would have triggered and updated it.
-
-- Check how many days has been since last update stats and current date to see for how long this statistic 
-considered as "not used". You may want to consider to drop those.
-
+If number of modifications is greater than the auto update threshold, then I'm considering there is a very high chance that the statistic is not being used (considering auto update stats is on DB).
+Estimated Benefit:
+Very High
+Estimated Effort:
+Low
+Recommendation:
+Quick recommendation:
+Remove unused statistics.
+Detailed recommendation:
+- If the number of changes is higher than the threshold but the statistic is not updated, that means this statistic is not used since last update time (or Auto Update Statistics option is set to OFF). If it was, the auto update would have triggered and updated it.
+- Check how many days has been since last update stats and current date to see for how long this statistic considered as "not used". You may want to consider to drop those.
 Note 1: Hypothetical indexes will show up as unused as they usually do not get updated by maintenance plans.
-
 Note 2: If you see %_dta_% garbage, please drop those indexes and stats.
+
 */
 
 -- Fabiano Amorim

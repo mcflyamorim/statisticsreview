@@ -1,22 +1,23 @@
 /*
+Check39 - Missing column statistics
+Description:
 Check 39 - Missing column stats from default trace
-
-< ---------------- Description ----------------- >
 Report missing column stats events from default trace.
-
-< -------------- What to look for and recommendations -------------- >
+Estimated Benefit:
+Medium
+Estimated Effort:
+Medium
+Recommendation:
+Quick recommendation:
+Review reported statistics and consider to create the missing statistic.
+Detailed recommendation:
 - If possible, review query and create the missing statistic.
+- If a statistic exist with an empty histogram, queries using this table will have poor cardinality estimates and show [Columns With No Statistics] warning on execution plans. 
+- Remove this statistic, or update it with fullscan or sample.
+Note 1: Legacy cardinality estimator doesn't auto-create statistics for queries with MIN/MAX and will show warning for missing stats on columns used on MIN/MAX, check "Check39-Missing column stats.sql" file for an example of this.
 
-- If a statistic exist with an empty histogram, queries using this table will have poor 
-cardinality estimates and show [Columns With No Statistics] warning on execution plans. 
-Remove this statistic, or update it with fullscan or sample.
+Note 2: I prefer xEvents to XML/PlanCache, so, you should consider to create a xEvent to capture "sqlserver.missing_column_statistics" event.
 
-Note 1: Legacy cardinality estimator doesn't auto-create statistics for queries
-with MIN/MAX and will show warning for missing stats on columns used on MIN/MAX, 
-check "Check39-Missing column stats.sql" file for an example of this.
-
-Note 2: I prefer xEvents to XML/PlanCache, so, you should consider to create a xEvent 
-to capture "sqlserver.missing_column_statistics" event.
 */
 
 -- Fabiano Amorim

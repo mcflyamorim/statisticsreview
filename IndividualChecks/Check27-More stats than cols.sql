@@ -1,15 +1,20 @@
 /*
+Check27 – Tables with more statistics than columns
+Description:
 Check 27 - Check if there are tables with more statistics than columns
-
-< ---------------- Description ----------------- >
 Check if there are tables with more statistics than columns.
-High number of statistic may lead to slow remote queries and longer maintenance plan executions.
-
-< -------------- What to look for and recommendations -------------- >
-- It may be ok to have a lot of statistics in a table, but it is definitely unusual to have more
-stats than columns in a table.
-
+High number of statistics may lead to slow remote queries and longer maintenance plan executions.
+Estimated Benefit:
+High
+Estimated Effort:
+Low
+Recommendation:
+Quick recommendation:
+Review reported statistics and remove statistics not used/required.
+Detailed recommendation:
+- It may be ok to have a lot of statistics in a table, but it is definitely unusual to have more stats than columns in a table.
 - Make sure all statistics are really needed and used.
+
 */
 
 -- Fabiano Amorim

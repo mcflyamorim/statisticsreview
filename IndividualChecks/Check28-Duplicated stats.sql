@@ -1,23 +1,22 @@
 /*
+Check28 - Duplicated statistics
+Description:
 Check 28 - Check if there are duplicated statistics
-
-< ---------------- Description ----------------- >
-Statistic is considered duplicated has it already has another Index_Statistic on 
-the same key (or keys as long as leading is the same) column(s) and filter_definition.
-
+Statistic is considered duplicated has it already has another Index_Statistic on the same key (or keys as long as leading is the same) column(s) and filter_definition.
 It is a best practice to have one statistic on each column or combination of columns. 
-Duplicate statistics will increase query plan creation time as query optimizer will spend more time 
-deciding which statistics to use.
-If you have multiple statistics, QO will pick the one with a biggest sample, if they all have the same
-sampled number of rows, it will pick the most recent.
+Duplicate statistics will increase query plan creation time as query optimizer will spend more time deciding which statistics to use.
+If you have multiple statistics, QO will pick the one with a biggest sample, if they all have the same sampled number of rows, it will pick the most recent. 
+Remove duplicated statistics, will also help to speed up the time to run a maintenance plan. (assuming the duplicated stat is being updated)
+Estimated Benefit:
+High
+Estimated Effort:
+Low
+Recommendation:
+Quick recommendation:
+Remove all duplicated statistics.
+Detailed recommendation:
+- Consider to drop the duplicated statistic. The only case I see this would be a problem is that when the auto-created has a better histogram/stat than the index stats. But, as long as you're updating the index stats, we should be good to drop the auto-created one.
 
-Remove duplicated statistics, will also help to speed up the time to run a maintenance plan. 
-(assuming the duplicated stat is being updated)
-
-< -------------- What to look for and recommendations -------------- >
-- Consider to drop the duplicated statistic. The only case I see this would be a problem is that 
-when the auto-created has a better histogram/stats than the index stats. But, as long 
-as you're updating the index stats, we should be good to drop the auto-created one.
 */
 
 -- Fabiano Amorim

@@ -1,30 +1,23 @@
 /* 
-Check 2 - How often statistics is updated? 
-
-< ---------------- Description ----------------- >
-This check return data about last 4 statistic updates with Information about number of modifications on 
-statistic key column since previous update, number of minutes between each update stats and the average 
-of minutes it took between each update stats.
-The ideia is to figure out how much time it take to update a statistic, in other words, 
-the frequency that the statistic is updated.
-
-< -------------- What to look for and recommendations -------------- >
+Check2 - Estimate update statistic frequency
+Description:
+Check 2 - How often statistics is updated?
+This check return data about last 4 statistic updates with Information about number of modifications on statistic key column since previous update, number of minutes between each update stats and the average of minutes it took between each update stats.
+The idea is to figure out how much time it takes to update a statistic, in other words, the frequency that the statistic is updated.
+Estimated Benefit:
+High
+Estimated Effort:
+Medium
+Recommendation:
+Quick recommendation:
+Review out dated statistics and statistics with high number of updates.
+Detailed recommendation:
 - Statistics with Information about only 1 sample indicate that statistic is not being updated.
+- If more than one sample is found, this script will calculate what is the interval average of time in minutes that statistic took to be updated. If the interval is too short, it may indicate the statistic has a lot of auto update stats or a job running update stats too often. Make sure you have enough modifications to justify the need of an update stats.
+- Check if there was an event of statistic update with no modifications since last update. If so, make sure your maintenance script is smart enough to avoid update stats for non-modified stats.
+- Check if there was an event of statistic update with interval of less than 15 minutes. Those may be caused by a very high number of modifications triggering auto update or a job with a bad schedule running unnecessary updates.
+- Check if there was an event of statistic update with interval greater than 25 hours. If modification count between the update interval is high, that may lead to poor exec plan estimations.
 
-- If more than one sample is found, this script will calculate what is the interval average of time in minutes 
-that statistic took to be updated. If the inverval is too short, it may indicate the statistic has a 
-lot of auto update stats or a job running update stats too often. Make sure you have enough modifications 
-to justify the neef of an update stats.
-
-- Check if there was an event of statistic update with no modifications since last update. If so, make 
-sure your maintenance script is smart enough to avoid update stats for non-modified stats.
-
-- Check if there was an event of statistic update with interval of less than 15 minutes. 
-Those may be caused by a very high number of modifications triggering auto update or a job with a bad schedule 
-running unecessary updates.
-
-- Check if there was an event of statistic update with interval greater than 25 hours. 
-If modification count between the update interval is high, that may lead to poor exec plan estimations.
 */
 
 -- Fabiano Amorim

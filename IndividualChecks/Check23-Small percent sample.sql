@@ -1,32 +1,21 @@
 /*
+Check23 – Statistics with small percent sample
+Description:
 Check 23 - Check if statistic percent sample is too small
+When Microsoft SQL Server creates or updates statistics, if a sampling rate isn't manually specified, SQL Server will calculate a default sampling rate. Depending on the real distribution of data in the underlying table, the default sampling rate may not accurately represent the data distribution. 
+This may cause degradation of query plan efficiency. To improve this scenario, a database administrator can choose to manually update statistics by using a fixed (fullscan? anyone?) sampling rate that can better represent the distribution of data.
+The sampling algorithm for SQL Server is not entirely "random". First, it samples pages and then uses all rows on the page. Second, it will actually sample the same pages each time, mostly to retain sanity within the test team at Microsoft. So, it is possible that the default sample rate will sample pages that do not contain all of the interesting rows that define the "spikes" in your data distribution. A higher sample rate can capture more of these rows, although it will be at a higher cost.
+Estimated Benefit:
+High
+Estimated Effort:
+High
+Recommendation:
+Quick recommendation:
+Update statistics with higher sample rate.
+Detailed recommendation:
+- If you have data with very "spikey" distributions that is not caught by the default sample rate, then you should consider a higher sample rate.
+- If you are getting a bad query plan because the statistics are not accurate or current, consider to update the statistic with fullscan.
 
-< ---------------- Description ----------------- >
-When Microsoft SQL Server creates or updates statistics,
-if a sampling rate isn't manually specified, SQL Server will 
-calculate a default sampling rate. Depending on the real distribution 
-of data in the underlying table, the default sampling rate may 
-not accurately represent the data distribution. 
-This may cause degradation of query plan efficiency.
-
-To improve this scenario, a database administrator can choose to manually 
-update statistics by using a fixed (fullscan? anyone?) sampling rate 
-that can better represent the distribution of data.
-
-The sampling algorithm for SQL Server is not entirely "random". 
-First, it samples pages and then uses all rows on the page. 
-Second, it will actually sample the same pages each time, mostly to retain sanity 
-within the test team at Microsoft.
-So, it is possible that the default sample rate will sample pages that do not 
-contain all of the interesting rows that define the "spikes" in your data distribution.
-A higher sample rate can capture more of these rows, although it will be at a higher cost.
-
-< -------------- What to look for and recommendations -------------- >
-- If you have data with very "spikey" distributions that is not caught by the 
-default sample rate, then you should consider a higher sample rate.
-
-- If you are getting a bad query plan because the statistics are not accurate or current, 
-consider to update the statistic with fullscan.
 */
 
 -- Fabiano Amorim

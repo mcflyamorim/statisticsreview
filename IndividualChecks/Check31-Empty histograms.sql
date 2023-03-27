@@ -1,28 +1,22 @@
 /*
+Check31 – Statistics with empty histograms
+Description:
 Check 31 - Check if there are empty histograms
-
-< ---------------- Description ----------------- >
 Check if there are statistic but no histogram.
+This can lead to poor cardinality estimations and weird situations as queries that require the empty statistic, will show [Columns With No Statistics] warning on execution plans, even with auto create/update statistic enabled.
+Statistics that have not been updated since the database was restored or upgraded can have an empty histogram.
+Note: Columnstore indexes will have an empty histogram, I'm ignoring those. In Columnstore Indexes a unit of any operation is a segment that already have min/max values. QO will use those to decide if one particular segment should be scanned or not.
+Estimated Benefit:
+High
+Estimated Effort:
+Low
+Recommendation:
+Quick recommendation:
+Remove or update reported empty statistics.
+Detailed recommendation:
+- Run DBCC SHOW_STATISTICS command to confirm stat exist and is empty. If a statistic exist with an empty histogram, queries using this table will have poor cardinality estimates and show [Columns With No Statistics] warning on execution plans. (Note: Warning is only displayed with legacy CE.)
+- Remove this statistic, or update it with fullscan or sample.
 
-This can lead to poor cardinality estimations and weird situations 
-as queries that require the empty statistic, will show [Columns With No Statistics] 
-warning on execution plans, even with auto create/update statistic enabled.
-
-Statistics that have not been updated since the database was restored or upgraded can 
-have an empty histogram.
-
-Note: Columnstore indexes will have an empty histogram, I'm ignoring those.
-In Columnstore Indexes a unit of any operation is a segment that already have min/max values. 
-QO will use those to decide if one particular segment should be scanned or not.
-
-< -------------- What to look for and recommendations -------------- >
-- Run DBCC SHOW_STATISTICS command to confirm stat exist and is empty.
-
-- If a statistic exist with an empty histogram, queries using this table will have poor 
-cardinality estimates and show [Columns With No Statistics] warning on execution plans.
-Warning is only displayed with legacy CE.
-
-Remove this statistic, or update it with fullscan or sample.
 */
 
 -- Fabiano Amorim

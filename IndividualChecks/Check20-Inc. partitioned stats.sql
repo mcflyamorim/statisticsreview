@@ -1,33 +1,23 @@
 /*
+Check20 - Incremental partitioned statistics
+Description:
 Check 20 - Check if there are partitioned tables with indexes or statistics not using incremental
-
-< ---------------- Description ----------------- >
-When new partitions are added to a large table, statistics should be updated 
-to include the new partitions. However the time required to scan the entire table 
-(FULLSCAN or SAMPLE option) might be quite long. 
-Also, scanning the entire table isn't necessary because only the statistics on the new 
-partitions might be needed. 
-If you assume that only data in the most recent partition is changing, then ideally 
-you only update statistics for that partition. You can do this now with incremental statistics, 
-and what happens is that information is then merged back into the main histogram. 
-The histogram for the entire table will update without having to read through the entire table to update statistics, 
-and this can help with performance of your maintenance tasks.
-
-The other valuable point is that the percentage of data changes required to trigger the automatic update of statistics, 
-20% of rows changed, will be applied at the partition level.
-
+When new partitions are added to a large table, statistics should be updated to include the new partitions. However, the time required to scan the entire table (FULLSCAN or SAMPLE option) might be quite long. Also, scanning the entire table isn't necessary because only the statistics on the new partitions might be needed. 
+If you assume that only data in the most recent partition is changing, then ideally you only update statistics for that partition. You can do this now with incremental statistics, and what happens is that information is then merged back into the main histogram. The histogram for the entire table will update without having to read through the entire table to update statistics, and this can help with performance of your maintenance tasks.
+The other valuable point is that the percentage of data changes required to trigger the automatic update of statistics, 20% of rows changed, will be applied at the partition level.
 The query optimizer still just uses the main histogram that represents the entire table. 
-
-Note 1: This is not a statistic/histogram per partition, QO doesn't use this to get information 
-about each partition. It is used to provide a performance benefit when managing statistics for partitioned tables.
-If statistics only need to be updated for select partitions, just those can be updated. 
-The new information is then merged into the table-level histogram, providing the optimizer more current information, 
-without the cost of reading the entire table.
-
-< -------------- What to look for and recommendations -------------- >
+Note: This is not a statistic/histogram per partition, QO doesn't use this to get information about each partition. It is used to provide a performance benefit when managing statistics for partitioned tables. If statistics only need to be updated for select partitions, just those can be updated. The new information is then merged into the table-level histogram, providing the optimizer more current information, without the cost of reading the entire table.
+Estimated Benefit:
+High
+Estimated Effort:
+Low
+Recommendation:
+Quick recommendation:
+Enable incremental statistics on reported statistics.
+Detailed recommendation:
 - If there are partitioned tables not using incremental, consider to enable it.
+- Applies to: SQL Server 2014 (12.x) and higher builds.
 
-Applies to: SQL Server 2014 (12.x) and higher builds.
 */
 
 -- Fabiano Amorim

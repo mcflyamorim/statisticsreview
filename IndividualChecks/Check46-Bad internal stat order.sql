@@ -1,23 +1,22 @@
 /* 
+Check46 - Bad internal statistic order
+Description:
 Check 46 - Check if there are statistics with wrong metadata order
-< ---------------- Description ----------------- >
-
-BOL says that column "stats_column_id" of DMV sys.stats_column is "1-based ordinal within set of stats columns.". 
-However, for index statistics this is not true as it actually reflect table definition order NOT the index order.
-
-Luckily, this doesn't cause a query optimizer problem as the statistic is created based on the 
-index key column, and not the statistic key column.
+BOL says that column "stats_column_id" of DMV sys.stats_column is "1-based ordinal within set of stats columns.". However, for index statistics this is not true as it actually reflects table definition order NOT the index order.
+Luckily, this doesn't cause a query optimizer problem as the statistic is created based on the index key column, and not the statistic key column.
 But, you may see a wrong order on SSMS user interface as it is reading the info from the sys.stats_column DMV.
-
 Note: https://dba.stackexchange.com/questions/94533/is-sys-stats-columns-incorrect
-
-< -------------- What to look for and recommendations -------------- >
+Estimated Benefit:
+Low
+Estimated Effort:
+Low
+Recommendation:
+Quick recommendation:
+Don’t use sys.stats_column to read statistic column order.
+Detailed recommendation:
 - Don't rely on SSMS to check a statistic info. 
-- If you need to read a index statistic info, don't use sys.stats_column DMV, instead, use the DMV sys.index_columns 
-and sort the results by key_ordinal column.
-The column key_ordinal in the sys.index_columns table is the order in which the columns are stored in the index.
-There isn't a key_ordinal column for the sys.stats_columns table. The column stats_column_id just replicates the 
-index_column_id column of the object it references.
+- If you need to read an index statistic info, don't use sys.stats_column DMV, instead, use the DMV sys.index_columns and sort the results by key_ordinal column. The column key_ordinal in the sys.index_columns table is the order in which the columns are stored in the index. There isn't a key_ordinal column for the sys.stats_columns table. The column stats_column_id just replicates the index_column_id column of the object it references.
+
 */
 
 -- Fabiano Amorim

@@ -32,10 +32,10 @@ For help and more information, visit https://github.com/mcflyamorim/StatisticsRe
 
 How to use:
 Collect statistic information for all DBs:
-  EXEC sp_GetStatisticInfo @DatabaseName = NULL
+  EXEC sp_GetStatisticInfo @database_name_filter = NULL
 
 Collect statistic information for Northwind DB:
-  EXEC sp_GetStatisticInfo @DatabaseName = 'Northwind'
+  EXEC sp_GetStatisticInfo @database_name_filter = 'Northwind'
 
 Credit: 
 Some checks and scripts were used based on 

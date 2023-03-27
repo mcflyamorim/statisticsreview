@@ -1,31 +1,26 @@
 /*
+Check12 - TF2389 and TF2390 histogram
+Description:
 Check 12 - Trace flag check - TF2389 and TF2390 (Enable automatically generated quick statistics (histogram amendment))
-
-< ---------------- Description ----------------- >
 Check TF2389 and TF2390:
 TF2389 enable automatically generated quick statistics for ascending keys (histogram amendment).
-TF2390 enable automatically generated quick statistics regardless of the leading statistics 
-column status (ascending, descending, unknown or stationary).
-
-< -------------- What to look for and recommendations -------------- >
-- Check whether you have statistics with number of inserted rows that are beyond the highest RANGE_HI_KEY 
-value in the histogram, and those statistics are still considered unknown or stationary. 
-If so, queries trying to read those recent rows would be benefitial of automatically generate quick 
-statistics (histogram amendment) regardless of key column status.
-
-- If you have databases with compatibility level < 120 (SQL2014). Enable TF 2389 and 2390 to automatically generate quick 
-statistics (histogram amendment) regardless of key column status.
-
+TF2390 enable automatically generated quick statistics regardless of the leading statistics column status (ascending, descending, unknown or stationary).
+Estimated Benefit:
+Medium
+Estimated Effort:
+High
+Recommendation:
+Quick recommendation:
+Consider to enable trace flag 2389 and 2390.
+Detailed recommendation:
+- Check whether you have statistics with number of inserted rows that are beyond the highest RANGE_HI_KEY value in the histogram, and those statistics are still considered unknown or stationary. If so, queries trying to read those recent rows would be beneficial of automatically generate quick statistics (histogram amendment) regardless of key column status.
+- If you have databases with compatibility level < 120 (SQL2014). Enable TF 2389 and 2390 to automatically generate quick statistics (histogram amendment) regardless of key column status.
 Note 1: This trace flag does not apply to CE version 120 or above. Use trace flag 4139 instead.
 
-Note 2: On KB3189645 (SQL2014 SP1 CU9(12.00.4474) and SP2 CU2(12.00.5532)) filtered indexes are exempted 
-from quickstats queries because it had a bug with filtered indexes and columnstore, but, that ended up fixing another
-problem that when the quickstats query was issued for filtered index stats it has no filter, 
-which was making a full scan (unless a nonfiltered index with the same first column happens to be around to help).
+Note 2: On KB3189645 (SQL2014 SP1 CU9(12.00.4474) and SP2 CU2(12.00.5532)) filtered indexes are exempted from quickstats queries because it had a bug with filtered indexes and columnstore, but that ended up fixing another problem that when the quickstats query was issued for filtered index stats it has no filter, which was making a full scan (unless a nonfiltered index with the same first column happens to be around to help).
 
-Warning Note: Customers should always test changes related to trace flags or/and to the compatibility level carefully. 
-You should always test and evaluate those changes before apply it in production. 
-Use mitigation technologies, such as the Query Store, if there is a plan-choice related performance issue.
+Warning Note: Customers should always test changes related to trace flags or/and to the compatibility level carefully. You should always test and evaluate those changes before apply it in production.  Use mitigation technologies, such as the Query Store, if there is a plan-choice related performance issue.
+
 */
 
 -- Fabiano Amorim

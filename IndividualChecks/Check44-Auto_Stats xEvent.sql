@@ -1,21 +1,23 @@
 /*
+Check44 - Auto_Stats xEvent
+Description:
 Check 44 - Check if auto_stats extended event is being monitored
-
-< ---------------- Description ----------------- >
 Consider the following query execution scenario:
-
-You execute a query that triggers an automatic synchronous statistics create or update. 
-While the sync statistics is running, your query waits (is essentially blocked) until the statistic is generated. 
-Query optimizer will wait for statistic operation to complete before it compiles queries, that means, the query compilation and execution does not resume until the sync statistics operation completes.
-If the statistics update takes a long time (due to a large table and\or busy system), there is no easy way to determine root cause of the high duration. 
-
-On SQL2019 you could use wait_on_sync_statistics_refresh, but this will provide a limited Information about what is happening.
-
-In my opinion, if you need to need to have a more predictable query response time (who doesn't?), you'll need to watch out for those high compilation events caused by a sync statistic operation.
+You execute a query that triggers an automatic synchronous statistics create or update. While the sync statistics is running, your query waits (is essentially blocked) until the statistic is generated. Query optimizer will wait for statistic operation to complete before it compiles queries, that means, the query compilation and execution does not resume until the sync statistics operation completes. If the statistics update takes a long time (due to a large table and\or busy system), there is no easy way to determine root cause of the high duration. 
+On SQL Server 2019 and newer versions you could use wait_on_sync_statistics_refresh, but this will provide a limited Information about what is happening.
+If you need to need to have a more predictable query response time (who doesn't?), you'll need to watch out for those high compilation events caused by a sync statistic operation.
 The only way to guarantee you'll identify all those cases it to capture sqlserver.auto_stats extended event.
-
-< -------------- What to look for and recommendations -------------- >
+Estimated Benefit:
+Low
+Estimated Effort:
+Low
+Recommendation:
+Quick recommendation:
+Create a trace to monitor sqlserver.auto_stats extended event.
+Detailed recommendation:
 - If there are no extended events capturing sqlserver.auto_stats event, this is a finding.
+- Create an alert to notify a DBA about long running auto create/update events.
+
 */
 
 -- Fabiano Amorim
