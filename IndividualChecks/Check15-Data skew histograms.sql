@@ -114,7 +114,7 @@ SELECT
   '' AS finished_columns_with_info_about_avg_range_rows,
   '' AS starting_columns_with_info_about_range_rows,
   tMax_By_range_rows.range_rows,
-  t0.avg_range_rows,
+  CONVERT(NUMERIC(25, 2), t0.avg_range_rows) AS avg_range_rows,
   tMax_By_range_rows.range_rows - t0.avg_range_rows AS range_rows_diff_from_avg,
   t0.sum_range_rows,
   t0.sum_eq_rows_plus_range_rows AS range_rows_sum_eq_rows_plus_range_rows,
@@ -134,6 +134,7 @@ SELECT
   '' AS starting_columns_with_info_about_eq_rows,
   QUOTENAME(CONVERT(VARCHAR(800), tMax_By_eq_rows.range_hi_key, 21)) AS max_eq_rows_range_hi_key,
   tMax_By_eq_rows.eq_rows,
+  t0.avg_eq_rows,
   t0.sum_eq_rows,
   t0.sum_eq_rows_plus_range_rows AS eq_rows_sum_eq_rows_plus_range_rows,
   CONVERT(NUMERIC(25, 2), (tMax_By_eq_rows.eq_rows / CASE WHEN t0.sum_eq_rows_plus_range_rows = 0 THEN 1 ELSE t0.sum_eq_rows_plus_range_rows END) * 100) AS eq_rows_percent_from_total,
@@ -188,7 +189,7 @@ AND c.density_number = 1
 CROSS APPLY (SELECT SUM(tmp_histogram.eq_rows) AS sum_eq_rows,
                     SUM(tmp_histogram.range_rows) AS sum_range_rows,
                     SUM(tmp_histogram.range_rows + tmp_histogram.eq_rows) AS sum_eq_rows_plus_range_rows,
-                    AVG(tmp_histogram.eq_rows) AS [avg - eq_rows],
+                    AVG(tmp_histogram.eq_rows) AS avg_eq_rows,
                     AVG(tmp_histogram.range_rows) AS avg_range_rows
                FROM tempdb.dbo.tmp_histogram
               WHERE tmp_histogram.rowid = a.rowid) AS t0
@@ -202,7 +203,7 @@ CROSS APPLY (SELECT TOP 1
                FROM tempdb.dbo.tmp_histogram
               WHERE tmp_histogram.rowid = a.rowid
               ORDER BY tmp_histogram.avg_range_rows DESC) AS tMax_By_avg_range_rows
-CROSS APPLY (SELECT tmp_histogram.stepnumber,
+CROSS APPLY (SELECT TOP 1 tmp_histogram.stepnumber,
                     tmp_histogram.range_hi_key,
                     tmp_histogram.range_rows,
                     tmp_histogram.eq_rows,
@@ -224,7 +225,7 @@ CROSS APPLY (SELECT TOP 1
                FROM tempdb.dbo.tmp_histogram AS tmp_histogram
               WHERE tmp_histogram.rowid = a.rowid
               ORDER BY tmp_histogram.range_rows DESC) AS tMax_By_range_rows
-CROSS APPLY (SELECT tmp_histogram.stepnumber,
+CROSS APPLY (SELECT TOP 1 tmp_histogram.stepnumber,
                     tmp_histogram.range_hi_key,
                     tmp_histogram.range_rows,
                     tmp_histogram.eq_rows,
