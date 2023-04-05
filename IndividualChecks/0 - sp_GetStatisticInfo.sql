@@ -94,6 +94,36 @@ BEGIN
           @sqlcmd_dbcc       NVARCHAR(MAX) = N'',
           @sqlcmd_dbcc_local NVARCHAR(MAX) = N'';
 
+  /* Clean up tables from a old execution */
+  DECLARE @sql_old_table NVARCHAR(MAX)
+  DECLARE @tmp_table_name NVARCHAR(MAX)
+
+  IF OBJECT_ID('tempdb.dbo.#tmp_old_exec') IS NOT NULL
+    DROP TABLE #tmp_old_exec
+
+  SELECT [name] 
+  INTO #tmp_old_exec
+  FROM tempdb.sys.tables
+  WHERE type = 'U'
+  AND name LIKE'tmpStatisticCheck%'
+
+  DECLARE c_old_exec CURSOR read_only FOR
+      SELECT [name] FROM #tmp_old_exec
+  OPEN c_old_exec
+
+  FETCH NEXT FROM c_old_exec
+  INTO @tmp_table_name
+  WHILE @@FETCH_STATUS = 0
+  BEGIN
+    SET @sql_old_table = 'DROP TABLE tempdb.dbo.[' + @tmp_table_name + '];'; 
+    EXEC (@sql_old_table)
+
+    FETCH NEXT FROM c_old_exec
+    INTO @tmp_table_name
+  END
+  CLOSE c_old_exec
+  DEALLOCATE c_old_exec
+
   /* If data already exists, skip the population, unless refresh was asked via @refreshdata */
   IF OBJECT_ID('tempdb.dbo.tmp_stats') IS NOT NULL
   BEGIN
@@ -1080,12 +1110,12 @@ BEGIN
   ALTER TABLE #tmp_stats ADD page_latch_wait_count    BIGINT
   ALTER TABLE #tmp_stats ADD page_latch_wait_in_ms BIGINT
   ALTER TABLE #tmp_stats ADD avg_page_latch_wait_in_ms NUMERIC(25, 2)
-  ALTER TABLE #tmp_stats ADD page_latch_wait_time_d_h_m_s VARCHAR(10)
+  ALTER TABLE #tmp_stats ADD page_latch_wait_time_d_h_m_s VARCHAR(200)
 
   ALTER TABLE #tmp_stats ADD page_io_latch_wait_count BIGINT
   ALTER TABLE #tmp_stats ADD page_io_latch_wait_in_ms BIGINT
   ALTER TABLE #tmp_stats ADD avg_page_io_latch_wait_in_ms NUMERIC(25, 2)
-  ALTER TABLE #tmp_stats ADD page_io_latch_wait_time_d_h_m_s VARCHAR(10)
+  ALTER TABLE #tmp_stats ADD page_io_latch_wait_time_d_h_m_s VARCHAR(200)
 
   IF OBJECT_ID('tempdb.dbo.#tmp_dm_db_index_usage_stats') IS NOT NULL
     DROP TABLE #tmp_dm_db_index_usage_stats
@@ -1125,14 +1155,14 @@ BEGIN
              WHEN SUM(page_latch_wait_count) > 0 THEN SUM(page_latch_wait_in_ms) / (1. * SUM(page_latch_wait_count))
              ELSE 0 
            END) AS avg_page_latch_wait_in_ms,
-           CONVERT(VARCHAR(10), (SUM(page_latch_wait_in_ms) / 1000) / 86400) + ':' + CONVERT(VARCHAR(20), DATEADD(s, (SUM(page_latch_wait_in_ms) / 1000), 0), 108) AS page_latch_wait_time_d_h_m_s,
+           CONVERT(VARCHAR(200), (SUM(page_latch_wait_in_ms) / 1000) / 86400) + ':' + CONVERT(VARCHAR(20), DATEADD(s, (SUM(page_latch_wait_in_ms) / 1000), 0), 108) AS page_latch_wait_time_d_h_m_s,
            SUM(page_io_latch_wait_in_ms) AS page_io_latch_wait_in_ms,
            CONVERT(NUMERIC(25, 2), 
            CASE 
              WHEN SUM(page_io_latch_wait_count) > 0 THEN SUM(page_io_latch_wait_in_ms) / (1. * SUM(page_io_latch_wait_count))
              ELSE 0 
            END) AS avg_page_io_latch_wait_in_ms,
-           CONVERT(VARCHAR(10), (SUM(page_io_latch_wait_in_ms) / 1000) / 86400) + ':' + CONVERT(VARCHAR(20), DATEADD(s, (SUM(page_io_latch_wait_in_ms) / 1000), 0), 108) AS page_io_latch_wait_time_d_h_m_s
+           CONVERT(VARCHAR(200), (SUM(page_io_latch_wait_in_ms) / 1000) / 86400) + ':' + CONVERT(VARCHAR(20), DATEADD(s, (SUM(page_io_latch_wait_in_ms) / 1000), 0), 108) AS page_io_latch_wait_time_d_h_m_s
       INTO #tmp_dm_db_index_operational_stats
       FROM (SELECT DISTINCT database_id FROM #tmp_stats) AS t
      CROSS APPLY sys.dm_db_index_operational_stats (t.database_id, NULL, NULL, NULL) AS ios
