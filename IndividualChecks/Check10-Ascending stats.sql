@@ -40,7 +40,7 @@ IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck10') IS NOT NULL
 IF OBJECT_ID('tempdb.dbo.#tmpdm_exec_query_stats') IS NOT NULL
   DROP TABLE #tmpdm_exec_query_stats
   
-SELECT TOP 100000
+SELECT TOP 100
        plan_handle,
        statement_start_offset,
        statement_end_offset,

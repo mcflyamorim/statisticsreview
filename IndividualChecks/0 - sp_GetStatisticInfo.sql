@@ -94,6 +94,31 @@ BEGIN
           @sqlcmd_dbcc       NVARCHAR(MAX) = N'',
           @sqlcmd_dbcc_local NVARCHAR(MAX) = N'';
 
+  /* If data already exists, skip the population, unless refresh was asked via @refreshdata */
+  IF OBJECT_ID('tempdb.dbo.tmp_stats') IS NOT NULL
+  BEGIN
+    /* 
+       I'm assuming data for all tables exists, but I'm only checking tmp_stats... 
+       if you're not sure if this is ok, use @refreshdata = 1 to force the refresh and 
+       table population
+    */
+    IF EXISTS(SELECT 1 FROM tempdb.dbo.tmp_stats) AND (@refreshdata = 0)
+    BEGIN
+			   SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Table with list of statistics already exists, I''ll reuse it and skip the code to populate the table.'
+      RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+      RETURN
+    END
+    ELSE
+    BEGIN
+      DROP TABLE tempdb.dbo.tmp_stats
+      DROP TABLE tempdb.dbo.tmp_stat_header
+      DROP TABLE tempdb.dbo.tmp_density_vector
+      DROP TABLE tempdb.dbo.tmp_histogram
+      DROP TABLE tempdb.dbo.tmp_stats_stream
+      DROP TABLE tempdb.dbo.tmp_exec_history
+    END
+  END
+
   /* Clean up tables from a old execution */
   DECLARE @sql_old_table NVARCHAR(MAX)
   DECLARE @tmp_table_name NVARCHAR(MAX)
@@ -123,31 +148,6 @@ BEGIN
   END
   CLOSE c_old_exec
   DEALLOCATE c_old_exec
-
-  /* If data already exists, skip the population, unless refresh was asked via @refreshdata */
-  IF OBJECT_ID('tempdb.dbo.tmp_stats') IS NOT NULL
-  BEGIN
-    /* 
-       I'm assuming data for all tables exists, but I'm only checking tmp_stats... 
-       if you're not sure if this is ok, use @refreshdata = 1 to force the refresh and 
-       table population
-    */
-    IF EXISTS(SELECT 1 FROM tempdb.dbo.tmp_stats) AND (@refreshdata = 0)
-    BEGIN
-			   SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Table with list of statistics already exists, I''ll reuse it and skip the code to populate the table.'
-      RAISERROR (@err_msg, 0, 0) WITH NOWAIT
-      RETURN
-    END
-    ELSE
-    BEGIN
-      DROP TABLE tempdb.dbo.tmp_stats
-      DROP TABLE tempdb.dbo.tmp_stat_header
-      DROP TABLE tempdb.dbo.tmp_density_vector
-      DROP TABLE tempdb.dbo.tmp_histogram
-      DROP TABLE tempdb.dbo.tmp_stats_stream
-      DROP TABLE tempdb.dbo.tmp_exec_history
-    END
-  END
 
   IF OBJECT_ID('tempdb.dbo.tmp_stats') IS NOT NULL
     DROP TABLE tempdb.dbo.tmp_stats

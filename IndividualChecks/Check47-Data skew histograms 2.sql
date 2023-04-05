@@ -131,6 +131,7 @@ FROM sys.databases d1
 WHERE d1.state_desc = 'ONLINE' 
 AND d1.is_read_only = 0
 AND d1.name NOT IN('tempdb', 'master', 'msdb', 'model', 'distribution')
+AND d1.database_id IN(SELECT DISTINCT database_id FROM tempdb.dbo.tmp_stats)
 
 DECLARE c_cursor CURSOR STATIC FOR
     SELECT database_id 
