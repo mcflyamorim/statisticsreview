@@ -71,7 +71,7 @@ IF NOT EXISTS
 
 SET @sqlcmd
    = N'SELECT database_id, name, is_read_only, [state], 0 FROM master.sys.databases (NOLOCK) 
-               WHERE state_desc = ''ONLINE'' and is_read_only = 0';
+               WHERE name <> ''tempdb'' and state_desc = ''ONLINE'' and is_read_only = 0';
 INSERT INTO #tmpdbs0
 (
    [dbid],
