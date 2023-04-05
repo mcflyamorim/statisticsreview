@@ -1,13 +1,37 @@
+DECLARE @sqlcmd NVARCHAR(MAX),
+        @params NVARCHAR(600),
+        @sqlmajorver INT;
+DECLARE @UpTime VARCHAR(12),@StartDate DATETIME
+
+SELECT @sqlmajorver = CONVERT(INT, (@@microsoftversion / 0x1000000) & 0xff);
+
+IF @sqlmajorver < 10
+BEGIN
+    SET @sqlcmd
+        = N'SELECT @UpTimeOUT = DATEDIFF(mi, login_time, GETDATE()), @StartDateOUT = login_time FROM master..sysprocesses (NOLOCK) WHERE spid = 1';
+END;
+ELSE
+BEGIN
+    SET @sqlcmd
+        = N'SELECT @UpTimeOUT = DATEDIFF(mi,sqlserver_start_time,GETDATE()), @StartDateOUT = sqlserver_start_time FROM sys.dm_os_sys_info (NOLOCK)';
+END;
+
+SET @params = N'@UpTimeOUT VARCHAR(12) OUTPUT, @StartDateOUT DATETIME OUTPUT';
+
+EXECUTE sp_executesql @sqlcmd,
+                      @params,
+                      @UpTimeOUT = @UpTime OUTPUT,
+                      @StartDateOUT = @StartDate OUTPUT;
+
 IF OBJECT_ID('tempdb.dbo.tmpStatisticCheckSummary') IS NOT NULL
     DROP TABLE tempdb.dbo.tmpStatisticCheckSummary;
 WITH CTE_1
 AS (
-   SELECT CONVERT(VARCHAR(8000), 'SQL Server instance startup time: ' + CONVERT(VARCHAR(30), create_date, 20)) AS [info],
-          CONVERT(VARCHAR(200), 0) AS [result],
-          'N/A' AS prioritycol,
-          'N/A' AS more_info,
+   SELECT CONVERT(VARCHAR(8000), 'SQL Server instance startup time: ' + CONVERT(VARCHAR(30), @StartDate, 20)) AS [info],
+          CONVERT(VARCHAR(200), CONVERT(VARCHAR(4), @UpTime / 60 / 24) + 'd ' + CONVERT(VARCHAR(4), @UpTime / 60 % 24) + 'hr ' + CONVERT(VARCHAR(4), @UpTime % 60) + 'min') AS [result],
+          'NA' AS prioritycol,
+          'NA' AS more_info,
           '' AS quick_fix
-   FROM sys.databases WITH(NOLOCK) WHERE name = 'tempdb'
    UNION ALL
 
    --Number of out-of-date stats: <N>

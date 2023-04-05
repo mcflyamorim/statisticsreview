@@ -23,7 +23,7 @@ Detailed recommendation:
 
 -- Fabiano Amorim
 -- http:\\www.blogfabiano.com | fabianonevesamorim@hotmail.com
-SET NOCOUNT ON; SET ANSI_WARNINGS ON;
+SET NOCOUNT ON; 
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
 /* Preparing tables with statistic info */

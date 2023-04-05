@@ -43,7 +43,7 @@ Note 2: Kimberly's scripts will NOT check for wrong estimations due to data that
 
 -- Fabiano Amorim
 -- http:\\www.blogfabiano.com | fabianonevesamorim@hotmail.com
-SET NOCOUNT ON; SET ARITHABORT OFF; SET ARITHIGNORE ON; SET ANSI_WARNINGS OFF;
+SET NOCOUNT ON; SET ARITHABORT OFF; SET ARITHIGNORE ON; 
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
 /* Preparing tables with statistic info */

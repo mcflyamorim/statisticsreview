@@ -18,7 +18,7 @@ Detailed recommendation:
 
 -- Fabiano Amorim
 -- http:\\www.blogfabiano.com | fabianonevesamorim@hotmail.com
-SET NOCOUNT ON; SET ANSI_WARNINGS ON;
+SET NOCOUNT ON; 
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
 IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck54') IS NOT NULL

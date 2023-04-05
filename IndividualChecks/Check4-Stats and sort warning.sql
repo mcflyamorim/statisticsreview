@@ -23,7 +23,7 @@ Note 1: If number_of_statistic_data_available_for_this_object is equal to 1, it 
 
 -- Fabiano Amorim
 -- http:\\www.blogfabiano.com | fabianonevesamorim@hotmail.com
-SET NOCOUNT ON; SET ARITHABORT OFF; SET ARITHIGNORE ON; SET ANSI_WARNINGS OFF;
+SET NOCOUNT ON; SET ARITHABORT OFF; SET ARITHIGNORE ON; 
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
 /* Preparing tables with statistic info */

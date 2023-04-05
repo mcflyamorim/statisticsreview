@@ -125,7 +125,7 @@ Author: Fabiano Amorim
 http:\\www.blogfabiano.com | fabianonevesamorim@hotmail.com
 ****************************************************************************************/
 AS
-SET NOCOUNT ON; SET ARITHABORT OFF; SET ARITHIGNORE ON; SET ANSI_WARNINGS OFF;
+SET NOCOUNT ON; SET ARITHABORT OFF; SET ARITHIGNORE ON; 
 
 DECLARE @sql                        VARCHAR(8000),
         @key_column_name            VARCHAR(800),

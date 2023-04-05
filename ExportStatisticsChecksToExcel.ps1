@@ -155,7 +155,7 @@ function Add-ExcelImage {
 
     process {
         if ([string]::IsNullOrWhiteSpace($Name)) {
-            $Name = (New-Guid).ToString()
+            $Name = ([guid]::NewGuid()).ToString()
         }
         if ($null -ne $WorkSheet.Drawings[$Name]) {
             Write-Error "A picture with the name `"$Name`" already exists in worksheet $($WorkSheet.Name)."
@@ -195,12 +195,12 @@ if ($CreateTranscriptLog){
     try {Start-Transcript -Path "$ScriptPath\Log\StatisticCheck_LogOutput_$TranscriptTimestamp.txt" -Force -ErrorAction | Out-Null} catch {Start-Transcript "$ScriptPath\Log\StatisticCheck_LogOutput_$TranscriptTimestamp.txt" | Out-Null}
 }
 
-$User = [Security.Principal.WindowsIdentity]::GetCurrent()
-$Role = (New-Object Security.Principal.WindowsPrincipal $user).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
-if(!$Role) {
-    Write-Msg "Ops, to run this script you will need an elevated Windows PowerShell console..." -Level Error
-    fnReturn
-}
+# $User = [Security.Principal.WindowsIdentity]::GetCurrent()
+# $Role = (New-Object Security.Principal.WindowsPrincipal $user).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
+# if(!$Role) {
+#     Write-Msg "Ops, to run this script you will need an elevated Windows PowerShell console..." -Level Error
+#     fnReturn
+# }
 
 Write-Msg -Message "Starting script execution" -Level Warning
 
@@ -598,7 +598,7 @@ try
 		$SummaryTsqlFile = $StatisticChecksFolderPath + '0 - Summary.sql'
 		$Result = Invoke-SqlCmd @Params –ServerInstance $instance -Database "master" -QueryTimeout 18000 <#5 hours#> -MaxCharLength 80000 -InputFile $SummaryTsqlFile -ErrorAction Stop
 		$ResultChart1 = Invoke-SqlCmd @Params –ServerInstance $instance -Database "master" -QueryTimeout 18000 <#5 hours#> -MaxCharLength 80000 `
-                            -Query "SELECT prioritycol, COUNT(*) AS cnt FROM tempdb.dbo.tmpStatisticCheckSummary WHERE CONVERT(NUMERIC(18, 2), result) > 0 GROUP BY prioritycol" `
+                            -Query "SELECT prioritycol, COUNT(*) AS cnt FROM tempdb.dbo.tmpStatisticCheckSummary WHERE prioritycol <> 'NA' GROUP BY prioritycol" `
                             -ErrorAction Stop
 	}
 	catch 

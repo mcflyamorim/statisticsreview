@@ -25,7 +25,7 @@ Warning Note: Customers should always test changes related to trace flags or/and
 
 -- Fabiano Amorim
 -- http:\\www.blogfabiano.com | fabianonevesamorim@hotmail.com
-SET NOCOUNT ON; SET ARITHABORT OFF; SET ARITHIGNORE ON; SET ANSI_WARNINGS OFF;
+SET NOCOUNT ON; SET ARITHABORT OFF; SET ARITHIGNORE ON; 
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
 /* Preparing tables with statistic info */

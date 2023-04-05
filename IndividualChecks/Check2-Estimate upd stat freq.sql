@@ -24,7 +24,7 @@ Detailed recommendation:
 -- http:\\www.blogfabiano.com | fabianonevesamorim@hotmail.com
 USE [master];
 
-SET NOCOUNT ON; SET ARITHABORT OFF; SET ARITHIGNORE ON; SET ANSI_WARNINGS OFF;
+SET NOCOUNT ON; SET ARITHABORT OFF; SET ARITHIGNORE ON; 
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 SET LOCK_TIMEOUT 60000; /*60 seconds*/
 SET DATEFORMAT MDY
@@ -128,7 +128,7 @@ SELECT 'Check 2 - How often statistics is updated?' AS [info],
        CTE_1.auto_update_threshold_type,
        CTE_1.auto_update_threshold,
        CTE_1.current_number_of_modified_rows_since_last_update,
-	      CONVERT(DECIMAL(25, 2), (CTE_1.current_number_of_modified_rows_since_last_update / (CTE_1.auto_update_threshold * 1.0)) * 100.0) AS percent_of_threshold,
+	      CONVERT(DECIMAL(25, 2), (CTE_1.current_number_of_modified_rows_since_last_update / (CASE WHEN CTE_1.auto_update_threshold = 0 THEN 1 ELSE CTE_1.auto_update_threshold END * 1.0)) * 100.0) AS percent_of_threshold,
        'Statistic is updated every ' 
        + CONVERT(VARCHAR(4), DATEDIFF(mi, '19000101', (DATEADD(mi, CTE_1.avg_minutes_between_update_stats, '19000101'))) / 60 / 24) + 'd '
        + CONVERT(VARCHAR(4), DATEDIFF(mi, '19000101', (DATEADD(mi, CTE_1.avg_minutes_between_update_stats, '19000101'))) / 60 % 24) + 'hr '
@@ -137,7 +137,7 @@ SELECT 'Check 2 - How often statistics is updated?' AS [info],
        CONVERT(VARCHAR, avg_modifications_per_minute_based_on_existing_update_stats_intervals) + 
        ' modifications per minute and update stat threshold of ' + 
        CONVERT(VARCHAR, CTE_1.auto_update_threshold) + 
-       ', estimated frequency of auto update stats is every ' + CONVERT(VARCHAR, CONVERT(BIGINT, CTE_1.auto_update_threshold / CTE_1.avg_modifications_per_minute_based_on_existing_update_stats_intervals)) + 
+       ', estimated frequency of auto update stats is every ' + CONVERT(VARCHAR, CONVERT(BIGINT, CTE_1.auto_update_threshold / CASE WHEN CTE_1.avg_modifications_per_minute_based_on_existing_update_stats_intervals = 0 THEN 1 ELSE CTE_1.avg_modifications_per_minute_based_on_existing_update_stats_intervals END)) + 
        ' minutes.'
        AS [info_1],
        CTE_1.update_stat_1_most_recent_datetime,
