@@ -53,7 +53,7 @@ BEGIN TRY
 	        CONVERT(DECIMAL(25, 2), (a.current_number_of_modified_rows_since_last_update / (a.auto_update_threshold * 1.0)) * 100.0) AS percent_of_threshold,
          CASE 
            WHEN TabModificationsPerMinute.avg_modifications_per_minute_based_on_existing_update_stats_intervals > 0 THEN
-				       DATEADD(MINUTE, ((a.auto_update_threshold - a.current_number_of_modified_rows_since_last_update) / TabModificationsPerMinute.avg_modifications_per_minute_based_on_existing_update_stats_intervals), GETDATE())
+				       DATEADD(MINUTE, TRY_CONVERT(INT, ((a.auto_update_threshold - a.current_number_of_modified_rows_since_last_update) / TabModificationsPerMinute.avg_modifications_per_minute_based_on_existing_update_stats_intervals)), GETDATE())
 			        ELSE NULL
 		       END AS estimated_datetime_of_next_auto_update_stats,
          TabEstimatedMinsUntilNextUpdateStats.estimated_minutes_until_next_auto_update_stats,
@@ -137,7 +137,7 @@ BEGIN TRY
                       CASE DATEDIFF(minute, a.last_updated, GETDATE()) WHEN 0 THEN 1 ELSE DATEDIFF(minute, a.last_updated, GETDATE()) END)) AS TabModificationsPerMinute2(avg_modifications_per_minute_based_on_current_getdate) 
   CROSS APPLY (SELECT DATEDIFF(MINUTE, GETDATE(), CASE 
                                                     WHEN ISNULL(TabModificationsPerMinute.avg_modifications_per_minute_based_on_existing_update_stats_intervals, TabModificationsPerMinute2.avg_modifications_per_minute_based_on_current_getdate)  > 0 THEN
-				                                                DATEADD(MINUTE, ((a.auto_update_threshold - a.current_number_of_modified_rows_since_last_update) / ISNULL(TabModificationsPerMinute.avg_modifications_per_minute_based_on_existing_update_stats_intervals, TabModificationsPerMinute2.avg_modifications_per_minute_based_on_current_getdate)), GETDATE())
+				                                                DATEADD(MINUTE, TRY_CONVERT(INT,((a.auto_update_threshold - a.current_number_of_modified_rows_since_last_update) / ISNULL(TabModificationsPerMinute.avg_modifications_per_minute_based_on_existing_update_stats_intervals, TabModificationsPerMinute2.avg_modifications_per_minute_based_on_current_getdate))), GETDATE())
 			                                                 ELSE NULL
 		                                                END)) AS TabEstimatedMinsUntilNextUpdateStats(estimated_minutes_until_next_auto_update_stats)
   OUTER APPLY (SELECT MAX(Dt) FROM (VALUES(a.last_user_seek), 
