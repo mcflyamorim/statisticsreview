@@ -18,10 +18,10 @@
     https://github.com/mcflyamorim
     .EXAMPLE
     Open a PowerShell console and run the following command:
-    PS C:\>& "D:\Fabiano\Trabalho\WebCasts, Artigos e Palestras\Index and Statistics review\StatisticsReview - Individual checks\ExportStatisticsChecksToExcel.ps1" -SQLInstance "DELLFABIANO\SQL2019" -LogFilePath "C:\temp\" -Force_sp_GetStatisticInfo_Execution
+    PS C:\>& "C:\temp\ExportStatisticsChecksToExcel\ExportStatisticsChecksToExcel.ps1" -SQLInstance "DELLFABIANO\SQL2019" -LogFilePath "C:\temp\" -Force_sp_GetStatisticInfo_Execution -CreateTranscriptLog
     .EXAMPLE
     Open a PowerShell console and run the following command:
-    PS C:\>& "C:\temp\ExportStatisticsChecksToExcel.ps1" -SQLInstance "DELLFABIANO\SQL2019" -UserName "sa" -Password "@bc12345" -LogFilePath "C:\temp\" -Force_sp_GetStatisticInfo_Execution
+    PS C:\>& "C:\temp\ExportStatisticsChecksToExcel.ps1" -SQLInstance "DELLFABIANO\SQL2019" -UserName "sa" -Password "@bc12345" -LogFilePath "C:\temp\" -Force_sp_GetStatisticInfo_Execution -CreateTranscriptLog
 #>
 param
 (
@@ -579,7 +579,7 @@ try
 				$Range = $c2 + ':' + $c3 | Out-String
 				$ws.Cells["$Range"].Style.Numberformat.Format = (Expand-NumberFormat -NumberFormat 'yyyy/mm/dd hh:mm:ss')
             }
-            elseif (($ColValue -like '*statement_text*') -Or ($ColValue -like '*object_code_definition*') -Or ($ColValue -like '*referenced_columns*')) {
+            elseif (($ColValue -like '*statement_text*') -Or ($ColValue -like '*indexed_columns*') -Or ($ColValue -like '*index_list*') -Or ($ColValue -like '*stats_list*') -Or ($ColValue -like '*object_code_definition*') -Or ($ColValue -like '*referenced_columns*')) {
                 Set-ExcelColumn -Worksheet $ws -Column $i -Width 30
             }
 			elseif ($ColValue -eq $null) {

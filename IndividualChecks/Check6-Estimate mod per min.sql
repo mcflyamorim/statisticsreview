@@ -37,6 +37,7 @@ SELECT 'Check 6 - How many modifications per minute we have?' AS [info],
         FROM tempdb.dbo.tmp_exec_history b 
         WHERE b.rowid = a.rowid) AS number_of_statistic_data_available_for_this_object,
        a.last_updated AS last_updated_datetime,
+       a.plan_cache_reference_count,
        a.current_number_of_rows, 
        a.number_of_rows_at_time_stat_was_updated,
        a.unfiltered_rows AS number_of_rows_on_table_at_time_statistics_was_updated_ignoring_filter,

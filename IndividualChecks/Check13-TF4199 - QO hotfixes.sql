@@ -1,5 +1,5 @@
 /*
-Check13 - TF4199 – Query Optimizer hotfixes
+Check13 - TF4199 - Query Optimizer hotfixes
 Description:
 Check 13 - Trace flag check - TF4199, enables query optimizer changes released in SQL Server Cumulative Updates and Service Packs
 Check TF4199, TF4199 enables query optimizer changes released in SQL Server Cumulative Updates and Service Packs.

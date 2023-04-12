@@ -62,6 +62,7 @@ SELECT
   statistic_type,
   b.leading_column_type,
   last_updated AS last_updated_datetime,
+  a.plan_cache_reference_count,
   current_number_of_rows,
   rows_sampled AS number_of_rows_sampled_on_last_update_create_statistic,
   statistic_percent_sampled,

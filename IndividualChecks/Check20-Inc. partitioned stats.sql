@@ -42,6 +42,7 @@ BEGIN
          a.key_column_name,
          a.current_number_of_rows,
          a.statistic_type,
+         a.plan_cache_reference_count,
          a.is_table_partitioned,
          a.is_incremental,
          CASE

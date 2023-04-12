@@ -27,11 +27,36 @@ IF OBJECT_ID('tempdb.dbo.tmpStatisticCheckSummary') IS NOT NULL
     DROP TABLE tempdb.dbo.tmpStatisticCheckSummary;
 WITH CTE_1
 AS (
+
    SELECT CONVERT(VARCHAR(8000), 'SQL Server instance startup time: ' + CONVERT(VARCHAR(30), @StartDate, 20)) AS [info],
           CONVERT(VARCHAR(200), CONVERT(VARCHAR(4), @UpTime / 60 / 24) + 'd ' + CONVERT(VARCHAR(4), @UpTime / 60 % 24) + 'hr ' + CONVERT(VARCHAR(4), @UpTime % 60) + 'min') AS [result],
           'NA' AS prioritycol,
           'NA' AS more_info,
           '' AS quick_fix
+   UNION ALL
+
+   SELECT CONVERT(VARCHAR(8000), 'Total number of databases: ') AS [info],
+          '- ' + CONVERT(VARCHAR(200), COUNT(DISTINCT database_id)) + ' -' AS [result],
+          'NA' AS prioritycol,
+          'NA' AS more_info,
+          'NA' AS quick_fix
+   FROM tempdb.dbo.tmp_stats
+   UNION ALL
+
+   SELECT CONVERT(VARCHAR(8000), 'Total number of tables: ') AS [info],
+          '- ' + CONVERT(VARCHAR(200),COUNT(DISTINCT database_name + schema_name + table_name)) + ' -' AS [result],
+          'NA' AS prioritycol,
+          'NA' AS more_info,
+          'NA' AS quick_fix
+   FROM tempdb.dbo.tmp_stats
+   UNION ALL
+
+   SELECT CONVERT(VARCHAR(8000), 'Total number of stats: ') AS [info],
+          '- ' + CONVERT(VARCHAR(200), COUNT(*)) + ' -' AS [result],
+          'NA' AS prioritycol,
+          'NA' AS more_info,
+          'NA' AS quick_fix
+   FROM tempdb.dbo.tmp_stats
    UNION ALL
 
    --Number of out-of-date stats: <N>
@@ -603,7 +628,7 @@ AS (
           'Check52' AS more_info,
           'Review plans and check if compilation time is too high' AS quick_fix
    FROM tempdb.dbo.tmpStatisticCheck52
-   WHERE number_of_loaded_stats >= 50
+   WHERE number_of_referenced_stats >= 50
    UNION ALL
 
    --Number of plans with loaded statistics with high modification count greater than 1k: 

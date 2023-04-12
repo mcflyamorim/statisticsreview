@@ -39,6 +39,7 @@ SELECT a.database_name,
        a.stats_name,
        a.key_column_name,
        a.statistic_type,
+       a.plan_cache_reference_count,
        a.last_updated AS last_updated_datetime,
        CONVERT(VARCHAR(4), DATEDIFF(mi,a.last_updated,GETDATE()) / 60 / 24) + 'd ' + CONVERT(VARCHAR(4), DATEDIFF(mi,a.last_updated,GETDATE()) / 60 % 24) + 'hr '
        + CONVERT(VARCHAR(4), DATEDIFF(mi,a.last_updated,GETDATE()) % 60) + 'min' AS time_since_last_update,

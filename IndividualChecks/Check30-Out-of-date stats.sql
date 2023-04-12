@@ -42,6 +42,7 @@ SELECT
   stats_name, 
   key_column_name, 
   statistic_type,
+  a.plan_cache_reference_count,
   a.last_updated AS last_updated_datetime,
   DATEDIFF(hh, a.last_updated, GETDATE()) AS hours_since_last_update,
   CASE

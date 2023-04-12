@@ -52,7 +52,7 @@ IF NOT EXISTS
         [referenced_schema] NVARCHAR(100),
         [referenced_table_name] NVARCHAR(200),
         referenced_columns NVARCHAR(4000),
-        CONSTRAINT PK_FK
+        CONSTRAINT PK_FK_check40
             PRIMARY KEY CLUSTERED (
                                       database_name,
                                       [constraint_name],

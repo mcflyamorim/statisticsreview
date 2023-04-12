@@ -43,6 +43,7 @@ BEGIN
                      CommandLog.[StatisticsName] AS stats_name,
                      a.key_column_name,
                      a.current_number_of_rows,
+                     a.plan_cache_reference_count,
                      a.statistic_type,
                      a.is_lob,
                      CommandLog.[PartitionNumber] AS partition_number,

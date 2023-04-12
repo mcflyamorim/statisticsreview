@@ -1,5 +1,5 @@
 /*
-Check42 – Statistic sample rate per table
+Check42 - Statistic sample rate per table
 Description:
 Check 42 - Estimating default sampling rate to be used for each table
 When Microsoft SQL Server creates or updates statistics, if a sampling rate isn't manually specified, SQL Server will calculate a default sampling rate. Depending on the real distribution of data in the underlying table, the default sampling rate may not accurately represent the data distribution. This may cause degradation of query plan efficiency.
@@ -41,6 +41,7 @@ SELECT 'Check 42 - Estimating default sampling rate to be used for each table' A
        a.schema_name,
        a.table_name,
        a.stats_name,
+       a.plan_cache_reference_count,
        current_number_of_rows,
        current_number_of_modified_rows_since_last_update,
        auto_update_threshold,
@@ -60,6 +61,7 @@ FROM (SELECT DISTINCT
              schema_name,
              table_name,
              stats_name,
+             plan_cache_reference_count,
              number_of_in_row_data_pages_on_table,
              number_of_lob_data_pages_on_table,
              current_number_of_rows,

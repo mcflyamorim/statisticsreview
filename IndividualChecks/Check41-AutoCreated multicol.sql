@@ -36,6 +36,7 @@ SELECT 'Check 41 - Check if there are auto created multi-column statistics' AS [
        a.stat_all_columns,
        a.last_updated AS last_updated_datetime,
        a.current_number_of_rows,
+       a.plan_cache_reference_count,
        a.rows_sampled AS number_of_rows_sampled_on_last_update_create_statistic,
        a.number_of_statistics_in_this_table,
        'Warning - It looks like this auto created multi-column stats is being there since SQL2000 (when SQL used to do it). If those stats are taking too much time to update, it may be a good ideia to evaluate whether they are really needed.' AS comment_1,

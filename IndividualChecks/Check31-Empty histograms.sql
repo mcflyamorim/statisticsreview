@@ -1,5 +1,5 @@
 /*
-Check31 – Statistics with empty histograms
+Check31 - Statistics with empty histograms
 Description:
 Check 31 - Check if there are empty histograms
 Check if there are statistic but no histogram.
@@ -43,6 +43,7 @@ SELECT 'Check 31 - Check if there are empty histograms' AS [info],
        no_recompute AS is_no_recompute,
        filter_definition,
        last_updated AS last_updated_datetime,
+       plan_cache_reference_count,
        current_number_of_rows,
        rows_sampled AS number_of_rows_sampled_on_last_update_create_statistic,
        statistic_percent_sampled,

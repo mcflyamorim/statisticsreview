@@ -1,5 +1,5 @@
 /*
-Check23 – Statistics with small percent sample
+Check23 - Statistics with small percent sample
 Description:
 Check 23 - Check if statistic percent sample is too small
 When Microsoft SQL Server creates or updates statistics, if a sampling rate isn't manually specified, SQL Server will calculate a default sampling rate. Depending on the real distribution of data in the underlying table, the default sampling rate may not accurately represent the data distribution. 
@@ -35,6 +35,7 @@ SELECT 'Check 23 - Check if statistic percent sample is too small' AS [info],
        a.stats_name,
        a.key_column_name,
        a.last_updated AS last_updated_datetime,
+       a.plan_cache_reference_count,
        a.current_number_of_rows,
        a.rows_sampled AS number_of_rows_sampled_on_last_update_create_statistic,
        a.statistic_percent_sampled,

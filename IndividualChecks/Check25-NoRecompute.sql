@@ -1,5 +1,5 @@
 /*
-Check25 – Statistics set to NoRecompute
+Check25 - Statistics set to NoRecompute
 Description:
 Check 25 - Check if statistic is set to NoRecompute
 NoRecompute disable the automatic statistics update option, AUTO_STATISTICS_UPDATE, for statistics_name. If this option is specified, the query optimizer will complete any in-progress statistics updates for statistics_name and disable future updates. Using this option can produce suboptimal query plans. We recommend using this option sparingly, and then only by a qualified system administrator.
@@ -33,6 +33,7 @@ SELECT 'Check 25 - Check if statistic is set to NoRecompute' AS [info],
        a.stats_name,
        a.key_column_name,
        a.last_updated AS last_updated_datetime,
+       a.plan_cache_reference_count,
        a.current_number_of_rows,
        a.rows_sampled AS number_of_rows_sampled_on_last_update_create_statistic,
        a.current_number_of_modified_rows_since_last_update,

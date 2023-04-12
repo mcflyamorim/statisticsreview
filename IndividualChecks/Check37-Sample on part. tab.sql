@@ -38,6 +38,7 @@ BEGIN
     a.statistic_type,
     a.is_table_partitioned,
     a.last_updated AS last_updated_datetime,
+    a.plan_cache_reference_count,
     a.current_number_of_rows,
     a.rows_sampled AS number_of_rows_sampled_on_last_update_create_statistic,
     a.statistic_percent_sampled,

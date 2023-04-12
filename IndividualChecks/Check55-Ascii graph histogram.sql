@@ -1,7 +1,8 @@
 /*
 Check55 - Ascii graph histogram
 Description: 
-Check 55 ----------------------
+Check 55 
+----------------------
 
 Estimated Benefit:
 Medium

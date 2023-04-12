@@ -39,6 +39,7 @@ SELECT
   a.key_column_name,
   a.key_column_data_type,
   a.statistic_type,
+  a.plan_cache_reference_count,
   a.last_updated AS last_updated_datetime,
   a.current_number_of_rows,
   a.rows_sampled,

@@ -36,6 +36,7 @@ SELECT 'Check 26 - Check statistic key column with large value types.' AS [info]
        a.key_column_data_type,
        b.string_index,
        a.last_updated AS last_updated_datetime,
+       a.plan_cache_reference_count,
        a.current_number_of_rows,
        number_of_in_row_data_pages_on_table,
        CONVERT(NUMERIC(25, 2), (number_of_in_row_data_pages_on_table * 8) / 1024.) AS in_row_data_size_in_mb,

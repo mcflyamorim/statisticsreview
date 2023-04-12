@@ -40,6 +40,7 @@ SELECT 'Check 50 - Statistics with a bad leading column' AS [info],
        t.unique_values_on_key_column,
        a.last_updated AS last_updated_datetime,
        a.current_number_of_rows,
+       a.plan_cache_reference_count,
        CASE 
          WHEN t.unique_values_on_key_column <= 200
          THEN 'Warning - It looks like the number of unique values on the leading key column of this multi-column statistic very low. This will lead to a poor histogram, consider to reorder the columns and use specify a more selective column as the leading key.'

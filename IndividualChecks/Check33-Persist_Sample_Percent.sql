@@ -38,10 +38,10 @@ EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck33') IS NOT NULL
   DROP TABLE tempdb.dbo.tmpStatisticCheck33
 
-DECLARE @sqlmajorver INT, @sqlminorver int, @sqlbuild int
-SELECT @sqlmajorver = CONVERT(int, (@@microsoftversion / 0x1000000) & 0xff),
-	      @sqlminorver = CONVERT(int, (@@microsoftversion / 0x10000) & 0xff),
- 	     @sqlbuild = CONVERT(int, @@microsoftversion & 0xffff);
+DECLARE @sqlmajorver INT, @sqlminorver INT, @sqlbuild INT
+SELECT @sqlmajorver = CONVERT(INT, (@@microsoftversion / 0x1000000) & 0xff),
+	      @sqlminorver = CONVERT(INT, (@@microsoftversion / 0x10000) & 0xff),
+ 	     @sqlbuild = CONVERT(INT, @@microsoftversion & 0xffff);
 
 IF (@sqlmajorver >= 13 /*SQL2016*/)
 BEGIN
@@ -51,6 +51,7 @@ BEGIN
          a.stats_name,
          a.key_column_name,
          a.statistic_type,
+         a.plan_cache_reference_count,
          a.last_updated AS last_updated_datetime,
          a.current_number_of_rows,
          a.rows_sampled AS number_of_rows_sampled_on_last_update_create_statistic,

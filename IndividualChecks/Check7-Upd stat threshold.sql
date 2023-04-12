@@ -41,6 +41,7 @@ BEGIN TRY
          a.stats_name,
          a.key_column_name,
          a.last_updated AS last_updated_datetime,
+         a.plan_cache_reference_count,
          TabIndexUsage.last_datetime_index_or_a_table_if_obj_is_not_a_index_statistic_was_used,
          a.current_number_of_rows, 
          a.number_of_rows_at_time_stat_was_updated,

@@ -41,6 +41,7 @@ SELECT 'Check 34 - Check if there was an event of an auto update stat using a sa
        a.stats_name,
        a.key_column_name,
        a.statistic_type,
+       a.plan_cache_reference_count,
        a.current_number_of_rows,
        a.current_number_of_modified_rows_since_last_update,
        Tab_StatSample1.number_of_modifications_on_key_column_since_previous_update,

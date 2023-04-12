@@ -1,5 +1,5 @@
 /*
-Check27 – Tables with more statistics than columns
+Check27 - Tables with more statistics than columns
 Description:
 Check 27 - Check if there are tables with more statistics than columns
 Check if there are tables with more statistics than columns.
