@@ -298,7 +298,8 @@ OUTER APPLY (SELECT columndefinition =
                   WHERE QUOTENAME(TABLE_CATALOG) + N''.'' + QUOTENAME(TABLE_SCHEMA) + N''.'' + QUOTENAME(TABLE_NAME) = ''' + @full_table_name + '''
 	                  AND [isc].[COLUMN_NAME] = t1.key_column_name) AS t3
 WHERE QUOTENAME(indexes.name) = ''' + @index_name + '''' + 
-' AND indexes.object_id = OBJECT_ID(''' + @full_table_name + ''')'
+' AND indexes.object_id = OBJECT_ID(''' + @full_table_name + ''')' + 
+' OPTION (MAXDOP 1)'
 
 IF @debug = 'Y'
 BEGIN

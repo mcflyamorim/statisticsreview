@@ -30,6 +30,7 @@ SELECT  TOP 1000
         *
 INTO tempdb.dbo.tmpStatisticCheck53
 FROM tempdb.dbo.tmpStatsCheckCachePlanData
+WHERE number_of_referenced_stats > 0
 ORDER BY number_of_referenced_stats DESC
 OPTION (RECOMPILE);
 

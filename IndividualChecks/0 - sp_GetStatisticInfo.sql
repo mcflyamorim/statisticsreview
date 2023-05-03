@@ -1943,6 +1943,7 @@ BEGIN
      GROUP BY t.database_id, 
            object_id, 
            index_id
+     OPTION (MAXDOP 1)
   END TRY
   BEGIN CATCH
     SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Error while trying to read data from sys.dm_db_index_operational_stats. You may see limited results because of it.'
