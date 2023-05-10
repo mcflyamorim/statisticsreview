@@ -30,7 +30,7 @@ DECLARE @ErrorMessage NVARCHAR(4000)
 IF EXISTS (SELECT [object_id] FROM tempdb.sys.objects (NOLOCK) WHERE [object_id] = OBJECT_ID('tempdb.dbo.##tmp1'))
 DROP TABLE ##tmp1;
 IF NOT EXISTS (SELECT [object_id] FROM tempdb.sys.objects (NOLOCK) WHERE [object_id] = OBJECT_ID('tempdb.dbo.##tmp1'))
-CREATE TABLE ##tmp1 ([DBName] VARCHAR(800), [Schema] VARCHAR(800), [Object] VARCHAR(800), [Type] VARCHAR(100), [JobName] VARCHAR(800), [is_enabled] BIT, [Step] VARCHAR(800), CommandFound VARCHAR(8000));
+CREATE TABLE ##tmp1 ([DBName] VARCHAR(MAX), [Schema] VARCHAR(MAX), [Object] VARCHAR(MAX), [Type] VARCHAR(MAX), [JobName] VARCHAR(MAX), [is_enabled] BIT, [Step] VARCHAR(MAX), CommandFound VARCHAR(MAX));
 		
 IF EXISTS (SELECT [object_id] FROM tempdb.sys.objects (NOLOCK) WHERE [object_id] = OBJECT_ID('tempdb.dbo.#tblKeywords'))
 DROP TABLE #tblKeywords;
@@ -129,7 +129,7 @@ SET @sqlcmd = 'USE [msdb];
                AND sjs.[subsystem] IN (''TSQL'',''PowerShell'', ''CMDEXEC'');'
 
 BEGIN TRY
-	 INSERT INTO ##tmp1 ([DBName], [Schema], [Object], [Type], JobName, is_enabled, Step, CommandFound)
+	 INSERT INTO ##tmp1 ([DBName], [Schema], [Object], [Type], JobName, [is_enabled], Step, CommandFound)
 	 EXECUTE sp_executesql @sqlcmd
 END TRY
 BEGIN CATCH
