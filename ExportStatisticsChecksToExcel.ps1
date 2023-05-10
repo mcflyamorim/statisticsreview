@@ -437,15 +437,15 @@ try
 		Write-Msg -Message "Running proc sp_GetStatisticInfo, this may take a while to run, be patient."
 
         $TsqlFile = $StatisticChecksFolderPath + '0 - sp_GetStatisticInfo.sql'
-		Invoke-SqlCmd @Params –ServerInstance $instance -Database "master" -QueryTimeout 28800 <#8 hours#> -MaxCharLength 80000 -InputFile $TsqlFile -ErrorAction Stop
+		Invoke-SqlCmd @Params –ServerInstance $instance -Database "master" -MaxCharLength 10000000 -InputFile $TsqlFile -ErrorAction Stop
 
         #Using -Verbose to capture SQL Server message output
 		if ($Database){
             $Query1 = "EXEC master.dbo.sp_GetStatisticInfo @database_name_filter = '$Database', @refreshdata = 1"
-            Invoke-SqlCmd @Params –ServerInstance $instance -Database "master" -QueryTimeout 28800 <#8 hours#> -MaxCharLength 80000 -Query $Query1 -Verbose -ErrorAction Stop
+            Invoke-SqlCmd @Params –ServerInstance $instance -Database "master" -MaxCharLength 10000000 -Query $Query1 -Verbose -ErrorAction Stop
         }
         else{
-            Invoke-SqlCmd @Params –ServerInstance $instance -Database "master" -QueryTimeout 28800 <#8 hours#> -MaxCharLength 80000 -Query "EXEC master.dbo.sp_GetStatisticInfo @refreshdata = 1" -Verbose -ErrorAction Stop
+            Invoke-SqlCmd @Params –ServerInstance $instance -Database "master" -MaxCharLength 10000000 -Query "EXEC master.dbo.sp_GetStatisticInfo @refreshdata = 1" -Verbose -ErrorAction Stop
         }
         
         Write-Msg -Message "Finished to run sp_GetStatisticInfo"
@@ -453,10 +453,10 @@ try
 
     # CleanUp tables
     # $TsqlFile = $StatisticChecksFolderPath + '0 - CleanUp.sql'
-	# Invoke-SqlCmd @Params –ServerInstance $instance -Database "tempdb" -QueryTimeout 28800 <#8 hours#> -InputFile $TsqlFile -ErrorAction Stop
+	# Invoke-SqlCmd @Params –ServerInstance $instance -Database "tempdb" --InputFile $TsqlFile -ErrorAction Stop
 
     $TsqlFile = $StatisticChecksFolderPath + '0 - sp_CheckHistogramAccuracy.sql'
-	Invoke-SqlCmd @Params –ServerInstance $instance -Database "master" -QueryTimeout 28800 <#8 hours#> -MaxCharLength 80000 -InputFile $TsqlFile -ErrorAction Stop
+	Invoke-SqlCmd @Params –ServerInstance $instance -Database "master" -MaxCharLength 10000000 -InputFile $TsqlFile -ErrorAction Stop
 
 	#Checking if tmp_stats table already exist
 	$Result = Invoke-SqlCmd @Params –ServerInstance $instance -Database "tempdb" -Query "SELECT ISNULL(OBJECT_ID('tempdb.dbo.tmp_stats'),0) AS [ObjID]" -ErrorAction Stop | Select-Object -ExpandProperty ObjID
@@ -481,7 +481,7 @@ try
         Write-Msg -Message $str -Level Output
 
         try{
-        	$Result = Invoke-SqlCmd @Params –ServerInstance $instance -Database "master" -QueryTimeout 28800 <#8 hours#> -MaxCharLength 80000 -InputFile $filename.fullname -Verbose -ErrorAction Stop
+        	$Result = Invoke-SqlCmd @Params –ServerInstance $instance -Database "master" -MaxCharLength 10000000 -InputFile $filename.fullname -Verbose -ErrorAction Stop
         }
         catch 
         {
@@ -521,7 +521,7 @@ try
 								-VerticalAlignment Center -WrapText -BorderAround Thin
 
 		$xl = $null
-        $xl = $Result  | Select-Object * -ExcludeProperty "statement_plan", "RowError", "RowState", "Table", "ItemArray", "HasErrors" | `
+        $xl = $Result  | Select-Object * -ExcludeProperty "RowError", "RowState", "Table", "ItemArray", "HasErrors" | `
                             Export-Excel -Path $FileOutput -WorkSheetname ($filename.Name).Replace('.sql', '') `
                                         -AutoSize -MaxAutoSizeRows 200 -AutoFilter -KillExcel -ClearSheet -TableStyle Medium2 `
                                         -Title ($filename.Name).Replace('.sql', '') -TitleBold <# -FreezePane 3 #> -TitleSize 20 `
@@ -577,9 +577,9 @@ try
                 $c2 = $c1 + ($NumberOfRowsDescription + 4).ToString()
 				$c3 = $c1 + ($ResultRowCount + [int]($NumberOfRowsDescription + 3))
 				$Range = $c2 + ':' + $c3 | Out-String
-				$ws.Cells["$Range"].Style.Numberformat.Format = (Expand-NumberFormat -NumberFormat 'yyyy/mm/dd hh:mm:ss')
+				$ws.Cells["$Range"].Style.Numberformat.Format = (Expand-NumberFormat -NumberFormat 'yyyy-mm-dd hh:mm:ss.fff')
             }
-            elseif (($ColValue -like '*statement_text*') -Or ($ColValue -like '*indexed_columns*') -Or ($ColValue -like '*index_list*') -Or ($ColValue -like '*stats_list*') -Or ($ColValue -like '*object_code_definition*') -Or ($ColValue -like '*referenced_columns*')) {
+            elseif (($ColValue -like '*statement_plan*') -Or ($ColValue -like '*statement_text*') -Or ($ColValue -like '*indexed_columns*') -Or ($ColValue -like '*index_list*') -Or ($ColValue -like '*stats_list*') -Or ($ColValue -like '*object_code_definition*') -Or ($ColValue -like '*referenced_columns*')) {
                 Set-ExcelColumn -Worksheet $ws -Column $i -Width 30
             }
 			elseif ($ColValue -eq $null) {
@@ -596,8 +596,8 @@ try
 
 	try{
 		$SummaryTsqlFile = $StatisticChecksFolderPath + '0 - Summary.sql'
-		$Result = Invoke-SqlCmd @Params –ServerInstance $instance -Database "master" -QueryTimeout 28800 <#8 hours#> -MaxCharLength 80000 -InputFile $SummaryTsqlFile -ErrorAction Stop
-		$ResultChart1 = Invoke-SqlCmd @Params –ServerInstance $instance -Database "master" -QueryTimeout 28800 <#8 hours#> -MaxCharLength 80000 `
+		$Result = Invoke-SqlCmd @Params –ServerInstance $instance -Database "master" -MaxCharLength 10000000 -InputFile $SummaryTsqlFile -ErrorAction Stop
+		$ResultChart1 = Invoke-SqlCmd @Params –ServerInstance $instance -Database "master" -MaxCharLength 10000000 `
                             -Query "SELECT prioritycol, COUNT(*) AS cnt FROM tempdb.dbo.tmpStatisticCheckSummary WHERE prioritycol <> 'NA' GROUP BY prioritycol" `
                             -ErrorAction Stop
 	}

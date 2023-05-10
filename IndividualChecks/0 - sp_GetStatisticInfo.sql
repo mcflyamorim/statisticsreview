@@ -495,7 +495,7 @@ BEGIN
   SELECT @number_plans = COUNT(*) 
   FROM #tmpdm_exec_query_stats
 
-  SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Starting to capture XML query plan for cached plans. Found ' + CONVERT(VARCHAR(200), @number_plans) + ' plans on sys.dm_exec_query_stats.'
+  SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Starting to capture XML plan and statement text for cached plans. Found ' + CONVERT(VARCHAR(200), @number_plans) + ' plans on sys.dm_exec_query_stats.'
   RAISERROR (@err_msg, 0, 0) WITH NOWAIT
 
   SET @i = 1
@@ -626,7 +626,19 @@ BEGIN
   CLOSE c_plans
   DEALLOCATE c_plans
 
-  SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Finished to capture XML query plan for cached plans.'
+  SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Finished to capture XML query plan and statement text for cached plans.'
+  RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+
+  SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Starting to remove plans bigger than 2MB.'
+  RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+
+  DECLARE @removed_plans INT = 0
+  DELETE FROM #tmpdm_exec_query_stats 
+  WHERE DATALENGTH(statement_plan) / 1024. > 2048 /*Ignoring big plans to avoid delay and issues when exporting it to Excel*/
+
+  SET @removed_plans = @@ROWCOUNT
+
+  SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Finished to remove plans bigger than 2MB, removed ' + CONVERT(VARCHAR, ISNULL(@removed_plans, 0)) + ' plans.'
   RAISERROR (@err_msg, 0, 0) WITH NOWAIT
 
   SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Starting to collect data about last minute execution count.'
