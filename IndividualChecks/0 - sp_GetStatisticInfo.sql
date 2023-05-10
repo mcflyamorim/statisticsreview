@@ -267,7 +267,7 @@ BEGIN
   RAISERROR(@err_msg, 0, 42) WITH NOWAIT;
 
   /* Config params: */
-  DECLARE @TOP BIGINT = 20000 /* By default, I'm only reading TOP 20k plans */
+  DECLARE @TOP BIGINT = 5000 /* By default, I'm only reading TOP 5k plans */
 
   IF OBJECT_ID('tempdb.dbo.#tmpdm_exec_query_stats') IS NOT NULL
     DROP TABLE #tmpdm_exec_query_stats
