@@ -676,7 +676,7 @@ BEGIN
   SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Finished to create XML indexes on #tmpdm_exec_query_stats.'
   RAISERROR (@err_msg, 0, 0) WITH NOWAIT
 
-  SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Starting to run final query and populate tmpStatsCheckCachePlanData'
+  SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Starting to run final query and parse query plan XML and populate tmpStatsCheckCachePlanData'
   RAISERROR (@err_msg, 0, 0) WITH NOWAIT
 
   IF OBJECT_ID('tempdb.dbo.tmpStatsCheckCachePlanData') IS NOT NULL
@@ -1043,7 +1043,7 @@ BEGIN
   CLOSE c_plans
   DEALLOCATE c_plans
 
-  SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Finished to run final query and populate tmpStatsCheckCachePlanData'
+  SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Finished to run final query and parse query plan XML and populate tmpStatsCheckCachePlanData'
   RAISERROR (@err_msg, 0, 0) WITH NOWAIT
 
   SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Finished to collect cache plan info...'
