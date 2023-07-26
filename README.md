@@ -13,9 +13,9 @@ That's it, before performing any additional troubleshooting steps, the first thi
 To increase chances of a high-quality plan, you should ensure the following:
 
 1. **Accurate** CE (Cardinality Estimations).
-2. **Usefull** and **up-to-date** statistics about your data distribution. 
+2. **Useful** and **up-to-date** statistics about your data distribution. 
 
-CE in SQL Server is derived primarily from statistics, therefore, to make sure you generate optimal query plans, it is best to design queries so that the QO can **accurately** estimate the selectivity of the conditions in your query, and, ensure you have **up-to-date** statistics. This will increases chances of a more precise CE and, in turn, faster execution plans.
+CE in SQL Server is derived primarily from statistics, therefore, to make sure you generate optimal query plans, it is best to design queries so that the QO can **accurately** estimate the selectivity of the conditions in your query, and, ensure you have **up-to-date** statistics. This will increase chances of a more precise CE and, in turn, faster execution plans.
 
 If you don't take good care of DB statistics, it is very likely you will have less-than-optimal query plan choices and poor performance.
 
