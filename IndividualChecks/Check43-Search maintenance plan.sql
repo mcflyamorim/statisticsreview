@@ -91,7 +91,7 @@ BEGIN
 	 BEGIN
 		  SELECT TOP 1 @dbname = [dbname], @dbid = [dbid] FROM #tmpdbs0 WHERE isdone = 0
 
-		  SET @sqlcmd = 'USE ' + QUOTENAME(@dbname) + ';
+		  SET @sqlcmd = 'USE ' + QUOTENAME(@dbname) + '; SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
                    SELECT N''' + REPLACE(@dbname, CHAR(39), CHAR(95)) + ''' AS [DBName], ss.name AS [Schema_Name], so.name AS [Object_Name], so.type_desc, tk.Keyword
                    FROM sys.sql_modules sm (NOLOCK)
                    INNER JOIN sys.objects so (NOLOCK) ON sm.[object_id] = so.[object_id]
@@ -119,7 +119,7 @@ INSERT INTO #tblKeywords (Keyword)
 SELECT DISTINCT Object
 FROM ##tmp1Check43
 
-SET @sqlcmd = 'USE [msdb];
+SET @sqlcmd = 'USE [msdb]; SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
                SELECT t.[DBName], t.[Schema], t.[Object], t.[Type], sj.[name], sj.[enabled], sjs.step_name, sjs.[command]
                FROM msdb.dbo.sysjobsteps sjs (NOLOCK)
                INNER JOIN msdb.dbo.sysjobs sj (NOLOCK) ON sjs.job_id = sj.job_id
