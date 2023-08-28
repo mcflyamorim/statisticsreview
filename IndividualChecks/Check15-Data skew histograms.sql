@@ -69,7 +69,7 @@ SELECT
   a.steps AS number_of_steps_on_histogram,
   c.all_density AS key_column_density,
   CONVERT(BigInt, 1.0 / CASE c.all_density WHEN 0 THEN 1 ELSE c.all_density END) AS unique_values_on_key_column_based_on_density,
-  CONVERT(BigInt, c.all_density * current_number_of_rows) AS estimated_number_of_rows_per_value_based_on_density,
+  CONVERT(NUMERIC(25,4), c.all_density * current_number_of_rows) AS estimated_number_of_rows_per_value_based_on_density,
   user_seeks + user_scans + user_lookups AS number_of_reads_on_index_table_since_last_restart,
   user_seeks + user_scans + user_lookups / 
   CASE DATEDIFF(hh, (SELECT create_date FROM sys.databases WHERE name = 'tempdb'), getdate())
@@ -170,7 +170,7 @@ SELECT
     WHEN (a.steps >= 190) 
       OR (1.0 / CASE c.all_density WHEN 0 THEN 1 ELSE c.all_density END) >= 1000
       THEN 'USE ' + a.database_name + 
-           '; EXEC sp_SQLskills_AnalyzeColumnSkew @schema_name = ' + 
+           '; EXEC sp_SQLskills_AnalyzeColumnSkew @schemaname = ' + 
            '''' + REPLACE(REPLACE(a.schema_name, '[', ''), ']', '') + '''' +
            ', @objectname = ' + 
            '''' +REPLACE(REPLACE(a.table_name, '[', ''), ']', '') + '''' +

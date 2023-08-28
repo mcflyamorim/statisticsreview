@@ -355,7 +355,8 @@ SET @sql = 'IF OBJECT_ID(''tempdb.dbo.##tblHistogram'') IS NOT NULL
                    CONVERT(DECIMAL(28,4), 0)                AS actual_avg_range_rows,
                    COALESCE(' + @key_column_name + ', NULL) AS value_on_range_with_biggest_diff,
                    CONVERT(BIGINT, 0)                       AS actual_rows_for_value_with_biggest_diff,
-                   COALESCE(' + @key_column_name + ', NULL) AS previous_range_hi_key
+                   COALESCE(' + @key_column_name + ', NULL) AS previous_range_hi_key,
+                   CONVERT(XML, NULL)                       AS [list_of_top_10_values_and_number_of_rows]
             INTO ##tblHistogram FROM ' + @full_table_name
             
 IF @debug = 'Y'
@@ -415,6 +416,41 @@ INSERT INTO ##tblHistogram
     avg_range_rows
 )
 EXEC (@sql)
+
+IF OBJECT_ID('tempdb.dbo.#tmp_density_vector') IS NOT NULL
+  DROP TABLE #tmp_density_vector;
+
+CREATE TABLE #tmp_density_vector
+(
+  [rowid] INT IDENTITY(1, 1),
+  [all_density] FLOAT,
+  [average_length] FLOAT,
+  [columns] NVARCHAR(2000)
+);
+
+/* Code to read density_vector */
+SET @sql = 'DBCC SHOW_STATISTICS (' + '''' + @full_table_name + '''' + ',' + 
+                                  @index_name + ') WITH DENSITY_VECTOR, NO_INFOMSGS;'
+
+IF @debug = 'Y'
+BEGIN
+  PRINT @sql
+END
+
+INSERT INTO #tmp_density_vector
+(
+    [all_density],
+    [average_length],
+    [columns]
+)
+EXEC (@sql);
+
+/* 
+   I'm only going to run a check on the base key column, I may decide to change my mind later, 
+   but I'm good with it for now.
+*/
+DELETE FROM #tmp_density_vector
+WHERE rowid > 1
 
 /*
   Fixing avg_range_rows as if distinct_range_rows is equal to Zero
@@ -519,10 +555,10 @@ EXEC (@sql)
 SET @sql = '
 -- actual_avg_range_rows
 UPDATE ##tblHistogram
-SET actual_avg_range_rows = actual_range_rows / CASE 
-                                                  WHEN ISNULL(actual_distinct_range_rows,0) = 0 THEN 1 
-                                                  ELSE actual_distinct_range_rows 
-                                                END
+SET actual_avg_range_rows = CONVERT(DECIMAL(28,4),actual_range_rows) / CONVERT(DECIMAL(28,4),CASE 
+                                                                                               WHEN ISNULL(actual_distinct_range_rows,0) = 0 THEN 1 
+                                                                                               ELSE actual_distinct_range_rows 
+                                                                                             END)
 FROM ##tblHistogram h;
 '
 IF @debug = 'Y'
@@ -599,6 +635,31 @@ BEGIN
 END
 EXEC (@sql)
 
+/* Get top 10 values and number of rows on it */
+IF @isunique = 0 /* It only make sense to check this for non-unique indexes, otherwise it would return 1 for all values */
+BEGIN
+  SET @sql = '
+  UPDATE ##tblHistogram
+  SET [list_of_top_10_values_and_number_of_rows] = t1.[list_of_top_10_values_and_number_of_rows]
+  FROM ##tblHistogram h
+  CROSS APPLY (SELECT TOP 10
+                      ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) AS rn,
+                      COUNT(*) AS number_of_rows,
+                      '+@key_column_name+' AS key_value
+               FROM '+@full_table_name+' WITH (NOLOCK)
+               GROUP BY '+@key_column_name+'
+               ORDER BY COUNT(*) DESC
+               FOR XML RAW, BINARY BASE64) AS t1 (list_of_top_10_values_and_number_of_rows)
+  WHERE stepnumber = 1
+  OPTION (MAXDOP 4, RECOMPILE);
+  '
+  IF @debug = 'Y'
+  BEGIN
+    PRINT @sql
+  END
+  EXEC (@sql)
+END
+
 IF OBJECT_ID('tempdb.dbo.#tmp1') IS NOT NULL
   DROP TABLE #tmp1
 
@@ -611,6 +672,10 @@ SELECT @full_table_name            AS full_table_name,
        #Stat_Header.rows_sampled,
        #Stat_Header.steps,
        CAST((rows_sampled / (rows * 1.00)) * 100.0 AS DECIMAL(5, 2)) AS statistic_sample_pct,
+       #tmp_density_vector.all_density AS key_column_density,
+       CONVERT(BIGINT, 1.0 / CASE #tmp_density_vector.all_density WHEN 0 THEN 1 ELSE #tmp_density_vector.all_density END) AS unique_values_on_key_column_based_on_density,
+       CONVERT(NUMERIC(25,4), #tmp_density_vector.all_density * #Stat_Header.rows) AS estimated_number_of_rows_per_value_based_on_density,
+       CASE WHEN stepnumber = 1 THEN list_of_top_10_values_and_number_of_rows ELSE '' END AS [list_of_top_10_values_and_number_of_rows],
        stepnumber, 
        range_hi_key,
        eq_rows,
@@ -644,6 +709,11 @@ SELECT @full_table_name            AS full_table_name,
          ELSE actual_rows_for_value_with_biggest_diff
        END AS actual_rows_for_value_with_biggest_diff,
        value_on_range_with_biggest_diff,
+       CASE 
+         WHEN (CASE WHEN actual_rows_for_value_with_biggest_diff = 0 THEN NULL ELSE actual_rows_for_value_with_biggest_diff END) > 0
+         THEN CONVERT(NUMERIC(25, 2), (CASE WHEN actual_rows_for_value_with_biggest_diff = 0 THEN NULL ELSE actual_rows_for_value_with_biggest_diff END) / avg_range_rows)
+         ELSE 0
+       END AS avg_range_rows_factor_diff_for_value_with_biggest_diff,
        t6.[avg_range_rows - sample query to show bad cardinality estimation],
        GETDATE()                 AS capture_datetime,
        @database_name            AS database_name,
@@ -662,6 +732,7 @@ SELECT @full_table_name            AS full_table_name,
        @page_io_latch_wait_count AS page_io_latch_wait_count
 INTO #tmp1
 FROM ##tblHistogram
+CROSS JOIN #tmp_density_vector
 CROSS JOIN #Stat_Header
 CROSS APPLY (SELECT CASE 
                       WHEN ABS(eq_rows - actual_eq_rows) > 0
@@ -773,6 +844,10 @@ BEGIN
     [rows_sampled] [bigint] null,
     [steps] [smallint] null,
     [statistic_sample_pct] [decimal] (5, 2) null,
+    [key_column_density] NUMERIC(25,4),
+    [unique_values_on_key_column_based_on_density] BIGINT,
+    [estimated_number_of_rows_per_value_based_on_density] NUMERIC(25,4),
+    [list_of_top_10_values_and_number_of_rows] XML,
     [stepnumber] [smallint] not null,
     [range_hi_key] sql_variant null,
     [eq_rows] [numeric] (18, 4) null,
@@ -792,9 +867,10 @@ BEGIN
     [distinct_range_"values"_diff] [bigint] null,
     [avg_range_rows] [decimal] (28, 4) null,
     [actual_avg_range_rows] [decimal] (28, 4) null,
-    [avg_range_rows_diff] [decimal] (29, 4) null,
+    [avg_range_rows_diff] [decimal] (28, 4) null,
     [actual_rows_for_value_with_biggest_diff] [bigint] null,
     [value_on_range_with_biggest_diff] sql_variant null,
+    [avg_range_rows_factor_diff_for_value_with_biggest_diff] [DECIMAL](18, 2) null,
     [avg_range_rows - sample query to show bad cardinality estimation] [xml] null,
     [captureddatetime] [datetime] not null,
     [database_name] [varchar] (800) null,
@@ -810,9 +886,7 @@ BEGIN
     [range_scan_count] [bigint] null,
     [singleton_lookup_count] [bigint] null,
     [page_latch_wait_count] [bigint] null,
-    [page_io_latch_wait_count] [bigint] null,
-    [cached_queryplansample] xml,
-    [cached_querysample] xml
+    [page_io_latch_wait_count] [bigint] null
   )
 END
 
@@ -831,6 +905,10 @@ BEGIN
                                        rows_sampled,
                                        steps,
                                        statistic_sample_pct,
+                                       [key_column_density],
+                                       [unique_values_on_key_column_based_on_density],
+                                       [estimated_number_of_rows_per_value_based_on_density],
+                                       [list_of_top_10_values_and_number_of_rows],
                                        stepnumber,
                                        range_hi_key,
                                        eq_rows,
@@ -853,6 +931,7 @@ BEGIN
                                        avg_range_rows_diff,
                                        actual_rows_for_value_with_biggest_diff,
                                        value_on_range_with_biggest_diff,
+                                       avg_range_rows_factor_diff_for_value_with_biggest_diff,
                                        [avg_range_rows - sample query to show bad cardinality estimation],
                                        captureddatetime,
                                        database_name,

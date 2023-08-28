@@ -29,7 +29,7 @@ IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck55') IS NOT NULL
   DROP TABLE tempdb.dbo.tmpStatisticCheck55
 
 
--- Adjust it to show data for the of the most 100 used histograms on equality seeks and range scans...
+-- TODO: Adjust it to show data for the of the most 100 used histograms on equality seeks and range scans...
 
 ;WITH CTE_1
 AS

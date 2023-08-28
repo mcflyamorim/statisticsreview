@@ -69,6 +69,10 @@ CREATE TABLE ##tmpHistResults
     [rows_sampled] [bigint] null,
     [steps] [smallint] null,
     [statistic_sample_pct] [decimal] (5, 2) null,
+    [key_column_density] FLOAT,
+    [unique_values_on_key_column_based_on_density] BIGINT,
+    [estimated_number_of_rows_per_value_based_on_density] NUMERIC(25,4),
+    [list_of_top_10_values_and_number_of_rows] XML,
     [stepnumber] [smallint] not null,
     [range_hi_key] sql_variant null,
     [eq_rows] [numeric] (18, 4) null,
@@ -88,9 +92,10 @@ CREATE TABLE ##tmpHistResults
     [distinct_range_"values"_diff] [bigint] null,
     [avg_range_rows] [decimal] (28, 4) null,
     [actual_avg_range_rows] [decimal] (28, 4) null,
-    [avg_range_rows_diff] [decimal] (29, 4) null,
+    [avg_range_rows_diff] [decimal] (28, 4) null,
     [actual_rows_for_value_with_biggest_diff] [bigint] null,
     [value_on_range_with_biggest_diff] sql_variant null,
+    [avg_range_rows_factor_diff_for_value_with_biggest_diff] [numeric] (18, 2) null,
     [avg_range_rows - sample query to show bad cardinality estimation] [xml] null,
     [captureddatetime] [datetime] not null,
     [database_name] [varchar] (800) null,
@@ -106,9 +111,7 @@ CREATE TABLE ##tmpHistResults
     [range_scan_count] [bigint] null,
     [singleton_lookup_count] [bigint] null,
     [page_latch_wait_count] [bigint] null,
-    [page_io_latch_wait_count] [bigint] null,
-    [cached_queryplansample] xml,
-    [cached_querysample] xml
+    [page_io_latch_wait_count] [bigint] null
   )
 
 IF OBJECT_ID('tempdb.dbo.#tmpIndexes') IS NOT NULL
