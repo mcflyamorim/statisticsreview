@@ -1,20 +1,20 @@
 /*
-Check55 - Ascii graph histogram
+Check58 - Ascii graph histogram
 Description: 
-Check 55 
+
 ----------------------
 
 Estimated Benefit:
-Medium
+N/A
 Estimated Effort:
-High
+N/A
+
 Recommendation:
+
 Quick recommendation:
-Review reported statistics, comments and recommendations.
 
 Detailed recommendation:
 ----------------------
-
 */
 
 -- Fabiano Amorim
@@ -23,13 +23,10 @@ SET NOCOUNT ON;
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
 /* Preparing tables with statistic info */
-EXEC sp_GetStatisticInfo @database_name_filter = N'RedGateMonitorFabianoAmorim', @refreshdata = 0
+EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck55') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck55
-
-
--- TODO: Adjust it to show data for the of the most 100 used histograms on equality seeks and range scans...
+IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck58') IS NOT NULL
+  DROP TABLE tempdb.dbo.tmpStatisticCheck58
 
 ;WITH CTE_1
 AS
@@ -50,7 +47,7 @@ SELECT *,
        MAX(CASE WHEN rn <= max_steps * 0.75 THEN eq_rows END) OVER(PARTITION BY rowid) AS percentile_75,
        MAX(CASE WHEN rn <= max_steps * 0.90 THEN eq_rows END) OVER(PARTITION BY rowid) AS percentile_90,
        MAX(CASE WHEN rn <= max_steps * 0.99 THEN eq_rows END) OVER(PARTITION BY rowid) AS percentile_99
-FROM (SELECT 
+FROM (SELECT TOP (50000) /* Limiting resultset */
        tmp_stats.rowid,
        tmp_stats.database_name,
        tmp_stats.schema_name,
@@ -61,6 +58,7 @@ FROM (SELECT
        tmp_stats.key_column_data_type,
        tmp_stats.stat_all_columns,
        tmp_stats.statistic_type,
+       tmp_density_vector.all_density,
        tmp_exec_history.leading_column_type,
        tmp_stats.current_number_of_rows AS current_number_of_rows_table,
        tmp_stats.current_number_of_modified_rows_since_last_update,
@@ -68,6 +66,7 @@ FROM (SELECT
        tmp_stats.auto_update_threshold,
        CONVERT(DECIMAL(25, 2), (tmp_stats.current_number_of_modified_rows_since_last_update / (tmp_stats.auto_update_threshold * 1.0)) * 100.0) AS percent_of_threshold,
        tmp_stats.rows_sampled AS number_of_rows_sampled_on_last_update,
+       tmp_stats.number_of_rows_at_time_stat_was_updated,
        tmp_stats.statistic_percent_sampled,
        DATEDIFF(HOUR, tmp_stats.last_updated, GETDATE()) AS hours_since_last_update,
        CONVERT(VARCHAR(4), DATEDIFF(mi,tmp_stats.last_updated,GETDATE()) / 60 / 24) + 'd ' + CONVERT(VARCHAR(4), DATEDIFF(mi,tmp_stats.last_updated,GETDATE()) / 60 % 24) + 'hr '
@@ -84,18 +83,19 @@ FROM (SELECT
       FROM tempdb.dbo.tmp_stats
      INNER JOIN tempdb.dbo.tmp_histogram
         ON tmp_histogram.rowid = tmp_stats.rowid
+     INNER JOIN tempdb.dbo.tmp_density_vector
+        ON tmp_density_vector.rowid = tmp_stats.rowid
+       AND tmp_density_vector.density_number = 1
      INNER JOIN tempdb.dbo.tmp_exec_history
         ON tmp_exec_history.rowid = tmp_stats.rowid
        AND tmp_exec_history.history_number = 1
      WHERE 1=1
        AND tmp_stats.is_unique = 0
        AND tmp_stats.current_number_of_rows >= 1000 /*ignoring small tables*/
-       AND EXISTS(SELECT 1 
-                    FROM tempdb.dbo.tmp_stat_header 
-                   WHERE tmp_stat_header.rowid = tmp_stats.rowid 
-                     AND tmp_stat_header.steps > 1) /*only stats with more than 1 step*/
-       --AND tmp_stats.rowid = 30
-      ) AS Tab1
+       AND (SELECT COUNT(DISTINCT a.eq_rows) AS DistinctCount
+              FROM tempdb.dbo.tmp_histogram AS a
+             WHERE a.rowid = tmp_stats.rowid) > 1 /*only stats with more than 1 distinct eq_rows*/
+      ORDER BY (ISNULL(tmp_stats.user_seeks,0) + ISNULL(tmp_stats.range_scan_count, 0)) DESC, tmp_stats.current_number_of_rows DESC) AS Tab1
 ),
 CTE_2
 AS
@@ -111,8 +111,10 @@ SELECT
        CTE_1.key_column_data_type,
        CTE_1.stat_all_columns,
        CTE_1.statistic_type,
+       CTE_1.all_density,
        CTE_1.leading_column_type,
        CTE_1.current_number_of_rows_table,
+       CTE_1.number_of_rows_at_time_stat_was_updated,
        CTE_1.current_number_of_modified_rows_since_last_update,
        CTE_1.auto_update_threshold_type,
        CTE_1.auto_update_threshold,
@@ -155,16 +157,48 @@ SELECT
                       )
            ELSE
                0
-       END AS percent_change_from_avg
+       END AS percent_change_from_avg,
+       CASE
+           WHEN eq_rows + CONVERT(NUMERIC(25, 2), AVG(step_middle_midpoint) OVER(PARTITION BY rowid)) > 0 THEN
+               CONVERT(
+                          NUMERIC(18, 2),
+                          (((eq_rows - CONVERT(NUMERIC(25, 2), CONVERT(NUMERIC(25, 2), AVG(step_middle_midpoint) OVER(PARTITION BY rowid)))) / ((eq_rows + CONVERT(NUMERIC(25, 2), AVG(step_middle_midpoint) OVER(PARTITION BY rowid))) / 2.)) * 100)
+                      )
+           ELSE
+               0
+       END AS percent_diff_from_median,
+       CASE
+           WHEN eq_rows > 0 THEN
+               CONVERT(
+                          NUMERIC(18, 2),
+                          (((eq_rows - CONVERT(NUMERIC(25, 2), AVG(step_middle_midpoint) OVER(PARTITION BY rowid))) / (CONVERT(NUMERIC(18, 2), eq_rows))) * 100)
+                      )
+           ELSE
+               0
+       END AS percent_change_from_median
 FROM CTE_1
 )
-SELECT TOP (10000) /* Limiting resultset */
-       REPLICATE('|', CEILING(eq_rows_percent_from_total)) AS g_histogram,
-       stats_name, stepnumber, CTE_2.range_hi_key, CTE_2.eq_rows, CTE_2.min, CTE_2.max, CTE_2.eq_rows_percent_from_total, CTE_2.percent_diff_from_avg, CTE_2.percent_change_from_avg
+SELECT REPLICATE('|', CEILING(eq_rows_percent_from_total)) AS g_histogram,
+       CTE_2.database_name,
+       CTE_2.schema_name,
+       CTE_2.table_name,
+       CTE_2.stats_name,
+       CTE_2.key_column_name,
+       CTE_2.statistic_type,
+       CTE_2.current_number_of_rows_table,
+       CTE_2.number_of_rows_at_time_stat_was_updated,
+       CTE_2.number_of_rows_sampled_on_last_update,
+       CTE_2.time_since_last_update,
+       CTE_2.stepnumber,
+       CTE_2.range_hi_key,
+       CTE_2.eq_rows,
+       CTE_2.eq_rows_percent_from_total,
+       CONVERT(NUMERIC(25,2), CTE_2.all_density * CTE_2.number_of_rows_at_time_stat_was_updated) AS estimated_number_of_rows_per_value_based_on_density,
+       CTE_2.mean_avg, CTE_2.percent_diff_from_avg, CTE_2.percent_change_from_avg,
+       CTE_2.median, CTE_2.percent_diff_from_median, CTE_2.percent_change_from_median,
+       CTE_2.min, CTE_2.max
 FROM CTE_2
 ORDER BY rowid, stepnumber
-GO
-
 
 /*
 -- Script to test check
