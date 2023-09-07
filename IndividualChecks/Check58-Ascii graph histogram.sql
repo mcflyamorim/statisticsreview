@@ -200,8 +200,17 @@ SELECT REPLICATE('|', CEILING(eq_rows_percent_from_total)) AS g_histogram,
        CTE_2.mean_avg, CTE_2.percent_diff_from_avg, CTE_2.percent_change_from_avg,
        CTE_2.median, CTE_2.percent_diff_from_median, CTE_2.percent_change_from_median,
        CTE_2.min, CTE_2.max
+INTO tempdb.dbo.tmpStatisticCheck58
 FROM CTE_2
 ORDER BY rowid, stepnumber
+
+SELECT * FROM tempdb.dbo.tmpStatisticCheck58
+ORDER BY current_number_of_rows_table DESC,
+         database_name,
+         table_name,
+         statistic_type DESC,
+         key_column_name,
+         stats_name
 
 /*
 -- Script to test check
