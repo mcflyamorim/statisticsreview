@@ -210,7 +210,8 @@ ORDER BY current_number_of_rows_table DESC,
          table_name,
          statistic_type DESC,
          key_column_name,
-         stats_name
+         stats_name,
+         stepnumber ASC
 
 /*
 -- Script to test check
