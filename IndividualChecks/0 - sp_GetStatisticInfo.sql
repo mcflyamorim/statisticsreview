@@ -1208,7 +1208,7 @@ BEGIN
     [distinct_range_rows] BIGINT,
     [avg_range_rows] DECIMAL(28, 4)
   );
-  CREATE CLUSTERED INDEX ixrowid ON #tmp_histogram(rowid, range_hi_key)
+  CREATE CLUSTERED INDEX ixrowid ON #tmp_histogram(rowid, stepnumber)
 
   IF OBJECT_ID('tempdb.dbo.#tmp_stats_stream') IS NOT NULL
     DROP TABLE #tmp_stats_stream;
