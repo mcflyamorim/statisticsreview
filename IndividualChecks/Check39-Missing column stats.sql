@@ -22,7 +22,7 @@ Note 2: I prefer xEvents to XML/PlanCache, so, you should consider to create a x
 
 -- Fabiano Amorim
 -- http:\\www.blogfabiano.com | fabianonevesamorim@hotmail.com
-SET NOCOUNT ON; 
+SET NOCOUNT ON;  SET ANSI_WARNINGS OFF;
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
 IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck39') IS NOT NULL

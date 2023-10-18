@@ -26,7 +26,7 @@ Detailed recommendation:
 
 -- Fabiano Amorim
 -- http:\\www.blogfabiano.com | fabianonevesamorim@hotmail.com
-SET NOCOUNT ON; SET ARITHABORT OFF; SET ARITHIGNORE ON; 
+SET NOCOUNT ON; SET ARITHABORT OFF; SET ARITHIGNORE ON;  SET ANSI_WARNINGS OFF;
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
 /* Preparing tables with statistic info */
@@ -122,8 +122,34 @@ ORDER BY steps_diff_pct ASC,
 USE Dica151
 GO
 
+-- Query takes 7 seconds to run
+SELECT C.CAIXA,
+       A.FILIAL,
+       A.NF_SAIDA,
+       A.SERIE_NF,
+       A.NOME_CLIFOR
+FROM FATURAMENTO A
+    INNER JOIN FATURAMENTO_PROD B
+        ON A.NF_SAIDA = B.NF_SAIDA
+           AND A.SERIE_NF = B.SERIE_NF
+           AND A.FILIAL = B.FILIAL
+    INNER JOIN FATURAMENTO_CAIXAS C
+        ON B.CAIXA = C.CAIXA
+WHERE A.STATUS_NFE = 5
+      AND C.NOME_CLIFOR_DESTINO_FINAL IS NOT NULL
+      AND C.NOME_CLIFOR_DESTINO_FINAL <> C.NOME_CLIFOR
+      AND C.CHAVE_NFE IS NULL
+      AND B.PEDIDO IS NOT NULL
+GROUP BY C.CAIXA,
+         A.FILIAL,
+         A.NF_SAIDA,
+         A.SERIE_NF,
+         A.NOME_CLIFOR
+OPTION (RECOMPILE, MAXDOP 1);
+GO
+
 -- Maintenance job ran and updated stat to FULLSCAN
--- 7 seconds to run
+-- 25 seconds to run
 UPDATE STATISTICS FATURAMENTO_PROD XIE2FATURAMENTO_PROD WITH FULLSCAN
 GO
 

@@ -19,7 +19,7 @@ Detailed recommendation:
 
 -- Fabiano Amorim
 -- http:\\www.blogfabiano.com | fabianonevesamorim@hotmail.com
-SET NOCOUNT ON; SET ARITHABORT OFF; SET ARITHIGNORE ON; 
+SET NOCOUNT ON; SET ARITHABORT OFF; SET ARITHIGNORE ON;  SET ANSI_WARNINGS OFF;
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
 /* Preparing tables with statistic info */
@@ -48,9 +48,6 @@ ORDER BY current_number_of_rows DESC,
          table_name,
          key_column_name,
          stats_name
-
---SELECT * FROM tempdb.dbo.tmp_stats b
---WHERE b.database_id = 15 AND b.object_id = 11147085
 
 /*
   Script to show issue
@@ -122,7 +119,7 @@ CROSS APPLY sys.dm_db_stats_properties(stat.object_id, stat.stats_id) AS sp
 WHERE stat.object_id = object_id('Customers_3');
 GO
 
--- What if I change column ColumnToShowIssueWithCCC that has nothing to do with the eisting stats?
+-- What if I change column ColumnToShowIssueWithCCC that has nothing to do with the existing stats?
 UPDATE TOP (5) Customers_3 SET ColumnToShowIssueWithCCC = 'Updated - ' + CONVERT(VARCHAR(250), NEWID())
 GO
 

@@ -23,7 +23,7 @@ Note 2: On KB3189645 (SQL2014 SP1 CU9(12.00.4474) and SP2 CU2(12.00.5532)) filte
 
 -- Fabiano Amorim
 -- http:\\www.blogfabiano.com | fabianonevesamorim@hotmail.com
-SET NOCOUNT ON; SET ARITHABORT OFF; SET ARITHIGNORE ON; 
+SET NOCOUNT ON; SET ARITHABORT OFF; SET ARITHIGNORE ON;  SET ANSI_WARNINGS OFF;
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
 /* Preparing tables with statistic info */
@@ -112,7 +112,7 @@ BEGIN
   WHILE @@FETCH_STATUS = 0
   BEGIN
     SET @ErrMsg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Checking Legacy_Cardinality_Estimation_Status on DB - [' + @database_name + ']'
-    RAISERROR (@ErrMsg, 10, 1) WITH NOWAIT
+    --RAISERROR (@ErrMsg, 10, 1) WITH NOWAIT
 
     SET @SQL = 
     'use [' + @database_name + '];

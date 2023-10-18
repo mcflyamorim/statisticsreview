@@ -183,6 +183,21 @@ ORDER BY number_of_rows_at_time_stat_was_updated DESC
 -- Script to show issue
 
 
+
+-- SET TEMPDB on flashdrive
+USE master
+GO
+ALTER DATABASE TempDB MODIFY FILE
+(NAME = tempdev, FILENAME = 'E:\DBs\tempdb1_sql2019.mdf', SIZE = 100MB, FILEGROWTH = 1MB)
+GO
+ALTER DATABASE TempDB MODIFY FILE
+(NAME = templog, FILENAME = 'E:\DBs\log_tempdb_sql2019.ldf', SIZE = 25MB , FILEGROWTH = 1MB)
+GO
+EXEC xp_cmdShell 'net stop MSSQL$SQL2019 && net start MSSQL$SQL2019'
+GO
+SELECT * FROM tempdb.dbo.sysfiles
+GO
+
 USE Northwind
 GO
 DROP TABLE IF EXISTS TestSortWarning
@@ -204,7 +219,7 @@ SELECT TOP 7000000
 OPTION (MAXDOP 8)
 GO
 
--- Optional: Start profiler an capture actual plan
+-- Optional: Start profiler and capture actual plan
 -- 7-9 seconds to run
 SELECT COUNT(*) 
 FROM TestSortWarning

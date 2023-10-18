@@ -77,7 +77,7 @@ Fabiano Amorim
 */
 AS
 BEGIN
-  SET NOCOUNT ON; SET ARITHABORT OFF; SET ARITHIGNORE ON; 
+  SET NOCOUNT ON; SET ARITHABORT OFF; SET ARITHIGNORE ON; SET ANSI_WARNINGS ON; 
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
   SET LOCK_TIMEOUT 60000; /*if I get blocked for more than 1 minute I'll quit, I don't want to wait or cause other blocks*/
 
@@ -104,8 +104,8 @@ BEGIN
     */
     IF EXISTS(SELECT 1 FROM tempdb.dbo.tmp_stats) AND (@refreshdata = 0)
     BEGIN
-			   SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Table with list of statistics already exists, I''ll reuse it and skip the code to populate the table.'
-      RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+			   --SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Table with list of statistics already exists, I''ll reuse it and skip the code to populate the table.'
+      --RAISERROR (@err_msg, 0, 0) WITH NOWAIT
       RETURN
     END
     ELSE
@@ -931,8 +931,8 @@ BEGIN
               @ctp AS cost_threshold_for_parallelism,
               CASE WHEN Batch.x.value('max(//p:RelOp/@Parallel)', 'float') > 0 THEN 1 ELSE 0 END AS is_parallel,
               Batch.x.exist('(//p:IndexScan[@ScanDirection="BACKWARD" and @Ordered="1"])') AS has_serial_ordered_backward_scan,
-              CONVERT(NUMERIC(25, 4), x.value('sum(..//p:QueryPlan/@CompileTime)', 'float') /1000. /1000.) AS compile_time_sec,
-              CONVERT(NUMERIC(25, 4), x.value('sum(..//p:QueryPlan/@CompileCPU)', 'float') /1000. /1000.) AS compile_cpu_sec,
+              CONVERT(NUMERIC(25, 4), x.value('sum(..//p:QueryPlan/@CompileTime)', 'float') /1000.) AS compile_time_sec,
+              CONVERT(NUMERIC(25, 4), x.value('sum(..//p:QueryPlan/@CompileCPU)', 'float') /1000.) AS compile_cpu_sec,
               CONVERT(NUMERIC(25, 4), x.value('sum(..//p:QueryPlan/@CompileMemory)', 'float') / 1024.) AS compile_memory_mb,
               CONVERT(NUMERIC(25, 4), Batch.x.value('sum(//p:MemoryGrantInfo/@SerialDesiredMemory)', 'float') / 1024.) AS serial_desired_memory_mb,
               CONVERT(NUMERIC(25, 4), Batch.x.value('sum(//p:MemoryGrantInfo/@SerialRequiredMemory)', 'float') / 1024.) AS serial_required_memory_mb,
@@ -1112,7 +1112,7 @@ BEGIN
     [database_name] SYSNAME,
     [schema_name] SYSNAME,
     [table_name] SYSNAME,
-    [stats_name] NVARCHAR(4000),
+    [stats_name] NVARCHAR(650),
     [database_id] [int] NOT NULL,
     [object_id] [int] NOT NULL,
     [stats_id] [int] NOT NULL,
@@ -1159,7 +1159,7 @@ BEGIN
     [database_name] SYSNAME NULL,
     [schema_name] SYSNAME NULL,
     [table_name] SYSNAME NULL,
-    [stats_name] NVARCHAR(4000) NULL,
+    [stats_name] NVARCHAR(650) NULL,
     [name] SYSNAME,
     [updated] DATETIME,
     [rows] BIGINT,
@@ -1183,7 +1183,7 @@ BEGIN
     [database_name] SYSNAME NULL,
     [schema_name] SYSNAME NULL,
     [table_name] SYSNAME NULL,
-    [stats_name] NVARCHAR(4000) NULL,
+    [stats_name] NVARCHAR(650) NULL,
     [density_number] SMALLINT NULL,
     [all_density] FLOAT,
     [average_length] FLOAT,
@@ -1200,7 +1200,7 @@ BEGIN
     [database_name] SYSNAME NULL,
     [schema_name] SYSNAME NULL,
     [table_name] SYSNAME NULL,
-    [stats_name] NVARCHAR(4000) NULL,
+    [stats_name] NVARCHAR(650) NULL,
     [stepnumber] SMALLINT,
     [range_hi_key] SQL_VARIANT NULL,
     [range_rows] DECIMAL(28, 2),
@@ -1219,7 +1219,7 @@ BEGIN
     [database_name] SYSNAME NULL,
     [schema_name] SYSNAME NULL,
     [table_name] SYSNAME NULL,
-    [stats_name] NVARCHAR(4000) NULL,
+    [stats_name] NVARCHAR(650) NULL,
     [stats_stream] VARBINARY(MAX),
     [rows] BIGINT,
     [data_pages] BIGINT
@@ -1236,7 +1236,7 @@ BEGIN
     [database_name] SYSNAME NULL,
     [schema_name] SYSNAME NULL,
     [table_name] SYSNAME NULL,
-    [stats_name] NVARCHAR(4000) NULL,
+    [stats_name] NVARCHAR(650) NULL,
     [updated] DATETIME,
     [table_cardinality] BIGINT,
     [snapshot_ctr] BIGINT,
@@ -2310,7 +2310,7 @@ BEGIN
   CREATE INDEX ix2 ON tempdb.dbo.tmp_density_vector (table_name)
   CREATE INDEX ix3 ON tempdb.dbo.tmp_density_vector (stats_name)
 
-  CREATE CLUSTERED INDEX ix1 ON tempdb.dbo.tmp_histogram(rowid)
+  CREATE CLUSTERED INDEX ix1 ON tempdb.dbo.tmp_histogram(rowid, stepnumber)
   CREATE INDEX ix2 ON tempdb.dbo.tmp_histogram (table_name)
   CREATE INDEX ix3 ON tempdb.dbo.tmp_histogram (stats_name)
 
