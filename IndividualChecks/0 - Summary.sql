@@ -67,6 +67,7 @@ AS (
           'Create an upd stats maintenance plan, or simple run sp_updatestats' AS quick_fix
    FROM tempdb.dbo.tmpStatisticCheck30
    WHERE hours_since_last_update >= 24
+   AND current_number_of_modified_rows_since_last_update > 0
    UNION ALL
 
    --Percent of stats considered out-of-date (more than 24 hours since last update):: <N>
@@ -79,6 +80,7 @@ AS (
    OUTER APPLY (SELECT CONVERT(NUMERIC(18, 2), COUNT(*)) AS cnt
                 FROM tempdb.dbo.tmpStatisticCheck30) AS t1
    WHERE hours_since_last_update >= 24
+   AND current_number_of_modified_rows_since_last_update > 0
    GROUP BY t1.cnt
    UNION ALL
 
