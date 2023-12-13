@@ -2214,14 +2214,29 @@ BEGIN
   ALTER TABLE #tmp_stats ADD is_auto_create_stats_incremental_on BIT
   ALTER TABLE #tmp_stats ADD is_date_correlation_on BIT
 
-  UPDATE #tmp_stats SET is_auto_update_stats_on = databases.is_auto_update_stats_on,
-                        is_auto_update_stats_async_on = databases.is_auto_update_stats_async_on,
-                        is_auto_create_stats_on = databases.is_auto_create_stats_on,
-                        is_auto_create_stats_incremental_on = databases.is_auto_create_stats_incremental_on,
-                        is_date_correlation_on = databases.is_date_correlation_on
-  FROM #tmp_stats
-  INNER JOIN sys.databases
-  ON databases.database_id = #tmp_stats.database_id
+    /* If this is SQL2014+ */
+  IF (@sqlmajorver >= 12 /*SQL2014*/)
+  BEGIN  
+    UPDATE #tmp_stats SET is_auto_update_stats_on = databases.is_auto_update_stats_on,
+                          is_auto_update_stats_async_on = databases.is_auto_update_stats_async_on,
+                          is_auto_create_stats_on = databases.is_auto_create_stats_on,
+                          is_auto_create_stats_incremental_on = databases.is_auto_create_stats_incremental_on,
+                          is_date_correlation_on = databases.is_date_correlation_on
+    FROM #tmp_stats
+    INNER JOIN sys.databases
+    ON databases.database_id = #tmp_stats.database_id
+  END
+  ELSE
+  BEGIN
+    UPDATE #tmp_stats SET is_auto_update_stats_on = databases.is_auto_update_stats_on,
+                          is_auto_update_stats_async_on = databases.is_auto_update_stats_async_on,
+                          is_auto_create_stats_on = databases.is_auto_create_stats_on,
+                          is_auto_create_stats_incremental_on = 0,
+                          is_date_correlation_on = databases.is_date_correlation_on
+    FROM #tmp_stats
+    INNER JOIN sys.databases
+    ON databases.database_id = #tmp_stats.database_id
+  END
 
   /* Updating statistic_percent_sampled column */
   SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Updating statistic_percent_sampled column.'
