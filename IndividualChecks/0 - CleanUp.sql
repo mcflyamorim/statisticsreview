@@ -5,6 +5,7 @@ SELECT 'if object_id(''tempdb.dbo.'+name+''') is not null drop table tempdb.dbo.
 INTO #tmp1
 FROM tempdb.sys.tables WITH(NOLOCK)
 WHERE name LIKE 'tmpStatisticCheck%'
+OR name LIKE 'tmp_default_trace'
 
 DECLARE @SQLCmd VARCHAR(800)
 DECLARE c_cursor CURSOR STATIC FOR

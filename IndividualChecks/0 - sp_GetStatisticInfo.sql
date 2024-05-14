@@ -8,7 +8,9 @@ GO
 ALTER PROC dbo.sp_GetStatisticInfo
 (
   @database_name_filter NVARCHAR(200) = NULL, /* By default I'm collecting information about all DBs */
-  @refreshdata BIT = 0 /* 1 to force drop/create of statistics tables, 0 will skip table creation if they already exists */
+  @refreshdata          BIT = 0, /* 1 to force drop/create of statistics tables, 0 will skip table creation if they already exists */
+  @skipcache            BIT = 0  /* use 1 skip plan cache collection*/
+  @skiphistgraph        BIT = 0  /* use 1 skip queries used to create histogram graph */
 )
 /*
 -------------------------------------------------------------------------------
@@ -246,8 +248,8 @@ BEGIN
     /* trace doesn't exist, creating an empty table */
     CREATE TABLE tempdb.dbo.tmp_default_trace
     (
-      [spid] [int] NULL,
-      [name] [nvarchar] (128) NULL,
+      [session_id] [int] NULL,
+      [event_name] [nvarchar] (128) NULL,
       [event_subclass] [int] NULL,
       [text_data] [nvarchar] (max),
       [start_time] [datetime] NULL,
@@ -268,6 +270,11 @@ BEGIN
 
   /* Config params: */
   DECLARE @TOP BIGINT = 5000 /* By default, I'm only reading TOP 5k plans */
+
+  IF @skipcache = 1
+  BEGIN
+    SET @TOP = 0
+  END
 
   IF OBJECT_ID('tempdb.dbo.#tmpdm_exec_query_stats') IS NOT NULL
     DROP TABLE #tmpdm_exec_query_stats
@@ -292,6 +299,7 @@ BEGIN
                    FROM sys.dm_exec_cached_plans
                    WHERE dm_exec_cached_plans.plan_handle = dm_exec_query_stats.plan_handle
                    AND dm_exec_cached_plans.cacheobjtype = 'Compiled Plan Stub') /*Ignoring AdHoc - Plan Stub*/
+  AND @skipcache = 0
   OPTION (RECOMPILE);
 
   IF OBJECT_ID('tempdb.dbo.#tmpdm_exec_query_stats_indx') IS NOT NULL
@@ -306,6 +314,7 @@ BEGIN
                    FROM sys.dm_exec_cached_plans
                    WHERE dm_exec_cached_plans.plan_handle = dm_exec_query_stats.plan_handle
                    AND dm_exec_cached_plans.cacheobjtype = 'Compiled Plan Stub') /*Ignoring AdHoc - Plan Stub*/
+  AND @skipcache = 0
   OPTION (RECOMPILE);
 
   CREATE CLUSTERED INDEX ixquery_hash ON #tmpdm_exec_query_stats_indx(query_hash, last_execution_time)
@@ -680,7 +689,7 @@ BEGIN
   AND qs.statement_end_offset = dm_exec_query_stats.statement_end_offset
 
   /* Wait for 1 minute */
-  IF @@SERVERNAME NOT LIKE '%dellfabiano%'
+  IF (@@SERVERNAME NOT LIKE '%amorim%') AND (@@SERVERNAME NOT LIKE '%fabiano%')
   BEGIN
     WAITFOR DELAY '00:01:00.000'
   END
@@ -1797,136 +1806,139 @@ BEGIN
       DECLARE @histogram_graph_xml XML
       SET @histogram_graph_xml = NULL
 
-      ;WITH source ([key], [val])
-      AS
-      (
-        SELECT range_hi_key AS [key],
-               CONVERT(BIGINT,eq_rows) AS [val]
-        FROM #tmp_histogram
-        WHERE rowid = @rowid
-      ),
-            constants
-      AS
-      (
-        SELECT
-          20 AS height,
-          '###' AS characters,
-          ' ' AS separator
-      ),
-      source_dimensions (kmin, kmax, vmin, vmax)
-      AS
-      (
-        SELECT MIN([key]),
-               MAX([key]),
-               MIN([val]),
-               MAX([val])
-        FROM source,
-             constants
-      ),
-      actual_source (step, [key], [val])
-      AS
-      (
-        SELECT TOP 200
-               ROW_NUMBER() OVER (ORDER BY [key]),
-               [key],
-               [val]
-        FROM source,
-             constants
-        ORDER BY [key]
-      ),
-      actual_dimensions
-      AS
-      (
-        SELECT MIN([key]) AS kmin,
-               MAX([key]) AS kmax,
-               MIN([val]) AS vmin,
-               MAX([val]) AS vmax,
-               COUNT(*) AS vcount
-        FROM actual_source,
-             constants
-      ),
-      dims_and_consts
-      AS
-      (
-        SELECT *,
-               (bar_width - LEN(CONVERT(VARCHAR, kmin)) - LEN(CONVERT(VARCHAR, kmax))) AS x_label_pad
-        FROM (SELECT *,
-                     (LEN(characters) + LEN(separator)) * vcount AS bar_width
-              FROM actual_dimensions,
-                   constants) AS temp
-      )
-      ,
-      cte_x (x)
-      AS
-      (
-        SELECT value
-        FROM dims_and_consts
-        CROSS APPLY (SELECT vSeq FROM #tmp_seq WHERE vSeq <= vcount) AS t1(value)
-      ),
-      cte_y (y)
-      AS
-      (
-        SELECT value
-        FROM dims_and_consts
-        CROSS APPLY (SELECT vSeq FROM #tmp_seq WHERE vSeq <= height) AS t1(value)
-      ),
-      cte_1
-      AS
-      (
-        SELECT cte_y.y,
-               RIGHT(REPLICATE(' ', CASE WHEN LEN(vmax) < 5 THEN 5 ELSE LEN(vmax)END)
-                     + CONVERT(VARCHAR, cte_y.y * (vmax) / (height)), CASE WHEN LEN(vmax) < 5 THEN 5 ELSE LEN(vmax)END)
-               + ' | ' cBar1,
-               CASE
-                 WHEN height * actual_source.[val] / (CASE WHEN vmax - vmin = 0 THEN 1 ELSE vmax - vmin END) >= cte_y.y THEN characters
-                 ELSE REPLICATE(' ', LEN(characters))
-               END AS cBar2
-        FROM cte_x
-        LEFT JOIN actual_source
-        ON actual_source.step = cte_x.x,
-             cte_y,
-             dims_and_consts
-      ),
-      chart (rn, chart)
-      AS
-      (
-        SELECT 9223372036854775807,
-               REPLICATE('-', CASE WHEN LEN(vmax) < 5 THEN 5 ELSE LEN(vmax)END) + '-+-'
-               + REPLICATE('-',
-                           LEN((SELECT RIGHT('000' + CONVERT(VARCHAR, vSeq), 3) + ' '
+      IF @skiphistgraph = 0
+      BEGIN
+        ;WITH source ([key], [val])
+        AS
+        (
+          SELECT range_hi_key AS [key],
+                 CONVERT(BIGINT,eq_rows) AS [val]
+          FROM #tmp_histogram
+          WHERE rowid = @rowid
+        ),
+              constants
+        AS
+        (
+          SELECT
+            20 AS height,
+            '###' AS characters,
+            ' ' AS separator
+        ),
+        source_dimensions (kmin, kmax, vmin, vmax)
+        AS
+        (
+          SELECT MIN([key]),
+                 MAX([key]),
+                 MIN([val]),
+                 MAX([val])
+          FROM source,
+               constants
+        ),
+        actual_source (step, [key], [val])
+        AS
+        (
+          SELECT TOP 200
+                 ROW_NUMBER() OVER (ORDER BY [key]),
+                 [key],
+                 [val]
+          FROM source,
+               constants
+          ORDER BY [key]
+        ),
+        actual_dimensions
+        AS
+        (
+          SELECT MIN([key]) AS kmin,
+                 MAX([key]) AS kmax,
+                 MIN([val]) AS vmin,
+                 MAX([val]) AS vmax,
+                 COUNT(*) AS vcount
+          FROM actual_source,
+               constants
+        ),
+        dims_and_consts
+        AS
+        (
+          SELECT *,
+                 (bar_width - LEN(CONVERT(VARCHAR, kmin)) - LEN(CONVERT(VARCHAR, kmax))) AS x_label_pad
+          FROM (SELECT *,
+                       (LEN(characters) + LEN(separator)) * vcount AS bar_width
+                FROM actual_dimensions,
+                     constants) AS temp
+        )
+        ,
+        cte_x (x)
+        AS
+        (
+          SELECT value
+          FROM dims_and_consts
+          CROSS APPLY (SELECT vSeq FROM #tmp_seq WHERE vSeq <= vcount) AS t1(value)
+        ),
+        cte_y (y)
+        AS
+        (
+          SELECT value
+          FROM dims_and_consts
+          CROSS APPLY (SELECT vSeq FROM #tmp_seq WHERE vSeq <= height) AS t1(value)
+        ),
+        cte_1
+        AS
+        (
+          SELECT cte_y.y,
+                 RIGHT(REPLICATE(' ', CASE WHEN LEN(vmax) < 5 THEN 5 ELSE LEN(vmax)END)
+                       + CONVERT(VARCHAR, cte_y.y * (vmax) / (height)), CASE WHEN LEN(vmax) < 5 THEN 5 ELSE LEN(vmax)END)
+                 + ' | ' cBar1,
+                 CASE
+                   WHEN height * actual_source.[val] / (CASE WHEN vmax - vmin = 0 THEN 1 ELSE vmax - vmin END) >= cte_y.y THEN characters
+                   ELSE REPLICATE(' ', LEN(characters))
+                 END AS cBar2
+          FROM cte_x
+          LEFT JOIN actual_source
+          ON actual_source.step = cte_x.x,
+               cte_y,
+               dims_and_consts
+        ),
+        chart (rn, chart)
+        AS
+        (
+          SELECT 9223372036854775807,
+                 REPLICATE('-', CASE WHEN LEN(vmax) < 5 THEN 5 ELSE LEN(vmax)END) + '-+-'
+                 + REPLICATE('-',
+                             LEN((SELECT RIGHT('000' + CONVERT(VARCHAR, vSeq), 3) + ' '
+                                  FROM dims_and_consts
+                                  CROSS APPLY (SELECT vSeq FROM #tmp_seq WHERE vSeq <= vcount) AS t
+                                 FOR XML PATH(''))) + 1)
+          FROM dims_and_consts
+          UNION ALL
+          SELECT a.y,
+                 cBar1 + CONVERT(VARCHAR(MAX), (SELECT ' ' + b.cBar2 FROM cte_1 b WHERE a.y = b.y FOR XML PATH(''), TYPE))
+          FROM cte_1 a
+          GROUP BY a.y,
+                   a.cBar1
+          UNION ALL
+          SELECT 0,
+                 REPLICATE('-', CASE WHEN LEN(vmax) < 5 THEN 5 ELSE LEN(vmax)END) + '-+-'
+                 + REPLICATE('-',
+                             LEN((SELECT RIGHT('000' + CONVERT(VARCHAR, vSeq), 3) + ' '
+                                  FROM dims_and_consts
+                                  CROSS APPLY (SELECT vSeq FROM #tmp_seq WHERE vSeq <= vcount) AS t
+                                 FOR XML PATH(''))) + 1)
+          FROM dims_and_consts
+          UNION ALL
+          SELECT -1,
+                 'Step     ' + SUBSTRING(t.col1, 1, LEN(t.col1)) AS t
+          FROM (SELECT RIGHT('000' + CONVERT(VARCHAR, vSeq), 3) + ' '
                                 FROM dims_and_consts
                                 CROSS APPLY (SELECT vSeq FROM #tmp_seq WHERE vSeq <= vcount) AS t
-                               FOR XML PATH(''))) + 1)
-        FROM dims_and_consts
-        UNION ALL
-        SELECT a.y,
-               cBar1 + CONVERT(VARCHAR(MAX), (SELECT ' ' + b.cBar2 FROM cte_1 b WHERE a.y = b.y FOR XML PATH(''), TYPE))
-        FROM cte_1 a
-        GROUP BY a.y,
-                 a.cBar1
-        UNION ALL
-        SELECT 0,
-               REPLICATE('-', CASE WHEN LEN(vmax) < 5 THEN 5 ELSE LEN(vmax)END) + '-+-'
-               + REPLICATE('-',
-                           LEN((SELECT RIGHT('000' + CONVERT(VARCHAR, vSeq), 3) + ' '
-                                FROM dims_and_consts
-                                CROSS APPLY (SELECT vSeq FROM #tmp_seq WHERE vSeq <= vcount) AS t
-                               FOR XML PATH(''))) + 1)
-        FROM dims_and_consts
-        UNION ALL
-        SELECT -1,
-               'Step     ' + SUBSTRING(t.col1, 1, LEN(t.col1)) AS t
-        FROM (SELECT RIGHT('000' + CONVERT(VARCHAR, vSeq), 3) + ' '
-                              FROM dims_and_consts
-                              CROSS APPLY (SELECT vSeq FROM #tmp_seq WHERE vSeq <= vcount) AS t
-                             FOR XML PATH('')) AS t(col1)
-      )
-      SELECT @histogram_graph_xml = (
-      SELECT chart AS c
-      FROM chart
-      ORDER BY rn DESC
-      FOR XML PATH(''))
-      OPTION (MAXRECURSION 200);
+                               FOR XML PATH('')) AS t(col1)
+        )
+        SELECT @histogram_graph_xml = (
+        SELECT chart AS c
+        FROM chart
+        ORDER BY rn DESC
+        FOR XML PATH(''))
+        OPTION (MAXRECURSION 200);
+      END
 
       UPDATE #tmp_stats SET histogram_graph = @histogram_graph_xml
       WHERE #tmp_stats.rowid = @rowid

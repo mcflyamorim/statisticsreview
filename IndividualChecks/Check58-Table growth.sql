@@ -187,6 +187,7 @@ SELECT #tmp_cte1.rowid,
        b.stats_name,
        b.key_column_name,
        b.key_column_data_type,
+	   b.current_number_of_rows AS current_number_of_rows_bigint,
        CONVERT(VARCHAR(30), CONVERT(MONEY, b.current_number_of_rows), 1) AS current_number_of_rows,
        b.last_updated AS last_updated_datetime,
        CONVERT(
@@ -339,4 +340,4 @@ ORDER BY b.current_number_of_rows DESC
 OPTION (MAXDOP 4);
 
 SELECT * FROM tempdb.dbo.tmpStatisticCheck58
-ORDER BY current_number_of_rows DESC
+ORDER BY current_number_of_rows_bigint DESC
