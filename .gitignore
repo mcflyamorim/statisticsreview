@@ -1,0 +1,10 @@
+
+Util/README.md
+Util/sp_ParalellIndexOptimize_PWT.sql
+Util/Step1 - Create Ola's MaintenanceSolution.sql
+Util/Step2 - Create sp_ParallelIndexOptimize.sql
+Util/Step2 - Create sp_ParallelIndexOptimize_v3.sql
+Util/Step3 - Create job to run sp_ParalellIndexOptimize.sql
+Util/Step4 - Create job to stop the parallel job.sql
+Util/Step5 - Job - Output File Cleanup - sp_ParalellIndexOptimize.sql
+Util/00 - Prepare lab.sql

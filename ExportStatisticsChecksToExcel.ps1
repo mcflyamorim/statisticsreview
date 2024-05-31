@@ -26,7 +26,7 @@
 param
 (
     [parameter(Mandatory=$false)]
-    [String] $SQLInstance = "DELLFABIANO\SQL2019",
+    [String] $SQLInstance = "",
     [String]$UserName,
     [String]$Password,
     [String]$Database = "",
@@ -62,7 +62,6 @@ function fnReturn {
     try {Stop-Transcript -ErrorAction SilentlyContinue | Out-Null} catch{}
     exit
 }
-
 function Add-ExcelImage {
     <#
     .SYNOPSIS
@@ -196,12 +195,6 @@ if ($CreateTranscriptLog){
     try {Start-Transcript -Path "$ScriptPath\Log\StatisticCheck_LogOutput_$TranscriptTimestamp.txt" -Force -ErrorAction | Out-Null} catch {Start-Transcript "$ScriptPath\Log\StatisticCheck_LogOutput_$TranscriptTimestamp.txt" | Out-Null}
 }
 
-# $User = [Security.Principal.WindowsIdentity]::GetCurrent()
-# $Role = (New-Object Security.Principal.WindowsPrincipal $user).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
-# if(!$Role) {
-#     Write-Msg "Ops, to run this script you will need an elevated Windows PowerShell console..." -Level Error
-#     fnReturn
-# }
 
 Write-Msg -Message "Starting script execution" -Level Warning
 
@@ -590,7 +583,7 @@ try
                 $c2 = $c1 + ($NumberOfRowsDescription + 4).ToString()
 				$c3 = $c1 + ($ResultRowCount + [int]($NumberOfRowsDescription + 3))
 				$Range = $c2 + ':' + $c3 | Out-String
-				$ws.Cells["$Range"].Style.Numberformat.Format = (Expand-NumberFormat -NumberFormat 'yyyy-mm-dd hh:mm:ss.fff')
+				$ws.Cells["$Range"].Style.Numberformat.Format = (Expand-NumberFormat -NumberFormat 'yyyy-mm-dd hh:mm:ss.000')
             }
             elseif (($ColValue -like '*histogram*') -Or ($ColValue -like '*statement_plan*') -Or ($ColValue -like '*list_of_top_10_values_and_number_of_rows*') -Or ($ColValue -like '*statement_text*') -Or ($ColValue -like '*indexed_columns*') -Or ($ColValue -like '*index_list*') -Or ($ColValue -like '*stats_list*') -Or ($ColValue -like '*object_code_definition*') -Or ($ColValue -like '*referenced_columns*')) {
                 Set-ExcelColumn -Worksheet $ws -Column $i -Width 30

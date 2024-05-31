@@ -9,7 +9,7 @@ ALTER PROC dbo.sp_GetStatisticInfo
 (
   @database_name_filter NVARCHAR(200) = NULL, /* By default I'm collecting information about all DBs */
   @refreshdata          BIT = 0, /* 1 to force drop/create of statistics tables, 0 will skip table creation if they already exists */
-  @skipcache            BIT = 0  /* use 1 skip plan cache collection*/
+  @skipcache            BIT = 0,  /* use 1 skip plan cache collection*/
   @skiphistgraph        BIT = 0  /* use 1 skip queries used to create histogram graph */
 )
 /*
