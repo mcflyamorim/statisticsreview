@@ -27,38 +27,27 @@ IF OBJECT_ID('dbo.tmpStatisticCheck43') IS NOT NULL
 DECLARE @dbid int, @dbname VARCHAR(1000), @sqlcmd NVARCHAR(4000)
 DECLARE @ErrorMessage NVARCHAR(4000)
 
-IF EXISTS (SELECT [object_id] FROM tempdb.sys.objects (NOLOCK) WHERE [object_id] = OBJECT_ID('tempdb.dbo.##tmp1Check43'))
-DROP TABLE ##tmp1Check43;
-IF NOT EXISTS (SELECT [object_id] FROM tempdb.sys.objects (NOLOCK) WHERE [object_id] = OBJECT_ID('tempdb.dbo.##tmp1Check43'))
+IF OBJECT_ID('tempdb.dbo.##tmp1Check43') IS NOT NULL
+  DROP TABLE ##tmp1Check43;
+
 CREATE TABLE ##tmp1Check43 ([DBName] VARCHAR(MAX), [Schema] VARCHAR(MAX), [Object] VARCHAR(MAX), [Type] VARCHAR(MAX), [JobName] VARCHAR(MAX), [is_enabled] BIT, [Step] VARCHAR(MAX), CommandFound VARCHAR(MAX));
 		
-IF EXISTS (SELECT [object_id] FROM tempdb.sys.objects (NOLOCK) WHERE [object_id] = OBJECT_ID('tempdb.dbo.#tblKeywords'))
-DROP TABLE #tblKeywords;
-IF NOT EXISTS (SELECT [object_id] FROM tempdb.sys.objects (NOLOCK) WHERE [object_id] = OBJECT_ID('tempdb.dbo.#tblKeywords'))
+IF OBJECT_ID('tempdb.dbo.#tblKeywords') IS NOT NULL
+  DROP TABLE #tblKeywords;
+
 CREATE TABLE #tblKeywords (
 	KeywordID int IDENTITY(1,1) PRIMARY KEY,
 	Keyword VARCHAR(64) -- the keyword itself
 	);
 
-IF NOT EXISTS (SELECT [object_id] FROM tempdb.sys.indexes (NOLOCK) WHERE name = N'UI_Keywords' AND [object_id] = OBJECT_ID('tempdb.dbo.#tblKeywords'))
 CREATE UNIQUE INDEX UI_Keywords ON #tblKeywords(Keyword);
 
 INSERT INTO #tblKeywords (Keyword)
 VALUES ('UPDATE STATISTICS'), ('UPDATE STATS'), ('sp_updatestats')
 
-IF EXISTS
-(
-   SELECT [object_id]
-   FROM tempdb.sys.objects (NOLOCK)
-   WHERE [object_id] = OBJECT_ID('tempdb.dbo.#tmpdbs0')
-)
-   DROP TABLE #tmpdbs0;
-IF NOT EXISTS
-(
-   SELECT [object_id]
-   FROM tempdb.sys.objects (NOLOCK)
-   WHERE [object_id] = OBJECT_ID('tempdb.dbo.#tmpdbs0')
-)
+IF OBJECT_ID('tempdb.dbo.#tmpdbs0') IS NOT NULL
+  DROP TABLE #tmpdbs0;
+
    CREATE TABLE #tmpdbs0
    (
        id INT IDENTITY(1, 1),
@@ -71,7 +60,7 @@ IF NOT EXISTS
 
 SET @sqlcmd
    = N'SELECT database_id, name, is_read_only, [state], 0 FROM master.sys.databases (NOLOCK) 
-               WHERE name <> ''tempdb'' and state_desc = ''ONLINE'' and is_read_only = 0';
+               WHERE name = DB_NAME() and state_desc = ''ONLINE'' and is_read_only = 0';
 INSERT INTO #tmpdbs0
 (
    [dbid],
@@ -107,7 +96,7 @@ BEGIN
     END TRY
     BEGIN CATCH
 	     SELECT @ErrorMessage = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Error raised in TRY block. ' + ERROR_MESSAGE()
-	     RAISERROR (@ErrorMessage, 16, 1);
+	     RAISERROR (@ErrorMessage, 0, 0);
     END CATCH
 		
 		  UPDATE #tmpdbs0
@@ -136,7 +125,7 @@ BEGIN TRY
 END TRY
 BEGIN CATCH
 	 SELECT @ErrorMessage = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Error raised in jobs TRY block. ' + ERROR_MESSAGE()
-	 RAISERROR (@ErrorMessage, 16, 1);
+	 RAISERROR (@ErrorMessage, 0, 0);
 END CATCH
 
 IF (SELECT COUNT(*) FROM ##tmp1Check43) > 0
