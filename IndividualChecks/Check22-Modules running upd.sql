@@ -75,7 +75,7 @@ BEGIN
               CROSS APPLY (SELECT CHAR(13)+CHAR(10) + sm.[definition] + CHAR(13)+CHAR(10) FOR XML RAW, ELEMENTS) AS Tab1(Col1)
               WHERE OBJECTPROPERTY(sm.[object_id],''IsMSShipped'') = 0
               AND PATINDEX(''%UPDATE STATISTICS%'', LOWER(sm.[definition]) COLLATE DATABASE_DEFAULT) > 0
-              OPTION (FORCE ORDER)'
+              OPTION (FORCE ORDER, MAXDOP 1)'
 
   /*SELECT @SQL*/
   INSERT INTO #tmp_Objs2

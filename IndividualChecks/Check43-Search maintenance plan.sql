@@ -98,7 +98,8 @@ BEGIN
                    INNER JOIN sys.schemas ss (NOLOCK) ON so.[schema_id] = ss.[schema_id]
                    CROSS JOIN #tblKeywords tk (NOLOCK)
                    WHERE PATINDEX(''%'' + tk.Keyword + ''%'', LOWER(sm.[definition]) COLLATE DATABASE_DEFAULT) > 1
-                   AND OBJECTPROPERTY(sm.[object_id],''IsMSShipped'') = 0;'
+                   AND OBJECTPROPERTY(sm.[object_id],''IsMSShipped'') = 0
+                   OPTION (MAXDOP 1);'
 
     BEGIN TRY
 	     INSERT INTO ##tmp1Check43 ([DBName], [Schema], [Object], [Type], CommandFound)
@@ -126,7 +127,8 @@ SET @sqlcmd = 'USE [msdb]; SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
                CROSS JOIN #tblKeywords tk (NOLOCK)
                OUTER APPLY (SELECT TOP 1 * FROM ##tmp1Check43 WHERE ##tmp1Check43.[Object] = tk.Keyword) AS t
                WHERE PATINDEX(''%'' + tk.Keyword + ''%'', LOWER(sjs.[command]) COLLATE DATABASE_DEFAULT) > 0
-               AND sjs.[subsystem] IN (''TSQL'',''PowerShell'', ''CMDEXEC'');'
+               AND sjs.[subsystem] IN (''TSQL'',''PowerShell'', ''CMDEXEC'')
+               OPTION (MAXDOP 1);'
 
 BEGIN TRY
 	 INSERT INTO ##tmp1Check43 ([DBName], [Schema], [Object], [Type], JobName, [is_enabled], Step, CommandFound)
