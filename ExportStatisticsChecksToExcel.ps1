@@ -750,7 +750,7 @@ try
 		$SummaryTsqlFile = $StatisticChecksFolderPath + '0 - Summary.sql'
 		$Result = Invoke-SqlCmd @Params -ServerInstance $instance -MaxCharLength 10000000 -InputFile $SummaryTsqlFile -ErrorAction Stop
 		$ResultChart1 = Invoke-SqlCmd @Params -ServerInstance $instance -MaxCharLength 10000000 `
-                            -Query "SELECT prioritycol, COUNT(*) AS cnt FROM tempdb.dbo.tmpStatisticCheckSummary WHERE prioritycol <> 'NA' GROUP BY prioritycol" `
+                            -Query "SELECT prioritycol, COUNT(*) AS cnt FROM dbo.tmpStatisticCheckSummary WHERE prioritycol <> 'NA' GROUP BY prioritycol" `
                             -ErrorAction Stop
 	}
 	catch 
