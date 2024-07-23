@@ -24,8 +24,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck25') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck25
+IF OBJECT_ID('dbo.tmpStatisticCheck25') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck25
 
 SELECT 'Check 25 - Check if statistic is set to NoRecompute' AS [info],
        a.database_name,
@@ -43,12 +43,12 @@ SELECT 'Check 25 - Check if statistic is set to NoRecompute' AS [info],
          ELSE 'OK'
        END AS no_recompute_comment,
        dbcc_command
-INTO tempdb.dbo.tmpStatisticCheck25
-FROM tempdb.dbo.tmp_stats a
+INTO dbo.tmpStatisticCheck25
+FROM dbo.tmpStatisticCheck_stats a
 WHERE a.current_number_of_rows > 0 /* Ignoring empty tables */
 AND a.no_recompute = 1
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck25
+SELECT * FROM dbo.tmpStatisticCheck25
 ORDER BY no_recompute DESC,
          current_number_of_rows DESC, 
          database_name,

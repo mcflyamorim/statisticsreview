@@ -21,8 +21,8 @@ Detailed recommendation:
 SET NOCOUNT ON; SET ARITHABORT OFF; SET ARITHIGNORE ON;  SET ANSI_WARNINGS OFF;
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck43') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck43
+IF OBJECT_ID('dbo.tmpStatisticCheck43') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck43
 
 DECLARE @dbid int, @dbname VARCHAR(1000), @sqlcmd NVARCHAR(4000)
 DECLARE @ErrorMessage NVARCHAR(4000)
@@ -151,7 +151,7 @@ BEGIN
          Step AS step,
          CommandFound AS command_found,
          'OK' AS Comment
-  INTO tempdb.dbo.tmpStatisticCheck43
+  INTO dbo.tmpStatisticCheck43
   FROM ##tmp1Check43
   WHERE JobName IS NOT NULL
 END
@@ -159,7 +159,7 @@ ELSE
 BEGIN
 	 SELECT 'Check 43 - Search for an update statistic maintenance plan' AS [info],
          'Could not find a job or procedure running update statistic, check manually.' AS comment
-  INTO tempdb.dbo.tmpStatisticCheck43
+  INTO dbo.tmpStatisticCheck43
 END;
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck43
+SELECT * FROM dbo.tmpStatisticCheck43

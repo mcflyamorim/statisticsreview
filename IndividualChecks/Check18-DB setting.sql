@@ -33,8 +33,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck18') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck18
+IF OBJECT_ID('dbo.tmpStatisticCheck18') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck18
 
 SELECT 'Check 18 - Database seetings' AS [info], 
        database_name,
@@ -72,7 +72,7 @@ SELECT 'Check 18 - Database seetings' AS [info],
          THEN 'Warning - Database ' + database_name + ' has date correlation enabled. This is not a default setting, and it has some performance overhead. Very unlikely it is really being useful, check if indexed views it uses are there but not really being used. If there is date correlation, you may get better performance by beating developers to make them to specify implied date boundaries.'
          ELSE 'OK'
        END date_correlation_optimization_comment
-INTO tempdb.dbo.tmpStatisticCheck18
+INTO dbo.tmpStatisticCheck18
 FROM (SELECT DISTINCT 
              database_name, 
              is_auto_update_stats_on, 
@@ -80,6 +80,6 @@ FROM (SELECT DISTINCT
              is_auto_create_stats_on, 
              is_auto_create_stats_incremental_on, 
              is_date_correlation_on 
-      FROM tempdb.dbo.tmp_stats) AS a
+      FROM dbo.tmpStatisticCheck_stats) AS a
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck18
+SELECT * FROM dbo.tmpStatisticCheck18

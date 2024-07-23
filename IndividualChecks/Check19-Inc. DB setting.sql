@@ -28,8 +28,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck19') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck19
+IF OBJECT_ID('dbo.tmpStatisticCheck19') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck19
 
 DECLARE @sqlmajorver INT, @sqlminorver int, @sqlbuild int
 SELECT @sqlmajorver = CONVERT(int, (@@microsoftversion / 0x1000000) & 0xff)
@@ -43,28 +43,28 @@ BEGIN
          CASE 
            WHEN (is_auto_create_stats_incremental_on = 0)
             AND EXISTS(SELECT DISTINCT database_id 
-                         FROM tempdb.dbo.tmp_stats 
-                        WHERE tmp_stats.is_table_partitioned = 1
-                          AND tmp_stats.database_id = databases.database_id)
+                         FROM dbo.tmpStatisticCheck_stats 
+                        WHERE tmpStatisticCheck_stats.is_table_partitioned = 1
+                          AND tmpStatisticCheck_stats.database_id = databases.database_id)
            THEN ''Warning - Database ['' + [name] + ''] has partitioned tables and auto-incremental-stats is disabled. Consider enabling it to allow SQL created and update stats per partition.''
            WHEN NOT EXISTS(SELECT DISTINCT database_id 
-                             FROM tempdb.dbo.tmp_stats 
-                            WHERE tmp_stats.is_table_partitioned = 1
-                              AND tmp_stats.database_id = databases.database_id)
+                             FROM dbo.tmpStatisticCheck_stats 
+                            WHERE tmpStatisticCheck_stats.is_table_partitioned = 1
+                              AND tmpStatisticCheck_stats.database_id = databases.database_id)
            THEN ''Information - Database ['' + [name] + ''] does not have partitioned tables, check is not relevant.''
            ELSE ''OK''
          END [auto_create_stats_incremental_comment]
-  INTO tempdb.dbo.tmpStatisticCheck19
+  INTO dbo.tmpStatisticCheck19
   FROM sys.databases
   WHERE database_id in (SELECT DISTINCT database_id 
-                          FROM tempdb.dbo.tmp_stats)
+                          FROM dbo.tmpStatisticCheck_stats)
   ')
 END
 ELSE
 BEGIN
   SELECT 'Check 19 - Check if incremental setting on DB should be set to ON' AS [info], 
          'Check is not relevant on this SQL version as Incremental stats only applies to SQL Server 2014 (12.x) and higher builds.' AS [auto_create_stats_incremental_comment]
-  INTO tempdb.dbo.tmpStatisticCheck19
+  INTO dbo.tmpStatisticCheck19
 END
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck19
+SELECT * FROM dbo.tmpStatisticCheck19

@@ -1,9 +1,9 @@
 IF OBJECT_ID('tempdb.dbo.#tmp1') IS NOT NULL
   DROP TABLE #tmp1
 
-SELECT 'if object_id(''tempdb.dbo.'+name+''') is not null drop table tempdb.dbo.' + name AS SQLCmd
+SELECT 'if object_id(''dbo.'+name+''') is not null drop table dbo.' + name AS SQLCmd
 INTO #tmp1
-FROM tempdb.sys.tables WITH(NOLOCK)
+FROM sys.tables WITH(NOLOCK)
 WHERE name LIKE 'tmpStatisticCheck%'
 OR name LIKE 'tmp_default_trace'
 

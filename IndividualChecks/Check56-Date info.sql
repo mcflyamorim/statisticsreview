@@ -25,8 +25,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 SET LOCK_TIMEOUT 60000; /*60 seconds*/
 SET DATEFORMAT MDY
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck56') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck56
+IF OBJECT_ID('dbo.tmpStatisticCheck56') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck56
 
 SET NOCOUNT ON;
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
@@ -56,26 +56,26 @@ SELECT 'Check 56 - Report min value for DateTime/Date columns' AS [Info],
        DATEDIFF(YEAR, t_Min.MinDate, t_Max.MaxDate) AS years_cnt,
        t_Min.EstimatedNumberOfRowsMinValue AS estimated_number_of_rows_min_value,
        t_Max.EstimatedNumberOfRowsMaxValue AS estimated_number_of_rows_max_value
-INTO tempdb.dbo.tmpStatisticCheck56
-FROM tempdb.dbo.tmp_stats
+INTO dbo.tmpStatisticCheck56
+FROM dbo.tmpStatisticCheck_stats
 CROSS APPLY (SELECT TOP 1 
                     CONVERT(DATETIME, range_hi_key) AS MinDate,
                     eq_rows AS EstimatedNumberOfRowsMinValue
-               FROM tempdb.dbo.tmp_histogram
-              WHERE tmp_histogram.rowid = tmp_stats.rowid
-                AND tmp_histogram.range_hi_key IS NOT NULL
+               FROM dbo.tmpStatisticCheck_histogram
+              WHERE tmpStatisticCheck_histogram.rowid = tmpStatisticCheck_stats.rowid
+                AND tmpStatisticCheck_histogram.range_hi_key IS NOT NULL
               ORDER BY CONVERT(DATETIME, range_hi_key) ASC) AS t_Min
 CROSS APPLY (SELECT TOP 1 
                     CONVERT(DATETIME, range_hi_key) AS MaxDate, 
                     eq_rows AS EstimatedNumberOfRowsMaxValue
-               FROM tempdb.dbo.tmp_histogram
-              WHERE tmp_histogram.rowid = tmp_stats.rowid
-                AND tmp_histogram.range_hi_key IS NOT NULL
+               FROM dbo.tmpStatisticCheck_histogram
+              WHERE tmpStatisticCheck_histogram.rowid = tmpStatisticCheck_stats.rowid
+                AND tmpStatisticCheck_histogram.range_hi_key IS NOT NULL
               ORDER BY CONVERT(DATETIME, range_hi_key) DESC) AS t_Max
 WHERE key_column_data_type LIKE '%DATE%'
 AND current_number_of_rows >= 1000000 /* Only tables >= 1mi rows */
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck56
+SELECT * FROM dbo.tmpStatisticCheck56
 ORDER BY current_number_of_rows,
          database_name,
          table_name,

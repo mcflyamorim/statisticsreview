@@ -546,20 +546,33 @@ else{
 
 try
 {
+	$Result = Invoke-SqlCmd @Params -ServerInstance $instance -Query "SELECT SERVERPROPERTY('EngineEdition') AS SeverEngineEdition" -ErrorAction Stop | Select-Object -ExpandProperty SeverEngineEdition
+
+	if (($Result -eq 5 <#Azure DB#>) -or ($Result -eq 8 <#SQL Managed Instance#>)) {
+        	if ([string]::IsNullOrEmpty($Database)){
+            		Write-Msg "Database parameter is required to run the review on SQL Azure or SQL MI. Please specify the database parameter and try again." -Level Error
+            		fnReturn
+        	}
+	}
+
+    if ($Database){
+        $Params.Database = $Database
+    }
+
     #If -Force_sp_GetStatisticInfo_Execution is set, recreate and run proc sp_GetStatisticInfo  
 	if ($Force_sp_GetStatisticInfo_Execution) {
 		Write-Msg -Message "Running proc sp_GetStatisticInfo, this may take a while to run, be patient."
 
         $TsqlFile = $StatisticChecksFolderPath + '0 - sp_GetStatisticInfo.sql'
-		Invoke-SqlCmd @Params -ServerInstance $instance -Database "master" -MaxCharLength 10000000 -InputFile $TsqlFile -ErrorAction Stop
+		Invoke-SqlCmd @Params -ServerInstance $instance -MaxCharLength 10000000 -InputFile $TsqlFile -ErrorAction Stop
 
         #Using -Verbose to capture SQL Server message output
 		if ($Database){
-            $Query1 = "EXEC master.dbo.sp_GetStatisticInfo @database_name_filter = '$Database', @refreshdata = 1"
-            Invoke-SqlCmd @Params -ServerInstance $instance -Database "master" -MaxCharLength 10000000 -Query $Query1 -Verbose -ErrorAction Stop
+            $Query1 = "EXEC dbo.sp_GetStatisticInfo @database_name_filter = '$Database', @refreshdata = 1"
+            Invoke-SqlCmd @Params -ServerInstance $instance -MaxCharLength 10000000 -Query $Query1 -Verbose -ErrorAction Stop
         }
         else{
-            Invoke-SqlCmd @Params -ServerInstance $instance -Database "master" -MaxCharLength 10000000 -Query "EXEC master.dbo.sp_GetStatisticInfo @refreshdata = 1" -Verbose -ErrorAction Stop
+            Invoke-SqlCmd @Params -ServerInstance $instance -MaxCharLength 10000000 -Query "EXEC dbo.sp_GetStatisticInfo @refreshdata = 1" -Verbose -ErrorAction Stop
         }
         
         Write-Msg -Message "Finished to run sp_GetStatisticInfo"
@@ -567,16 +580,16 @@ try
 
     # CleanUp tables
     # $TsqlFile = $StatisticChecksFolderPath + '0 - CleanUp.sql'
-	# Invoke-SqlCmd @Params -ServerInstance $instance -Database "tempdb" --InputFile $TsqlFile -ErrorAction Stop
+	# Invoke-SqlCmd @Params -ServerInstance $instance --InputFile $TsqlFile -ErrorAction Stop
 
     $TsqlFile = $StatisticChecksFolderPath + '0 - sp_CheckHistogramAccuracy.sql'
-	Invoke-SqlCmd @Params -ServerInstance $instance -Database "master" -MaxCharLength 10000000 -InputFile $TsqlFile -ErrorAction Stop
+	Invoke-SqlCmd @Params -ServerInstance $instance -MaxCharLength 10000000 -InputFile $TsqlFile -ErrorAction Stop
 
 	#Checking if tmp_stats table already exist
-	$Result = Invoke-SqlCmd @Params -ServerInstance $instance -Database "tempdb" -Query "SELECT ISNULL(OBJECT_ID('tempdb.dbo.tmp_stats'),0) AS [ObjID]" -ErrorAction Stop | Select-Object -ExpandProperty ObjID
+	$Result = Invoke-SqlCmd @Params -ServerInstance $instance -Query "SELECT ISNULL(OBJECT_ID('dbo.tmp_stats'),0) AS [ObjID]" -ErrorAction Stop | Select-Object -ExpandProperty ObjID
 
 	if ($Result -eq 0) {
-		Write-Msg "Could not find table tempdb.dbo.tmp_stats, make sure you've executed Proc sp_GetStatisticInfo to populate it." -Level Error
+		Write-Msg "Could not find table dbo.tmp_stats, make sure you've executed Proc sp_GetStatisticInfo to populate it." -Level Error
         Write-Msg "Use option -Force_sp_GetStatisticInfo_Execution to create and execute the proc" -Level Error
         fnReturn
 	}
@@ -595,7 +608,7 @@ try
         Write-Msg -Message $str -Level Output
 
         try{
-        	$Result = Invoke-SqlCmd @Params -ServerInstance $instance -Database "master" -MaxCharLength 10000000 -InputFile $filename.fullname -Verbose -ErrorAction Stop
+        	$Result = Invoke-SqlCmd @Params -ServerInstance $instance -MaxCharLength 10000000 -InputFile $filename.fullname -Verbose -ErrorAction Stop
         }
         catch 
         {
@@ -735,8 +748,8 @@ try
 
 	try{
 		$SummaryTsqlFile = $StatisticChecksFolderPath + '0 - Summary.sql'
-		$Result = Invoke-SqlCmd @Params -ServerInstance $instance -Database "master" -MaxCharLength 10000000 -InputFile $SummaryTsqlFile -ErrorAction Stop
-		$ResultChart1 = Invoke-SqlCmd @Params -ServerInstance $instance -Database "master" -MaxCharLength 10000000 `
+		$Result = Invoke-SqlCmd @Params -ServerInstance $instance -MaxCharLength 10000000 -InputFile $SummaryTsqlFile -ErrorAction Stop
+		$ResultChart1 = Invoke-SqlCmd @Params -ServerInstance $instance -MaxCharLength 10000000 `
                             -Query "SELECT prioritycol, COUNT(*) AS cnt FROM tempdb.dbo.tmpStatisticCheckSummary WHERE prioritycol <> 'NA' GROUP BY prioritycol" `
                             -ErrorAction Stop
 	}

@@ -25,8 +25,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck26') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck26
+IF OBJECT_ID('dbo.tmpStatisticCheck26') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck26
 
 SELECT 'Check 26 - Check statistic key column with large value types.' AS [info],
        a.database_name,
@@ -51,14 +51,14 @@ SELECT 'Check 26 - Check statistic key column with large value types.' AS [info]
          ELSE 'OK'
        END AS statistic_on_large_value_type_comment,
        dbcc_command
-INTO tempdb.dbo.tmpStatisticCheck26
-FROM tempdb.dbo.tmp_stats a
-INNER JOIN tempdb.dbo.tmp_stat_header b
+INTO dbo.tmpStatisticCheck26
+FROM dbo.tmpStatisticCheck_stats a
+INNER JOIN dbo.tmpStatisticCheck_stat_header b
 ON b.rowid = a.rowid
 WHERE a.current_number_of_rows > 0 /* Ignoring empty tables */
   AND a.is_lob = 1
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck26
+SELECT * FROM dbo.tmpStatisticCheck26
 ORDER BY number_of_in_row_data_pages_on_table DESC, 
          database_name,
          table_name,

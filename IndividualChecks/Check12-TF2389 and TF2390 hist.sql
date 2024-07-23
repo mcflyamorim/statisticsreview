@@ -31,8 +31,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck12') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck12
+IF OBJECT_ID('dbo.tmpStatisticCheck12') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck12
 
 IF OBJECT_ID('tempdb.dbo.#tmpCheck12') IS NOT NULL
   DROP TABLE #tmpCheck12
@@ -43,8 +43,8 @@ SELECT
   CONVERT(NUMERIC(25, 2), b.rows_below) AS number_of_rows_inserted_below,
   a.dbcc_command
 INTO #tmpCheck12
-FROM tempdb.dbo.tmp_stats AS a
-INNER JOIN tempdb.dbo.tmp_exec_history b
+FROM dbo.tmpStatisticCheck_stats AS a
+INNER JOIN dbo.tmpStatisticCheck_exec_history b
 ON b.rowid = a.rowid
 AND b.history_number = 1
 AND b.leading_column_type IN ('Unknown', 'Stationary')
@@ -135,7 +135,7 @@ SELECT
 			   END
     ELSE 'OK'
   END AS [comment]
-INTO tempdb.dbo.tmpStatisticCheck12
+INTO dbo.tmpStatisticCheck12
 FROM #tmpCheck12
 INNER JOIN sys.databases
 ON #tmpCheck12.database_name = QUOTENAME(databases.name)
@@ -143,7 +143,7 @@ WHERE databases.state_desc = 'ONLINE'
 AND databases.is_read_only = 0 
 AND databases.name not in ('tempdb', 'master', 'model', 'msdb')
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck12
+SELECT * FROM dbo.tmpStatisticCheck12
 ORDER BY database_name,
          current_number_of_rows DESC, 
          table_name,

@@ -28,8 +28,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck14') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck14
+IF OBJECT_ID('dbo.tmpStatisticCheck14') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck14
 
 SELECT 
   'Check 14 - Do I have filtered statistics?' AS [info],
@@ -57,9 +57,9 @@ SELECT
     ELSE 'OK'
   END comment_2,
   a.dbcc_command
-INTO tempdb.dbo.tmpStatisticCheck14
-FROM tempdb.dbo.tmp_stats AS a
-INNER JOIN tempdb.dbo.tmp_density_vector AS b
+INTO dbo.tmpStatisticCheck14
+FROM dbo.tmpStatisticCheck_stats AS a
+INNER JOIN dbo.tmpStatisticCheck_density_vector AS b
 ON b.rowid = a.rowid
 AND b.density_number = 1
 CROSS APPLY (SELECT CONVERT(BIGINT, 1.0 / CASE b.all_density WHEN 0 THEN 1 ELSE b.all_density END)) AS t(unique_values_on_key_column)
@@ -77,7 +77,7 @@ AND (has_filter = 1
      OR a.key_column_name LIKE '%D_E_L_E_T_%'
      OR a.steps <= 10)
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck14
+SELECT * FROM dbo.tmpStatisticCheck14
 ORDER BY current_number_of_rows DESC, 
          database_name,
          table_name,

@@ -22,19 +22,19 @@ Detailed recommendation:
 SET NOCOUNT ON;  SET ANSI_WARNINGS OFF;
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck52') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck52
+IF OBJECT_ID('dbo.tmpStatisticCheck52') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck52
 
 ;WITH XMLNAMESPACES('http://schemas.microsoft.com/sqlserver/2004/07/showplan' AS p)
 SELECT  TOP 1000
         *
-INTO tempdb.dbo.tmpStatisticCheck52
-FROM tempdb.dbo.tmpStatsCheckCachePlanData
+INTO dbo.tmpStatisticCheck52
+FROM dbo.tmpStatsCheckCachePlanData
 WHERE number_of_referenced_stats > 0
 ORDER BY number_of_referenced_stats DESC
 OPTION (RECOMPILE);
 
 SELECT 'Check 52 - Return query plans with lot of loaded stats' AS [info],
        *
-FROM tempdb.dbo.tmpStatisticCheck52
+FROM dbo.tmpStatisticCheck52
 ORDER BY number_of_referenced_stats  DESC

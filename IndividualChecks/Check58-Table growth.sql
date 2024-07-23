@@ -22,8 +22,8 @@ Detailed recommendation:
 SET NOCOUNT ON; 
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED; SET ANSI_WARNINGS OFF;
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck58') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck58
+IF OBJECT_ID('dbo.tmpStatisticCheck58') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck58
   
 IF OBJECT_ID('tempdb.dbo.#tmpnum') IS NULL
 BEGIN
@@ -86,51 +86,51 @@ IF OBJECT_ID('tempdb.dbo.#tmpseq') IS NOT NULL
 WITH CTE_1
 AS
 (
-  SELECT tmp_histogram.rowid,
+  SELECT tmpStatisticCheck_histogram.rowid,
          CASE
-           WHEN MIN(CONVERT(VARCHAR(30), tmp_histogram.range_hi_key, 112)) <= '19500101' THEN
+           WHEN MIN(CONVERT(VARCHAR(30), tmpStatisticCheck_histogram.range_hi_key, 112)) <= '19500101' THEN
            (SELECT MIN(CONVERT(VARCHAR(30), t1.range_hi_key, 112))
-            FROM tempdb.dbo.tmp_histogram AS t1
-            WHERE t1.rowid = tmp_histogram.rowid
+            FROM dbo.tmpStatisticCheck_histogram AS t1
+            WHERE t1.rowid = tmpStatisticCheck_histogram.rowid
                   AND CONVERT(VARCHAR(30), t1.range_hi_key, 112) >= '19500101')
-           ELSE MIN(CONVERT(VARCHAR(30), tmp_histogram.range_hi_key, 112))
+           ELSE MIN(CONVERT(VARCHAR(30), tmpStatisticCheck_histogram.range_hi_key, 112))
          END AS MinDt,
          CASE
-           WHEN MAX(CONVERT(VARCHAR(30), tmp_histogram.range_hi_key, 112)) >= '20500101' THEN
+           WHEN MAX(CONVERT(VARCHAR(30), tmpStatisticCheck_histogram.range_hi_key, 112)) >= '20500101' THEN
            (SELECT MAX(CONVERT(VARCHAR(30), t1.range_hi_key, 112))
-            FROM tempdb.dbo.tmp_histogram AS t1
-            WHERE t1.rowid = tmp_histogram.rowid
+            FROM dbo.tmpStatisticCheck_histogram AS t1
+            WHERE t1.rowid = tmpStatisticCheck_histogram.rowid
                   AND CONVERT(VARCHAR(30), t1.range_hi_key, 112) <= '20500101')
-           ELSE MAX(CONVERT(VARCHAR(30), tmp_histogram.range_hi_key, 112))
+           ELSE MAX(CONVERT(VARCHAR(30), tmpStatisticCheck_histogram.range_hi_key, 112))
          END AS MaxDt,
          DATEDIFF(
            DAY,
            CASE
-             WHEN MIN(CONVERT(VARCHAR(30), tmp_histogram.range_hi_key, 112)) <= '19500101' THEN
+             WHEN MIN(CONVERT(VARCHAR(30), tmpStatisticCheck_histogram.range_hi_key, 112)) <= '19500101' THEN
              (SELECT MIN(CONVERT(VARCHAR(30), t1.range_hi_key, 112))
-              FROM tempdb.dbo.tmp_histogram AS t1
-              WHERE t1.rowid = tmp_histogram.rowid
+              FROM dbo.tmpStatisticCheck_histogram AS t1
+              WHERE t1.rowid = tmpStatisticCheck_histogram.rowid
                     AND CONVERT(VARCHAR(30), t1.range_hi_key, 112) >= '19500101')
-             ELSE MIN(CONVERT(VARCHAR(30), tmp_histogram.range_hi_key, 112))
+             ELSE MIN(CONVERT(VARCHAR(30), tmpStatisticCheck_histogram.range_hi_key, 112))
            END,
            CASE
-             WHEN MAX(CONVERT(VARCHAR(30), tmp_histogram.range_hi_key, 112)) >= '20500101' THEN
+             WHEN MAX(CONVERT(VARCHAR(30), tmpStatisticCheck_histogram.range_hi_key, 112)) >= '20500101' THEN
              (SELECT MAX(CONVERT(VARCHAR(30), t1.range_hi_key, 112))
-              FROM tempdb.dbo.tmp_histogram AS t1
-              WHERE t1.rowid = tmp_histogram.rowid
+              FROM dbo.tmpStatisticCheck_histogram AS t1
+              WHERE t1.rowid = tmpStatisticCheck_histogram.rowid
                     AND CONVERT(VARCHAR(30), t1.range_hi_key, 112) <= '20500101')
-             ELSE MAX(CONVERT(VARCHAR(30), tmp_histogram.range_hi_key, 112))
+             ELSE MAX(CONVERT(VARCHAR(30), tmpStatisticCheck_histogram.range_hi_key, 112))
            END) AS Col1
-  FROM tempdb.dbo.tmp_histogram
+  FROM dbo.tmpStatisticCheck_histogram
   CROSS APPLY ((SELECT TOP 1
                        *
-                FROM tempdb.dbo.tmp_stats
-                WHERE tmp_stats.rowid = tmp_histogram.rowid
-                      AND tmp_stats.key_column_data_type LIKE 'DATETIME%'
-                      AND tmp_stats.current_number_of_rows > 100 /* Ignoring "small" tables */
-                ORDER BY tmp_histogram.stepnumber DESC /*Using the stat with biggest number of steps*/)) AS t1
-  WHERE tmp_histogram.stepnumber > 3
-  GROUP BY tmp_histogram.rowid
+                FROM dbo.tmpStatisticCheck_stats
+                WHERE tmpStatisticCheck_stats.rowid = tmpStatisticCheck_histogram.rowid
+                      AND tmpStatisticCheck_stats.key_column_data_type LIKE 'DATETIME%'
+                      AND tmpStatisticCheck_stats.current_number_of_rows > 100 /* Ignoring "small" tables */
+                ORDER BY tmpStatisticCheck_histogram.stepnumber DESC /*Using the stat with biggest number of steps*/)) AS t1
+  WHERE tmpStatisticCheck_histogram.stepnumber > 3
+  GROUP BY tmpStatisticCheck_histogram.rowid
 ),
      CTE_2
 AS
@@ -158,16 +158,16 @@ AS
          ISNULL(a.eq_rows, b.avg_range_rows) AS eq_rows
   FROM #tmpseq
   LEFT OUTER JOIN (SELECT *
-                   FROM tempdb.dbo.tmp_histogram
+                   FROM dbo.tmpStatisticCheck_histogram
                    WHERE EXISTS (SELECT *
-                                 FROM tempdb.dbo.tmp_stats
-                                 WHERE tmp_stats.rowid = tmp_histogram.rowid
-                                       AND tmp_stats.key_column_data_type LIKE 'DATETIME%')) AS a
+                                 FROM dbo.tmpStatisticCheck_stats
+                                 WHERE tmpStatisticCheck_stats.rowid = tmpStatisticCheck_histogram.rowid
+                                       AND tmpStatisticCheck_stats.key_column_data_type LIKE 'DATETIME%')) AS a
   ON a.rowid = #tmpseq.rowid
      AND CONVERT(DATE, a.range_hi_key) = CONVERT(DATE, #tmpseq.AllDts)
   OUTER APPLY (SELECT TOP 1
                       *
-               FROM tempdb.dbo.tmp_histogram AS b1
+               FROM dbo.tmpStatisticCheck_histogram AS b1
                WHERE 1 = 1
                      AND CONVERT(DATE, b1.range_hi_key) > CONVERT(DATE, #tmpseq.AllDts)
                      AND #tmpseq.rowid = b1.rowid
@@ -314,9 +314,9 @@ SELECT #tmp_cte1.rowid,
         WHERE #tmp_cte1.rowid = b.rowid
         GROUP BY range_hi_key
        FOR XML RAW)) AS rows_per_yyyymmdd
-INTO tempdb.dbo.tmpStatisticCheck58
+INTO dbo.tmpStatisticCheck58
 FROM #tmp_cte1
-INNER JOIN tempdb.dbo.tmp_stats AS b
+INNER JOIN dbo.tmpStatisticCheck_stats AS b
 ON b.rowid = #tmp_cte1.rowid
 CROSS APPLY(SELECT 
            CONVERT(
@@ -339,5 +339,5 @@ GROUP BY #tmp_cte1.rowid,
 ORDER BY b.current_number_of_rows DESC
 OPTION (MAXDOP 4);
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck58
+SELECT * FROM dbo.tmpStatisticCheck58
 ORDER BY current_number_of_rows_bigint DESC

@@ -23,15 +23,15 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck51') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck51
+IF OBJECT_ID('dbo.tmpStatisticCheck51') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck51
 
 ;WITH CTE_1
 AS
 (
   SELECT CONVERT(VARCHAR(13), last_updated, 120) + ':00:00' AS t,
          COUNT(*) AS Cnt
-  FROM tempdb.dbo.tmp_stats
+  FROM dbo.tmpStatisticCheck_stats
   WHERE last_updated >= DATEADD(month, -1, GETDATE()) /* only considering stats updated within last month */
   GROUP BY CONVERT(VARCHAR(13), last_updated, 120)
   HAVING COUNT(*) > 5
@@ -61,9 +61,9 @@ SELECT TOP 1
        DATEDIFF(HOUR, MIN(t), MAX(t)) + 1 AS number_of_hours,
        SUM(Cnt) AS number_of_updated_stats,
        (SELECT MAX(t) FROM CTE_3) AS max_end_datetime
-INTO tempdb.dbo.tmpStatisticCheck51
+INTO dbo.tmpStatisticCheck51
 FROM CTE_3
 GROUP BY r
 ORDER BY SUM(Cnt) - (SELECT AVG(Cnt) FROM CTE_3) DESC
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck51
+SELECT * FROM dbo.tmpStatisticCheck51

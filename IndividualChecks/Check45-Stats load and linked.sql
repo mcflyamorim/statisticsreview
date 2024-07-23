@@ -22,8 +22,8 @@ Detailed recommendation:
 SET NOCOUNT ON;  SET ANSI_WARNINGS OFF;
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck45') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck45
+IF OBJECT_ID('dbo.tmpStatisticCheck45') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck45
 
 SELECT 'Check 45 - Check if there are too many linked server query calls to sp_table_statistics2_rowset' AS [info],
        ISNULL(MAX(dm_exec_procedure_stats.execution_count),0) AS [total_execution_count],
@@ -33,10 +33,10 @@ SELECT 'Check 45 - Check if there are too many linked server query calls to sp_t
                 THEN 1
                 ELSE DATEDIFF(MINUTE, MIN(dm_exec_query_stats.creation_time), MAX(dm_exec_query_stats.last_execution_time))
               END),0) AS executions_per_minute
-INTO tempdb.dbo.tmpStatisticCheck45
+INTO dbo.tmpStatisticCheck45
 FROM sys.dm_exec_procedure_stats
 INNER JOIN sys.dm_exec_query_stats
 ON dm_exec_query_stats.plan_handle = dm_exec_procedure_stats.plan_handle
 WHERE OBJECT_NAME(dm_exec_procedure_stats.object_id) = 'sp_table_statistics2_rowset'
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck45
+SELECT * FROM dbo.tmpStatisticCheck45

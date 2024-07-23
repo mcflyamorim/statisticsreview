@@ -28,8 +28,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck36') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck36
+IF OBJECT_ID('dbo.tmpStatisticCheck36') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck36
 
 IF OBJECT_ID('master.dbo.CommandLog') IS NOT NULL
 BEGIN
@@ -66,9 +66,9 @@ BEGIN
                      CommandLog.ErrorNumber AS error_number,
                      CommandLog.ErrorMessage AS error_message,
                      CommandLog.ExtendedInfo AS extended_info
-               INTO tempdb.dbo.tmpStatisticCheck36
+               INTO dbo.tmpStatisticCheck36
                FROM CommandLog
-               LEFT OUTER JOIN tempdb.dbo.tmp_stats AS a
+               LEFT OUTER JOIN dbo.tmpStatisticCheck_stats AS a
                ON a.database_name = QUOTENAME(CommandLog.[DatabaseName])
                AND a.schema_name = QUOTENAME(CommandLog.[SchemaName])
                AND a.table_name = QUOTENAME(CommandLog.[ObjectName])
@@ -79,14 +79,14 @@ BEGIN
 
   /*SELECT @SQL*/
   EXEC (@SQL)
-  SELECT * FROM tempdb.dbo.tmpStatisticCheck36
+  SELECT * FROM dbo.tmpStatisticCheck36
 END
 ELSE
 BEGIN
   SELECT TOP 0 
          'Check 36 - Check if Commandlog exists on master and return updatestats command and duration' AS [info]
-  INTO tempdb.dbo.tmpStatisticCheck36
+  INTO dbo.tmpStatisticCheck36
 
-  SELECT * FROM tempdb.dbo.tmpStatisticCheck36
+  SELECT * FROM dbo.tmpStatisticCheck36
 END
 

@@ -31,8 +31,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck7') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck7
+IF OBJECT_ID('dbo.tmpStatisticCheck7') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck7
 
 BEGIN TRY
   SELECT 'Check 7 - What is the updatestat threshold for each statistic?' AS [info],
@@ -77,15 +77,15 @@ BEGIN TRY
          TabModificationsPerMinute.avg_modifications_per_minute_based_on_existing_update_stats_intervals,
          TabModificationsPerMinute2.avg_modifications_per_minute_based_on_current_getdate,
          dbcc_command
-  INTO tempdb.dbo.tmpStatisticCheck7
-  FROM tempdb.dbo.tmp_stats AS a
+  INTO dbo.tmpStatisticCheck7
+  FROM dbo.tmpStatisticCheck_stats AS a
   OUTER APPLY (SELECT CASE 
                         WHEN b.inserts_since_last_update IS NULL AND b.deletes_since_last_update IS NULL
                         THEN NULL
                         ELSE (ABS(ISNULL(b.inserts_since_last_update,0)) + ABS(ISNULL(b.deletes_since_last_update,0)))
                       END AS number_of_modifications_on_key_column_since_previous_update,
                      b.updated as last_updated
-                FROM tempdb.dbo.tmp_exec_history b
+                FROM dbo.tmpStatisticCheck_exec_history b
                WHERE b.rowid = a.rowid
                  AND b.history_number = 1 /* Previous update stat sample */
                 ) AS Tab_StatSample1
@@ -95,7 +95,7 @@ BEGIN TRY
                         ELSE (ABS(ISNULL(b.inserts_since_last_update,0)) + ABS(ISNULL(b.deletes_since_last_update,0)))
                       END AS number_of_modifications_on_key_column_since_previous_update,
                      b.updated as last_updated
-                FROM tempdb.dbo.tmp_exec_history b
+                FROM dbo.tmpStatisticCheck_exec_history b
                WHERE b.rowid = a.rowid
                  AND b.history_number = 2 /* Previous update stat sample */
                 ) AS Tab_StatSample2
@@ -105,7 +105,7 @@ BEGIN TRY
                         ELSE (ABS(ISNULL(b.inserts_since_last_update,0)) + ABS(ISNULL(b.deletes_since_last_update,0)))
                       END AS number_of_modifications_on_key_column_since_previous_update,
                      b.updated as last_updated
-                FROM tempdb.dbo.tmp_exec_history b
+                FROM dbo.tmpStatisticCheck_exec_history b
                WHERE b.rowid = a.rowid
                  AND b.history_number = 3 /* Previous update stat sample */
                 ) AS Tab_StatSample3
@@ -115,7 +115,7 @@ BEGIN TRY
                         ELSE (ABS(ISNULL(b.inserts_since_last_update,0)) + ABS(ISNULL(b.deletes_since_last_update,0)))
                       END AS number_of_modifications_on_key_column_since_previous_update,
                      b.updated as last_updated
-                FROM tempdb.dbo.tmp_exec_history b
+                FROM dbo.tmpStatisticCheck_exec_history b
                WHERE b.rowid = a.rowid
                  AND b.history_number = 4 /* Previous update stat sample */
                 ) AS Tab_StatSample4
@@ -146,7 +146,7 @@ BEGIN TRY
                                  ) AS t(Dt)) AS TabIndexUsage(last_datetime_index_or_a_table_if_obj_is_not_a_index_statistic_was_used)
   WHERE a.current_number_of_rows > 0 /* Ignoring empty tables */
 
-  SELECT * FROM tempdb.dbo.tmpStatisticCheck7
+  SELECT * FROM dbo.tmpStatisticCheck7
   ORDER BY current_number_of_rows DESC, 
            database_name,
            table_name,
@@ -156,8 +156,8 @@ END TRY
 BEGIN CATCH
   IF ERROR_NUMBER() = 517 /*Adding a value to a 'datetime' column caused an overflow.*/
   BEGIN
-     IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck7') IS NOT NULL
-       DROP TABLE tempdb.dbo.tmpStatisticCheck7
+     IF OBJECT_ID('dbo.tmpStatisticCheck7') IS NOT NULL
+       DROP TABLE dbo.tmpStatisticCheck7
 
      SELECT 'Check 7 - What is the updatestat threshold for each statistic?' AS [info],
              a.database_name,
@@ -196,15 +196,15 @@ BEGIN CATCH
              TabModificationsPerMinute.avg_modifications_per_minute_based_on_existing_update_stats_intervals,
              TabModificationsPerMinute2.avg_modifications_per_minute_based_on_current_getdate,
              dbcc_command
-      INTO tempdb.dbo.tmpStatisticCheck7
-      FROM tempdb.dbo.tmp_stats AS a
+      INTO dbo.tmpStatisticCheck7
+      FROM dbo.tmpStatisticCheck_stats AS a
       OUTER APPLY (SELECT CASE 
                             WHEN b.inserts_since_last_update IS NULL AND b.deletes_since_last_update IS NULL
                             THEN NULL
                             ELSE (ABS(ISNULL(b.inserts_since_last_update,0)) + ABS(ISNULL(b.deletes_since_last_update,0)))
                           END AS number_of_modifications_on_key_column_since_previous_update,
                          b.updated as last_updated
-                    FROM tempdb.dbo.tmp_exec_history b
+                    FROM dbo.tmpStatisticCheck_exec_history b
                    WHERE b.rowid = a.rowid
                      AND b.history_number = 1 /* Previous update stat sample */
                     ) AS Tab_StatSample1
@@ -214,7 +214,7 @@ BEGIN CATCH
                             ELSE (ABS(ISNULL(b.inserts_since_last_update,0)) + ABS(ISNULL(b.deletes_since_last_update,0)))
                           END AS number_of_modifications_on_key_column_since_previous_update,
                          b.updated as last_updated
-                    FROM tempdb.dbo.tmp_exec_history b
+                    FROM dbo.tmpStatisticCheck_exec_history b
                    WHERE b.rowid = a.rowid
                      AND b.history_number = 2 /* Previous update stat sample */
                     ) AS Tab_StatSample2
@@ -224,7 +224,7 @@ BEGIN CATCH
                             ELSE (ABS(ISNULL(b.inserts_since_last_update,0)) + ABS(ISNULL(b.deletes_since_last_update,0)))
                           END AS number_of_modifications_on_key_column_since_previous_update,
                          b.updated as last_updated
-                    FROM tempdb.dbo.tmp_exec_history b
+                    FROM dbo.tmpStatisticCheck_exec_history b
                    WHERE b.rowid = a.rowid
                      AND b.history_number = 3 /* Previous update stat sample */
                     ) AS Tab_StatSample3
@@ -234,7 +234,7 @@ BEGIN CATCH
                             ELSE (ABS(ISNULL(b.inserts_since_last_update,0)) + ABS(ISNULL(b.deletes_since_last_update,0)))
                           END AS number_of_modifications_on_key_column_since_previous_update,
                          b.updated as last_updated
-                    FROM tempdb.dbo.tmp_exec_history b
+                    FROM dbo.tmpStatisticCheck_exec_history b
                    WHERE b.rowid = a.rowid
                      AND b.history_number = 4 /* Previous update stat sample */
                     ) AS Tab_StatSample4
@@ -259,7 +259,7 @@ BEGIN CATCH
                                      ) AS t(Dt)) AS TabIndexUsage(last_datetime_index_or_a_table_if_obj_is_not_a_index_statistic_was_used)
       WHERE a.current_number_of_rows > 0 /* Ignoring empty tables */
 
-      SELECT * FROM tempdb.dbo.tmpStatisticCheck7
+      SELECT * FROM dbo.tmpStatisticCheck7
       ORDER BY current_number_of_rows DESC, 
                database_name,
                table_name,

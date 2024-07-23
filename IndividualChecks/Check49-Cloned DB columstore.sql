@@ -25,8 +25,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck49') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck49
+IF OBJECT_ID('dbo.tmpStatisticCheck49') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck49
 
 SELECT 'Check 49 - Warning about Cloned DB and ColumStore stats' AS [info],
        a.database_name,
@@ -37,11 +37,11 @@ SELECT 'Check 49 - Warning about Cloned DB and ColumStore stats' AS [info],
        a.last_updated AS last_updated_datetime,
        a.current_number_of_rows,
        dbcc_command
-INTO tempdb.dbo.tmpStatisticCheck49
-FROM tempdb.dbo.tmp_stats a
+INTO dbo.tmpStatisticCheck49
+FROM dbo.tmpStatisticCheck_stats a
 WHERE a.table_index_base_type LIKE '%COLUMNSTORE%'
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck49
+SELECT * FROM dbo.tmpStatisticCheck49
 ORDER BY current_number_of_rows DESC,
          database_name,
          table_name,

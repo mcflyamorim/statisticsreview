@@ -25,8 +25,8 @@ Detailed recommendation:
 SET NOCOUNT ON; SET ARITHABORT OFF; SET ARITHIGNORE ON;  SET ANSI_WARNINGS OFF;
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck44') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck44
+IF OBJECT_ID('dbo.tmpStatisticCheck44') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck44
 
 IF OBJECT_ID('tempdb.dbo.#tmp1') IS NOT NULL
   DROP TABLE #tmp1
@@ -61,7 +61,7 @@ BEGIN
          #tmp1.*,
          t3.Col1 AS wait_on_sync_statistics_refresh_time,
          'OK' AS comment
-  INTO tempdb.dbo.tmpStatisticCheck44
+  INTO dbo.tmpStatisticCheck44
   FROM #tmp1
   OUTER APPLY (SELECT t2.Col1 + ' of wait_on_sync_statistics_refresh have been recorded.' AS wait_on_sync_statistics_refresh_time
                FROM sys.dm_os_wait_stats 
@@ -76,7 +76,7 @@ BEGIN
 	 SELECT 'Check 44 - Check if auto_stats extended event is being monitored' AS [info],
           t3.Col1 AS wait_on_sync_statistics_refresh_time,
          'Warning - Could not find an extended event capturing auto_stats.' AS comment
-  INTO tempdb.dbo.tmpStatisticCheck44
+  INTO dbo.tmpStatisticCheck44
   FROM (SELECT 1 AS id) AS tab1
   OUTER APPLY (SELECT t2.Col1 + ' of wait_on_sync_statistics_refresh have been recorded.' AS wait_on_sync_statistics_refresh_time
                FROM sys.dm_os_wait_stats 
@@ -88,7 +88,7 @@ BEGIN
 
 END;
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck44
+SELECT * FROM dbo.tmpStatisticCheck44
 /*
 < -------------- Recommendation ---------------- >
 

@@ -31,8 +31,8 @@ SET DATEFORMAT MDY
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck2') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck2
+IF OBJECT_ID('dbo.tmpStatisticCheck2') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck2
 
 ;WITH CTE_1
 AS
@@ -62,14 +62,14 @@ SELECT a.database_name,
        a.auto_update_threshold,
        a.current_number_of_modified_rows_since_last_update,
        a.dbcc_command
-FROM tempdb.dbo.tmp_stats a
+FROM dbo.tmpStatisticCheck_stats a
 OUTER APPLY (SELECT CASE 
                       WHEN b.inserts_since_last_update IS NULL AND b.deletes_since_last_update IS NULL
                       THEN NULL
                       ELSE (ABS(ISNULL(b.inserts_since_last_update,0)) + ABS(ISNULL(b.deletes_since_last_update,0)))
                     END AS number_of_modifications_on_key_column_since_previous_update,
                    b.updated as last_updated
-              FROM tempdb.dbo.tmp_exec_history b
+              FROM dbo.tmpStatisticCheck_exec_history b
              WHERE b.rowid = a.rowid
                AND b.history_number = 1 /* Previous update stat sample */
               ) AS Tab_StatSample1
@@ -79,7 +79,7 @@ OUTER APPLY (SELECT CASE
                       ELSE (ABS(ISNULL(b.inserts_since_last_update,0)) + ABS(ISNULL(b.deletes_since_last_update,0)))
                     END AS number_of_modifications_on_key_column_since_previous_update,
                    b.updated as last_updated
-              FROM tempdb.dbo.tmp_exec_history b
+              FROM dbo.tmpStatisticCheck_exec_history b
              WHERE b.rowid = a.rowid
                AND b.history_number = 2 /* Previous update stat sample */
               ) AS Tab_StatSample2
@@ -89,7 +89,7 @@ OUTER APPLY (SELECT CASE
                       ELSE (ABS(ISNULL(b.inserts_since_last_update,0)) + ABS(ISNULL(b.deletes_since_last_update,0)))
                     END AS number_of_modifications_on_key_column_since_previous_update,
                    b.updated as last_updated
-              FROM tempdb.dbo.tmp_exec_history b
+              FROM dbo.tmpStatisticCheck_exec_history b
              WHERE b.rowid = a.rowid
                AND b.history_number = 3 /* Previous update stat sample */
               ) AS Tab_StatSample3
@@ -99,7 +99,7 @@ OUTER APPLY (SELECT CASE
                       ELSE (ABS(ISNULL(b.inserts_since_last_update,0)) + ABS(ISNULL(b.deletes_since_last_update,0)))
                     END AS number_of_modifications_on_key_column_since_previous_update,
                    b.updated as last_updated
-              FROM tempdb.dbo.tmp_exec_history b
+              FROM dbo.tmpStatisticCheck_exec_history b
              WHERE b.rowid = a.rowid
                AND b.history_number = 4 /* Previous update stat sample */
               ) AS Tab_StatSample4
@@ -176,11 +176,11 @@ SELECT 'Check 2 - How often statistics is updated?' AS [info],
          THEN 'Warning - Statistic has estimated frequency of auto update stats of less than or equal to 1 hour, consider to create a job to update it.'
          ELSE 'OK'
        END comment_4
-INTO tempdb.dbo.tmpStatisticCheck2
+INTO dbo.tmpStatisticCheck2
 FROM CTE_1
 --WHERE avg_modifications_per_minute_based_on_existing_update_stats_intervals > 0
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck2
+SELECT * FROM dbo.tmpStatisticCheck2
 ORDER BY ISNULL(avg_minutes_between_update_stats,2147483647) ASC, 
          current_number_of_rows DESC, 
          database_name,

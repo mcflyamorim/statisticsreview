@@ -25,8 +25,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck32') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck32
+IF OBJECT_ID('dbo.tmpStatisticCheck32') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck32
 
 SELECT 'Check 32 - Check if there are tables with more than 10mi rows and need to do a parallel update stats with TF7471' AS [info],
        database_name, 
@@ -40,8 +40,8 @@ SELECT 'Check 32 - Check if there are tables with more than 10mi rows and need t
               ' tables with more than 10mi rows. Consider to create a maintenance plan to run update stats in parallel using Service Broker and TF7471.'
          ELSE 'OK'
        END AS [comment]
-INTO tempdb.dbo.tmpStatisticCheck32
-FROM tempdb.dbo.tmp_stats a
+INTO dbo.tmpStatisticCheck32
+FROM dbo.tmpStatisticCheck_stats a
 GROUP BY database_name
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck32
+SELECT * FROM dbo.tmpStatisticCheck32

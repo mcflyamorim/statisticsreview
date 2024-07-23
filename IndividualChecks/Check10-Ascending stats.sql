@@ -34,8 +34,8 @@ SELECT @sqlmajorver = CONVERT(INT, (@@microsoftversion / 0x1000000) & 0xff),
 	      @sqlminorver = CONVERT(INT, (@@microsoftversion / 0x10000) & 0xff),
  	     @sqlbuild = CONVERT(INT, @@microsoftversion & 0xffff);
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck10') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck10
+IF OBJECT_ID('dbo.tmpStatisticCheck10') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck10
 
 SELECT 'Check 10 - Check if there are statistics set as ascending/descending' AS [info],
        a.database_name,
@@ -63,9 +63,9 @@ SELECT 'Check 10 - Check if there are statistics set as ascending/descending' AS
          END AS leading_column_type_comment,
        TabIndexUsage.last_datetime_index_or_a_table_if_obj_is_not_a_index_statistic_was_used,
        dbcc_command
-INTO tempdb.dbo.tmpStatisticCheck10
-FROM tempdb.dbo.tmp_stats a
-INNER JOIN tempdb.dbo.tmp_exec_history b
+INTO dbo.tmpStatisticCheck10
+FROM dbo.tmpStatisticCheck_stats a
+INNER JOIN dbo.tmpStatisticCheck_exec_history b
 ON b.rowid = a.rowid
 AND b.history_number = 1
 AND b.leading_column_type IN ('Ascending', 'Descending') 
@@ -75,7 +75,7 @@ OUTER APPLY (SELECT MAX(Dt) FROM (VALUES(a.last_user_seek),
                                ) AS t(Dt)) AS TabIndexUsage(last_datetime_index_or_a_table_if_obj_is_not_a_index_statistic_was_used)
 WHERE a.current_number_of_rows > 0 /* Ignoring empty tables */
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck10
+SELECT * FROM dbo.tmpStatisticCheck10
 ORDER BY current_number_of_rows DESC, 
          database_name,
          table_name,

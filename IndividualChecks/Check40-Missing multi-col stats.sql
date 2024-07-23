@@ -23,8 +23,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck40') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck40
+IF OBJECT_ID('dbo.tmpStatisticCheck40') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck40
 
 DECLARE @sqlcmd NVARCHAR(MAX);
 DECLARE @ErrorMessage NVARCHAR(4000);
@@ -72,7 +72,7 @@ WHERE d1.state_desc = 'ONLINE'
           (
               SELECT DISTINCT
                      database_id
-              FROM tempdb.dbo.tmp_stats
+              FROM dbo.tmpStatisticCheck_stats
           );
 
 DECLARE @database_name sysname;
@@ -85,9 +85,6 @@ FETCH NEXT FROM c_databases
 INTO @database_name;
 WHILE @@FETCH_STATUS = 0
 BEGIN
-    SET @ErrMsg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Checking FKs stats on DB - [' + @database_name + ']';
-    RAISERROR(@ErrMsg, 10, 1) WITH NOWAIT;
-
     SET @sqlcmd
         = N'SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
                   USE ' + QUOTENAME(@database_name)
@@ -167,7 +164,7 @@ BEGIN
            'CREATE STATISTICS [Stats_'
            + REPLACE(constraint_name, ' ', '_') + ']' + ' ON ' + QUOTENAME(FK.[database_name]) + '.' + QUOTENAME(parent_schema_name) + '.'
            + QUOTENAME(parent_table_name) + ' ([' + REPLACE(REPLACE(parent_columns, ',', '],['), ']]', ']') + ']);' AS create_stat_command
-    INTO tempdb.dbo.tmpStatisticCheck40
+    INTO dbo.tmpStatisticCheck40
     FROM #tblFK FK
     ORDER BY [database_name],
              parent_schema_name,
@@ -179,7 +176,7 @@ ELSE
 BEGIN
     SELECT 'Check 40 - Multi column statistics missing on foreign keys' AS [info],
            'OK' AS [comment]
-    INTO tempdb.dbo.tmpStatisticCheck40;
+    INTO dbo.tmpStatisticCheck40;
 END;
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck40
+SELECT * FROM dbo.tmpStatisticCheck40

@@ -24,8 +24,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck22') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck22
+IF OBJECT_ID('dbo.tmpStatisticCheck22') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck22
 
 IF OBJECT_ID('tempdb.dbo.#db') IS NOT NULL
   DROP TABLE #db
@@ -42,7 +42,7 @@ CREATE TABLE #tmp_Objs2 (database_name          NVARCHAR(800),
 SELECT d1.[name] INTO #db
 FROM sys.databases d1
 WHERE d1.state_desc = 'ONLINE' AND is_read_only = 0
-AND d1.database_id IN (SELECT DISTINCT database_id FROM tempdb.dbo.tmp_stats)
+AND d1.database_id IN (SELECT DISTINCT database_id FROM dbo.tmpStatisticCheck_stats)
 
 DECLARE @SQL VARCHAR(MAX)
 DECLARE @database_name sysname
@@ -56,10 +56,6 @@ FETCH NEXT FROM c_databases
 INTO @database_name
 WHILE @@FETCH_STATUS = 0
 BEGIN
-  SET @ErrMsg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Checking objs on DB - [' + @database_name + ']'
-  RAISERROR (@ErrMsg, 10, 1) WITH NOWAIT
-
-
   SET @SQL = 'use [' + @database_name + ']; 
               SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
               SELECT QUOTENAME(DB_NAME()) AS database_name, 
@@ -93,7 +89,7 @@ SELECT 'Check 22 - Modules manually running UPDATE STATISTICS' AS [info],
        [object_name],
        type_of_object,
        object_code_definition
-INTO tempdb.dbo.tmpStatisticCheck22
+INTO dbo.tmpStatisticCheck22
 FROM #tmp_Objs2
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck22
+SELECT * FROM dbo.tmpStatisticCheck22

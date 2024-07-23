@@ -29,8 +29,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck11') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck11
+IF OBJECT_ID('dbo.tmpStatisticCheck11') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck11
 
 IF OBJECT_ID('tempdb.dbo.#tmpCheck11') IS NOT NULL
   DROP TABLE #tmpCheck11
@@ -50,8 +50,8 @@ SELECT
   b.inserts_since_last_update AS number_of_inserted_rows_on_key_column_since_previous_update,
   b.deletes_since_last_update AS number_of_deleted_rows_on_key_column_since_previous_update
 INTO #tmpCheck11
-FROM tempdb.dbo.tmp_stats a
-INNER JOIN tempdb.dbo.tmp_exec_history b
+FROM dbo.tmpStatisticCheck_stats a
+INNER JOIN dbo.tmpStatisticCheck_exec_history b
 ON b.rowid = a.rowid
 AND b.history_number = 1
 AND b.leading_column_type IN ('Unknown', 'Stationary')
@@ -61,7 +61,7 @@ OUTER APPLY (SELECT CASE
                       ELSE (ABS(ISNULL(b.inserts_since_last_update,0)) + ABS(ISNULL(b.deletes_since_last_update,0)))
                     END AS number_of_modifications_on_key_column_since_previous_update,
                    b.updated AS last_updated
-              FROM tempdb.dbo.tmp_exec_history b
+              FROM dbo.tmpStatisticCheck_exec_history b
              WHERE b.rowid = a.rowid
                AND b.history_number = 1 /* Previous update stat sample */
               ) AS Tab_StatSample1
@@ -177,7 +177,7 @@ SELECT
       END
     ELSE 'OK'
   END AS [comment]
-INTO tempdb.dbo.tmpStatisticCheck11
+INTO dbo.tmpStatisticCheck11
 FROM #tmpCheck11
 INNER JOIN sys.databases
 ON #tmpCheck11.database_name = QUOTENAME(databases.name)
@@ -188,7 +188,7 @@ WHERE databases.state_desc = 'ONLINE'
 AND databases.is_read_only = 0 
 AND databases.name not in ('tempdb', 'master', 'model', 'msdb')
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck11
+SELECT * FROM dbo.tmpStatisticCheck11
 ORDER BY database_name, 
          current_number_of_rows DESC,
          table_name,

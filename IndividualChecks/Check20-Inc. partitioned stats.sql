@@ -28,8 +28,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck20') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck20
+IF OBJECT_ID('dbo.tmpStatisticCheck20') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck20
 
 DECLARE @sqlmajorver INT, @sqlminorver int, @sqlbuild int
 SELECT @sqlmajorver = CONVERT(int, (@@microsoftversion / 0x1000000) & 0xff)
@@ -65,8 +65,8 @@ BEGIN
            ELSE 'OK'
          END AS command_to_implement_incremental,
          dbcc_command
-  INTO tempdb.dbo.tmpStatisticCheck20
-  FROM tempdb.dbo.tmp_stats AS a
+  INTO dbo.tmpStatisticCheck20
+  FROM dbo.tmpStatisticCheck_stats AS a
   WHERE a.is_table_partitioned = 1
 END
 ELSE
@@ -75,10 +75,10 @@ BEGIN
          'Check is not relevant on this SQL version as Incremental stats only applies to SQL Server 2014 (12.x) and higher builds.' AS auto_create_stats_incremental_comment,
          0 AS current_number_of_rows,
          '' AS Comment
-  INTO tempdb.dbo.tmpStatisticCheck20
+  INTO dbo.tmpStatisticCheck20
 END
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck20
+SELECT * FROM dbo.tmpStatisticCheck20
 ORDER BY current_number_of_rows DESC
 
 /*

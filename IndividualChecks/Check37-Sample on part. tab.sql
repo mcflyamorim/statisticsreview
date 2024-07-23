@@ -24,10 +24,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck37') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck37
+IF OBJECT_ID('dbo.tmpStatisticCheck37') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck37
 
-IF EXISTS(SELECT * FROM tempdb.dbo.tmp_stats AS a WHERE a.is_table_partitioned = 1)
+IF EXISTS(SELECT * FROM dbo.tmpStatisticCheck_stats AS a WHERE a.is_table_partitioned = 1)
 BEGIN
   SELECT 
     'Check 37 - Check if table is partitioned and warn that alter index rebuild will update stats with default sampling rate.' AS [info],
@@ -43,8 +43,8 @@ BEGIN
     a.rows_sampled AS number_of_rows_sampled_on_last_update_create_statistic,
     a.statistic_percent_sampled,
     'Warning - Alter index with rebuild on partitioned tables will use a default sampling rate. If possible, make sure you have a update stats with FULLSCAN.' AS [comment]
-  INTO tempdb.dbo.tmpStatisticCheck37
-  FROM tempdb.dbo.tmp_stats AS a
+  INTO dbo.tmpStatisticCheck37
+  FROM dbo.tmpStatisticCheck_stats AS a
   WHERE a.is_table_partitioned = 1
   ORDER BY a.current_number_of_rows DESC, 
            database_name,
@@ -57,7 +57,7 @@ BEGIN
   SELECT 
     'Check 37 - Check if table is partitioned and warn that alter index rebuild will update stats with default sampling rate.' AS [info],
     'There are no partitioned tables, check is not relevant.' AS [comment]
-  INTO tempdb.dbo.tmpStatisticCheck37
+  INTO dbo.tmpStatisticCheck37
 END
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck37
+SELECT * FROM dbo.tmpStatisticCheck37

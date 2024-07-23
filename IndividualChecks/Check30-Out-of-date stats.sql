@@ -32,8 +32,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck30') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck30
+IF OBJECT_ID('dbo.tmpStatisticCheck30') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck30
 
 SELECT 
   'Check 30 - Check if there are outdated (latest update older than 24 hours) statistics' AS [info],
@@ -78,14 +78,14 @@ SELECT
   a.auto_update_threshold_type,
   CONVERT(DECIMAL(25, 2), (a.current_number_of_modified_rows_since_last_update / (a.auto_update_threshold * 1.0)) * 100.0) AS percent_of_threshold,
   dbcc_command
-INTO tempdb.dbo.tmpStatisticCheck30
-FROM tempdb.dbo.tmp_stats AS a
+INTO dbo.tmpStatisticCheck30
+FROM dbo.tmpStatisticCheck_stats AS a
 OUTER APPLY (SELECT MAX(Dt) FROM (VALUES(a.last_user_seek), 
                                         (a.last_user_scan),
                                         (a.last_user_lookup)
                                ) AS t(Dt)) AS TabIndexUsage(last_datetime_index_or_a_table_if_obj_is_not_a_index_statistic_was_used)
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck30
+SELECT * FROM dbo.tmpStatisticCheck30
 ORDER BY current_number_of_rows DESC, 
          database_name,
          table_name,

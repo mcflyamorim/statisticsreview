@@ -1,6 +1,3 @@
-USE master
-GO
-
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME = 'sp_CheckHistogramAccuracy')
 	 EXEC ('CREATE PROC dbo.sp_CheckHistogramAccuracy AS SELECT 1')
 GO
@@ -489,7 +486,7 @@ SET actual_eq_rows =
         WHERE '+@key_column_name+' = h.range_hi_key
     )
 FROM ##tblHistogram h
-OPTION (MAXDOP 4, RECOMPILE);
+OPTION (MAXDOP 1, RECOMPILE);
 '
 
 IF @debug = 'Y'
@@ -509,7 +506,7 @@ SET actual_eq_rows =
     )
 FROM ##tblHistogram h
 WHERE range_hi_key IS NULL
-OPTION (MAXDOP 4, RECOMPILE);
+OPTION (MAXDOP 1, RECOMPILE);
 '
 
 IF @debug = 'Y'
@@ -544,7 +541,7 @@ FROM
                 ) AS ActualRangerows
 ) AS t
 WHERE ##tblHistogram.[stepnumber] = t.[stepnumber]
-OPTION (MAXDOP 4, RECOMPILE);
+OPTION (MAXDOP 1, RECOMPILE);
 '
 IF @debug = 'Y'
 BEGIN
@@ -626,7 +623,7 @@ SET ##tblHistogram.value_on_range_with_biggest_diff        = CTE_1.biggestdiffke
     ##tblHistogram.range_hi_key = CTE_1.range_hi_key
 FROM CTE_1
 WHERE ##tblHistogram.stepnumber = CTE_1.stepnumber
-OPTION (MAXDOP 4, RECOMPILE);
+OPTION (MAXDOP 1, RECOMPILE);
 '
 
 IF @debug = 'Y'
@@ -651,7 +648,7 @@ BEGIN
                ORDER BY COUNT(*) DESC
                FOR XML RAW, BINARY BASE64) AS t1 (list_of_top_10_values_and_number_of_rows)
   WHERE stepnumber = 1
-  OPTION (MAXDOP 4, RECOMPILE);
+  OPTION (MAXDOP 1, RECOMPILE);
   '
   IF @debug = 'Y'
   BEGIN
@@ -711,7 +708,7 @@ SELECT @full_table_name            AS full_table_name,
        value_on_range_with_biggest_diff,
        CASE 
          WHEN (CASE WHEN actual_rows_for_value_with_biggest_diff = 0 THEN NULL ELSE actual_rows_for_value_with_biggest_diff END) > 0
-         THEN CONVERT(NUMERIC(25, 2), (CASE WHEN actual_rows_for_value_with_biggest_diff = 0 THEN NULL ELSE actual_rows_for_value_with_biggest_diff END) / avg_range_rows)
+         THEN CONVERT(NUMERIC(25, 2), (CASE WHEN actual_rows_for_value_with_biggest_diff = 0 THEN NULL ELSE actual_rows_for_value_with_biggest_diff END) / CASE WHEN avg_range_rows = 0 THEN 1 ELSE avg_range_rows END)
          ELSE 0
        END AS avg_range_rows_factor_diff_for_value_with_biggest_diff,
        t6.[avg_range_rows - sample query to show bad cardinality estimation],

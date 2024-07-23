@@ -24,8 +24,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck17') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck17
+IF OBJECT_ID('dbo.tmpStatisticCheck17') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck17
 
 IF OBJECT_ID('tempdb.dbo.#db') IS NOT NULL
   DROP TABLE #db
@@ -53,7 +53,7 @@ CREATE TABLE #tmp_IndexedViews2 (database_name                 NVARCHAR(800),
 SELECT d1.[name] into #db
 FROM sys.databases d1
 where d1.state_desc = 'ONLINE' and is_read_only = 0
-and d1.database_id in (SELECT DISTINCT database_id FROM tempdb.dbo.tmp_stats)
+and d1.database_id in (SELECT DISTINCT database_id FROM dbo.tmpStatisticCheck_stats)
 
 DECLARE @SQL VarChar(MAX)
 declare @database_name sysname
@@ -67,9 +67,6 @@ FETCH NEXT FROM c_databases
 into @database_name
 WHILE @@FETCH_STATUS = 0
 BEGIN
-  SET @ErrMsg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Checking indexed views usage on DB - [' + @database_name + ']'
-  RAISERROR (@ErrMsg, 10, 1) WITH NOWAIT
-
   SET @SQL = 'use [' + @database_name + ']; 
               SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
               select 
@@ -151,7 +148,7 @@ SELECT 'Check 17 - Statistics on views are only created and used when using noex
        END AS [comment],
        view_name,
        object_code_definition
-INTO tempdb.dbo.tmpStatisticCheck17
+INTO dbo.tmpStatisticCheck17
 FROM #tmp_IndexedViews2
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck17
+SELECT * FROM dbo.tmpStatisticCheck17

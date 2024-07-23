@@ -49,8 +49,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck15') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck15
+IF OBJECT_ID('dbo.tmpStatisticCheck15') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck15
 
 SELECT 
   'Check 15 - Analyze and find data skew issues with limited histogram causing poor estimations' AS [info],
@@ -179,75 +179,75 @@ SELECT
            ', @difference	= 1000, @factor = NULL, @numofsteps = NULL, @percentofsteps = 1;'
     ELSE ''
   END AS command_to_test_kimberly_script
-INTO tempdb.dbo.tmpStatisticCheck15
-FROM tempdb.dbo.tmp_stats AS a
-INNER JOIN tempdb.dbo.tmp_exec_history AS b
+INTO dbo.tmpStatisticCheck15
+FROM dbo.tmpStatisticCheck_stats AS a
+INNER JOIN dbo.tmpStatisticCheck_exec_history AS b
 ON b.rowid = a.rowid
 AND b.history_number = 1
-INNER JOIN tempdb.dbo.tmp_density_vector AS c
+INNER JOIN dbo.tmpStatisticCheck_density_vector AS c
 ON c.rowid = a.rowid
 AND c.density_number = 1
-CROSS APPLY (SELECT SUM(tmp_histogram.eq_rows) AS sum_eq_rows,
-                    SUM(tmp_histogram.range_rows) AS sum_range_rows,
-                    SUM(tmp_histogram.range_rows + tmp_histogram.eq_rows) AS sum_eq_rows_plus_range_rows,
-                    AVG(tmp_histogram.eq_rows) AS avg_eq_rows,
-                    AVG(tmp_histogram.range_rows) AS avg_range_rows
-               FROM tempdb.dbo.tmp_histogram
-              WHERE tmp_histogram.rowid = a.rowid) AS t0
+CROSS APPLY (SELECT SUM(tmpStatisticCheck_histogram.eq_rows) AS sum_eq_rows,
+                    SUM(tmpStatisticCheck_histogram.range_rows) AS sum_range_rows,
+                    SUM(tmpStatisticCheck_histogram.range_rows + tmpStatisticCheck_histogram.eq_rows) AS sum_eq_rows_plus_range_rows,
+                    AVG(tmpStatisticCheck_histogram.eq_rows) AS avg_eq_rows,
+                    AVG(tmpStatisticCheck_histogram.range_rows) AS avg_range_rows
+               FROM dbo.tmpStatisticCheck_histogram
+              WHERE tmpStatisticCheck_histogram.rowid = a.rowid) AS t0
 CROSS APPLY (SELECT TOP 1 
-                    tmp_histogram.stepnumber,
-                    tmp_histogram.range_hi_key,
-                    tmp_histogram.range_rows,
-                    tmp_histogram.eq_rows,
-                    tmp_histogram.distinct_range_rows AS [distinct_range_values],
-                    tmp_histogram.avg_range_rows
-               FROM tempdb.dbo.tmp_histogram
-              WHERE tmp_histogram.rowid = a.rowid
-              ORDER BY tmp_histogram.avg_range_rows DESC) AS tMax_By_avg_range_rows
-CROSS APPLY (SELECT TOP 1 tmp_histogram.stepnumber,
-                    tmp_histogram.range_hi_key,
-                    tmp_histogram.range_rows,
-                    tmp_histogram.eq_rows,
-                    tmp_histogram.distinct_range_rows AS [distinct_range_values],
-                    tmp_histogram.avg_range_rows
-               FROM tempdb.dbo.tmp_histogram AS tmp_histogram
-              WHERE tmp_histogram.rowid = a.rowid
-                AND tmp_histogram.stepnumber = CASE 
-                                                  WHEN tMax_By_avg_range_rows.stepnumber = 1 THEN tmp_histogram.stepnumber
+                    tmpStatisticCheck_histogram.stepnumber,
+                    tmpStatisticCheck_histogram.range_hi_key,
+                    tmpStatisticCheck_histogram.range_rows,
+                    tmpStatisticCheck_histogram.eq_rows,
+                    tmpStatisticCheck_histogram.distinct_range_rows AS [distinct_range_values],
+                    tmpStatisticCheck_histogram.avg_range_rows
+               FROM dbo.tmpStatisticCheck_histogram
+              WHERE tmpStatisticCheck_histogram.rowid = a.rowid
+              ORDER BY tmpStatisticCheck_histogram.avg_range_rows DESC) AS tMax_By_avg_range_rows
+CROSS APPLY (SELECT TOP 1 tmpStatisticCheck_histogram.stepnumber,
+                    tmpStatisticCheck_histogram.range_hi_key,
+                    tmpStatisticCheck_histogram.range_rows,
+                    tmpStatisticCheck_histogram.eq_rows,
+                    tmpStatisticCheck_histogram.distinct_range_rows AS [distinct_range_values],
+                    tmpStatisticCheck_histogram.avg_range_rows
+               FROM dbo.tmpStatisticCheck_histogram
+              WHERE tmpStatisticCheck_histogram.rowid = a.rowid
+                AND tmpStatisticCheck_histogram.stepnumber = CASE 
+                                                  WHEN tMax_By_avg_range_rows.stepnumber = 1 THEN tmpStatisticCheck_histogram.stepnumber
                                                   ELSE tMax_By_avg_range_rows.stepnumber - 1
                                                 END) AS tMax_By_avg_range_rows_PreviousStep
 CROSS APPLY (SELECT TOP 1 
-                    tmp_histogram.stepnumber,
-                    tmp_histogram.range_hi_key,
-                    tmp_histogram.range_rows,
-                    tmp_histogram.eq_rows,
-                    tmp_histogram.distinct_range_rows AS [distinct_range_values],
-                    tmp_histogram.avg_range_rows
-               FROM tempdb.dbo.tmp_histogram AS tmp_histogram
-              WHERE tmp_histogram.rowid = a.rowid
-              ORDER BY tmp_histogram.range_rows DESC) AS tMax_By_range_rows
-CROSS APPLY (SELECT TOP 1 tmp_histogram.stepnumber,
-                    tmp_histogram.range_hi_key,
-                    tmp_histogram.range_rows,
-                    tmp_histogram.eq_rows,
-                    tmp_histogram.distinct_range_rows AS [distinct_range_values],
-                    tmp_histogram.avg_range_rows
-               FROM tempdb.dbo.tmp_histogram AS tmp_histogram
-              WHERE tmp_histogram.rowid = a.rowid
-                AND tmp_histogram.stepnumber = CASE 
-                                                  WHEN tMax_By_range_rows.stepnumber = 1 THEN tmp_histogram.stepnumber
+                    tmpStatisticCheck_histogram.stepnumber,
+                    tmpStatisticCheck_histogram.range_hi_key,
+                    tmpStatisticCheck_histogram.range_rows,
+                    tmpStatisticCheck_histogram.eq_rows,
+                    tmpStatisticCheck_histogram.distinct_range_rows AS [distinct_range_values],
+                    tmpStatisticCheck_histogram.avg_range_rows
+               FROM dbo.tmpStatisticCheck_histogram
+              WHERE tmpStatisticCheck_histogram.rowid = a.rowid
+              ORDER BY tmpStatisticCheck_histogram.range_rows DESC) AS tMax_By_range_rows
+CROSS APPLY (SELECT TOP 1 tmpStatisticCheck_histogram.stepnumber,
+                    tmpStatisticCheck_histogram.range_hi_key,
+                    tmpStatisticCheck_histogram.range_rows,
+                    tmpStatisticCheck_histogram.eq_rows,
+                    tmpStatisticCheck_histogram.distinct_range_rows AS [distinct_range_values],
+                    tmpStatisticCheck_histogram.avg_range_rows
+               FROM dbo.tmpStatisticCheck_histogram
+              WHERE tmpStatisticCheck_histogram.rowid = a.rowid
+                AND tmpStatisticCheck_histogram.stepnumber = CASE 
+                                                  WHEN tMax_By_range_rows.stepnumber = 1 THEN tmpStatisticCheck_histogram.stepnumber
                                                   ELSE tMax_By_range_rows.stepnumber -1
                                                 END) AS tMax_By_range_rows_PreviousStep
 CROSS APPLY (SELECT TOP 1 
-                    tmp_histogram.stepnumber,
-                    tmp_histogram.range_hi_key,
-                    tmp_histogram.range_rows,
-                    tmp_histogram.eq_rows,
-                    tmp_histogram.distinct_range_rows AS [distinct_range_values],
-                    tmp_histogram.avg_range_rows
-               FROM tempdb.dbo.tmp_histogram AS tmp_histogram
-              WHERE tmp_histogram.rowid = a.rowid
-              ORDER BY tmp_histogram.eq_rows DESC) AS tMax_By_eq_rows
+                    tmpStatisticCheck_histogram.stepnumber,
+                    tmpStatisticCheck_histogram.range_hi_key,
+                    tmpStatisticCheck_histogram.range_rows,
+                    tmpStatisticCheck_histogram.eq_rows,
+                    tmpStatisticCheck_histogram.distinct_range_rows AS [distinct_range_values],
+                    tmpStatisticCheck_histogram.avg_range_rows
+               FROM dbo.tmpStatisticCheck_histogram
+              WHERE tmpStatisticCheck_histogram.rowid = a.rowid
+              ORDER BY tmpStatisticCheck_histogram.eq_rows DESC) AS tMax_By_eq_rows
 CROSS APPLY (SELECT CASE 
                       WHEN key_column_data_type LIKE '%CHAR%' OR key_column_data_type LIKE 'FLOAT%'
                         THEN CONVERT(VARCHAR(800), NULL)
@@ -276,7 +276,7 @@ AND a.key_column_data_type NOT LIKE '%BINARY%'
 AND a.key_column_data_type NOT LIKE '%IMAGE%'
 AND a.key_column_data_type NOT LIKE '%TIMESTAMP%'
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck15
+SELECT * FROM dbo.tmpStatisticCheck15
 ORDER BY current_number_of_rows DESC, 
          database_name,
          table_name,

@@ -21,8 +21,8 @@ Detailed recommendation:
 SET NOCOUNT ON; 
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck54') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck54
+IF OBJECT_ID('dbo.tmpStatisticCheck54') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck54
 
 IF OBJECT_ID('tempdb.dbo.#query_plan') IS NOT NULL
   DROP TABLE #query_plan
@@ -30,7 +30,7 @@ IF OBJECT_ID('tempdb.dbo.#query_plan') IS NOT NULL
 ;WITH XMLNAMESPACES('http://schemas.microsoft.com/sqlserver/2004/07/showplan' AS p)
 SELECT qs.*
 INTO #query_plan
-FROM tempdb.dbo.tmpStatsCheckCachePlanData qs
+FROM dbo.tmpStatsCheckCachePlanData qs
 WHERE statement_plan.exist('//p:RelOp[@LogicalOp="Distinct Sort" or @LogicalOp="Flow Distinct"]') = 1
 
 ;WITH XMLNAMESPACES('http://schemas.microsoft.com/sqlserver/2004/07/showplan' AS p)
@@ -52,7 +52,7 @@ SELECT  TOP 1000
                                                     //p:RelOp[@LogicalOp="Flow Distinct"]/p:Hash/p:HashKeysBuild/p:ColumnReference') AS c2(n)
                WHERE qp1.plan_handle = qp.plan_handle
                FOR XML PATH('')), 1, 2, '') AS referenced_columns
-INTO tempdb.dbo.tmpStatisticCheck54
+INTO dbo.tmpStatisticCheck54
 FROM #query_plan qp
 CROSS APPLY statement_plan.nodes('//p:RelOp[@LogicalOp="Distinct Sort" or @LogicalOp="Flow Distinct"]') rel(operators)
 ORDER BY query_impact DESC
@@ -61,7 +61,7 @@ OPTION (RECOMPILE);
 SELECT 'Check 54 - Plans with several columns on distinct clause' AS [info],
        *,
        LEN(referenced_columns) - LEN(REPLACE(referenced_columns, ',', '')) + 1 AS cnt_referenced_columns
-FROM tempdb.dbo.tmpStatisticCheck54
+FROM dbo.tmpStatisticCheck54
 ORDER BY query_impact DESC
 
 /*

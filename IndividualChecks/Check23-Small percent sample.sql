@@ -26,8 +26,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck23') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck23
+IF OBJECT_ID('dbo.tmpStatisticCheck23') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck23
 
 SELECT 'Check 23 - Check if statistic percent sample is too small' AS [info],
        a.database_name,
@@ -44,11 +44,11 @@ SELECT 'Check 23 - Check if statistic percent sample is too small' AS [info],
          ELSE 'OK'
        END AS percent_sample_comment,
        dbcc_command
-INTO tempdb.dbo.tmpStatisticCheck23
-FROM tempdb.dbo.tmp_stats a
+INTO dbo.tmpStatisticCheck23
+FROM dbo.tmpStatisticCheck_stats a
 WHERE a.current_number_of_rows > 0 /* Ignoring empty tables */
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck23
+SELECT * FROM dbo.tmpStatisticCheck23
 ORDER BY current_number_of_rows DESC, 
          database_name,
          table_name,

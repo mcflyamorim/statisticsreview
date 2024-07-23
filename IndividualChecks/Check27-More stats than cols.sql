@@ -25,8 +25,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck27') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck27
+IF OBJECT_ID('dbo.tmpStatisticCheck27') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck27
 
 SELECT 'Check 27 - Check if there are tables with more statistics than columns' AS [info],
        a.database_name,
@@ -47,11 +47,11 @@ SELECT 'Check 27 - Check if there are tables with more statistics than columns' 
                ') and it is very unlikely all statistics are usefull. High number of statistic may lead to slow remote queries and longer maintenance plan executions.'
          ELSE 'OK'
        END AS number_of_statistics_comment
-INTO tempdb.dbo.tmpStatisticCheck27
-FROM tempdb.dbo.tmp_stats a
+INTO dbo.tmpStatisticCheck27
+FROM dbo.tmpStatisticCheck_stats a
 WHERE a.current_number_of_rows > 0 /* Ignoring empty tables */
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck27
+SELECT * FROM dbo.tmpStatisticCheck27
 ORDER BY number_of_statistics_in_this_table DESC, 
          database_name,
          table_name,

@@ -22,19 +22,19 @@ Detailed recommendation:
 SET NOCOUNT ON;  SET ANSI_WARNINGS OFF;
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck53') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck53
+IF OBJECT_ID('dbo.tmpStatisticCheck53') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck53
 
 ;WITH XMLNAMESPACES('http://schemas.microsoft.com/sqlserver/2004/07/showplan' AS p)
 SELECT  TOP 1000
         *
-INTO tempdb.dbo.tmpStatisticCheck53
-FROM tempdb.dbo.tmpStatsCheckCachePlanData
+INTO dbo.tmpStatisticCheck53
+FROM dbo.tmpStatsCheckCachePlanData
 WHERE number_of_referenced_stats > 0
 ORDER BY number_of_referenced_stats DESC
 OPTION (RECOMPILE);
 
 SELECT 'Check 53 - Plans with loaded statistics with high modification count' AS [info],
        *
-FROM tempdb.dbo.tmpStatisticCheck53
+FROM dbo.tmpStatisticCheck53
 ORDER BY sum_modification_count_for_all_used_stats DESC

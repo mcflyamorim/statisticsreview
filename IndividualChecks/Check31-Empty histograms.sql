@@ -27,8 +27,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck31') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck31
+IF OBJECT_ID('dbo.tmpStatisticCheck31') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck31
 
 SELECT 'Check 31 - Check if there are empty histograms' AS [info],
        database_name,
@@ -56,13 +56,13 @@ SELECT 'Check 31 - Check if there are empty histograms' AS [info],
        END comment_1,
        'USE ' + database_name + '; BEGIN TRY SET LOCK_TIMEOUT 5; DROP STATISTICS '+ schema_name +'.'+ table_name +'.' + stats_name + '; END TRY BEGIN CATCH PRINT ''Error on ' + stats_name + '''; PRINT ERROR_MESSAGE() END CATCH;' AS drop_stat_command,
        dbcc_command
-INTO tempdb.dbo.tmpStatisticCheck31
-FROM tempdb.dbo.tmp_stats
+INTO dbo.tmpStatisticCheck31
+FROM dbo.tmpStatisticCheck_stats
 WHERE current_number_of_rows > 0 /* Ignoring empty tables */
   AND ISNULL(steps, 0) = 0
   AND index_type NOT LIKE '%COLUMNSTORE%'
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck31
+SELECT * FROM dbo.tmpStatisticCheck31
 ORDER BY number_of_steps_on_histogram ASC, 
          database_name,
          table_name,

@@ -25,8 +25,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck38') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck38
+IF OBJECT_ID('dbo.tmpStatisticCheck38') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck38
 
 IF OBJECT_ID('tempdb.dbo.#db') IS NOT NULL
   DROP TABLE #db
@@ -43,7 +43,7 @@ CREATE TABLE #tmp_AntiMatterColumns (database_name VARCHAR(400),
 SELECT d1.[name] INTO #db
 FROM sys.databases d1
 WHERE d1.state_desc = 'ONLINE' AND is_read_only = 0
-AND d1.database_id IN (SELECT DISTINCT database_id FROM tempdb.dbo.tmp_stats)
+AND d1.database_id IN (SELECT DISTINCT database_id FROM dbo.tmpStatisticCheck_stats)
 
 DECLARE @SQL VARCHAR(MAX)
 DECLARE @database_name sysname
@@ -57,9 +57,6 @@ FETCH NEXT FROM c_databases
 INTO @database_name
 WHILE @@FETCH_STATUS = 0
 BEGIN
-  SET @ErrMsg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Checking anti-matter columns on DB - [' + @database_name + ']'
-  RAISERROR (@ErrMsg, 10, 1) WITH NOWAIT
-
   SET @SQL = 'use [' + @database_name + ']; 
               SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
               SELECT DISTINCT 
@@ -102,8 +99,8 @@ DEALLOCATE c_databases
 
 SELECT 'Check 38 - Check if there are "anti-matter" columns, as this may cause issues with update stats.' AS [info],
        *
-INTO tempdb.dbo.tmpStatisticCheck38
+INTO dbo.tmpStatisticCheck38
 FROM #tmp_AntiMatterColumns
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck38
+SELECT * FROM dbo.tmpStatisticCheck38
 ORDER BY number_of_rows DESC

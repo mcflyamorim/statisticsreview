@@ -25,14 +25,14 @@ Note 2: I prefer xEvents to XML/PlanCache, so, you should consider to create a x
 SET NOCOUNT ON;  SET ANSI_WARNINGS OFF;
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck39') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck39
+IF OBJECT_ID('dbo.tmpStatisticCheck39') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck39
 
 /* 
-  If table tempdb.dbo.tmp_default_trace was not created on sp_GetStatisticInfo
+  If table dbo.tmpStatisticCheck_default_trace was not created on sp_GetStatisticInfo
   create it now 
 */
-IF OBJECT_ID('tempdb.dbo.tmp_default_trace') IS NULL
+IF OBJECT_ID('dbo.tmpStatisticCheck_default_trace') IS NULL
 BEGIN
   /* Declaring variables */
   DECLARE @filename NVARCHAR(1000),
@@ -68,18 +68,18 @@ BEGIN
            ftg.Hostname AS host_name,
            DB_NAME(ftg.databaseID) AS database_name,
            ftg.LoginName AS login_name
-    INTO tempdb.dbo.tmp_default_trace
+    INTO dbo.tmpStatisticCheck_default_trace
     FROM::fn_trace_gettable(@filename, DEFAULT) AS ftg
     INNER JOIN sys.trace_events AS te
     ON ftg.EventClass = te.trace_event_id
     WHERE te.name = 'Missing Column Statistics'
 
-    CREATE CLUSTERED INDEX ix1 ON tempdb.dbo.tmp_default_trace(start_time)
+    CREATE CLUSTERED INDEX ix1 ON dbo.tmpStatisticCheck_default_trace(start_time)
   END
   ELSE
   BEGIN
     /* trace doesn't exist, creating an empty table */
-    CREATE TABLE tempdb.dbo.tmp_default_trace
+    CREATE TABLE dbo.tmpStatisticCheck_default_trace
     (
       [spid] [int] NULL,
       [name] [nvarchar] (128) NULL,
@@ -91,7 +91,7 @@ BEGIN
       [database_name] [nvarchar] (128) NULL,
       [login_name] [nvarchar] (256) NULL
     )
-    CREATE CLUSTERED INDEX ix1 ON tempdb.dbo.tmp_default_trace(start_time)
+    CREATE CLUSTERED INDEX ix1 ON dbo.tmpStatisticCheck_default_trace(start_time)
   END
 END
 
@@ -106,14 +106,14 @@ SELECT 'Check 39 - Missing column stats from default trace' AS [info],
        application_name,
        host_name,
        login_name
-INTO tempdb.dbo.tmpStatisticCheck39
-FROM tempdb.dbo.tmp_default_trace
+INTO dbo.tmpStatisticCheck39
+FROM dbo.tmpStatisticCheck_default_trace
 WHERE event_name = 'Missing Column Statistics'
 AND database_name NOT IN ('master', 'model', 'msdb')
 AND CONVERT(VARCHAR(MAX), text_data COLLATE Latin1_General_BIN2) NOT IN ('NO STATS:([j].[job_id])')
 AND CONVERT(VARCHAR(MAX), text_data COLLATE Latin1_General_BIN2) NOT LIKE '%recursion%'
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck39
+SELECT * FROM dbo.tmpStatisticCheck39
 ORDER BY start_datetime DESC, session_id;
 
 /*

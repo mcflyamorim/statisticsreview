@@ -25,8 +25,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck16') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck16
+IF OBJECT_ID('dbo.tmpStatisticCheck16') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck16
 
 SELECT 
   'Check 16 - Are filtered stats are out of date ?' AS [info],
@@ -54,11 +54,11 @@ SELECT
   a.auto_update_threshold_type,
   CONVERT(DECIMAL(25, 2), (a.current_number_of_modified_rows_since_last_update / (a.auto_update_threshold * 1.0)) * 100.0) AS percent_of_threshold,
   dbcc_command
-INTO tempdb.dbo.tmpStatisticCheck16
-FROM tempdb.dbo.tmp_stats AS a
+INTO dbo.tmpStatisticCheck16
+FROM dbo.tmpStatisticCheck_stats AS a
 WHERE has_filter = 1
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck16
+SELECT * FROM dbo.tmpStatisticCheck16
 ORDER BY current_number_of_rows DESC, 
          database_name,
          table_name,

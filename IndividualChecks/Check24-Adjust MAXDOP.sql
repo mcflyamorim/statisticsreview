@@ -24,8 +24,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck24') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck24
+IF OBJECT_ID('dbo.tmpStatisticCheck24') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck24
 
 DECLARE @cpucount INT, @maxdop INT
 	SELECT @cpucount = COUNT(cpu_id)
@@ -56,8 +56,8 @@ SELECT 'Check 24 - Check if it may be good to adjust MAXDOP on UPDATE STATISTIC 
               ' Consider to increase MAXDOP on UPDATE STATISTICS command to speed up the update at cost of use more CPU.'
          ELSE 'OK'
        END AS [comment]
-INTO tempdb.dbo.tmpStatisticCheck24
-FROM tempdb.dbo.tmp_stats a
+INTO dbo.tmpStatisticCheck24
+FROM dbo.tmpStatisticCheck_stats a
 GROUP BY database_name
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck24
+SELECT * FROM dbo.tmpStatisticCheck24

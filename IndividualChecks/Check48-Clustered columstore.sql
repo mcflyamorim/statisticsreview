@@ -25,8 +25,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck48') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck48
+IF OBJECT_ID('dbo.tmpStatisticCheck48') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck48
 
 SELECT DISTINCT 
        'Check 48 - Check if there are clustered ColumStore indexes' AS [info],
@@ -38,11 +38,11 @@ SELECT DISTINCT
        a.last_updated AS last_updated_datetime,
        a.current_number_of_rows,
        a.current_number_of_modified_rows_since_last_update
-INTO tempdb.dbo.tmpStatisticCheck48
-FROM tempdb.dbo.tmp_stats a
+INTO dbo.tmpStatisticCheck48
+FROM dbo.tmpStatisticCheck_stats a
 WHERE a.table_index_base_type = 'CLUSTERED COLUMNSTORE'
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck48
+SELECT * FROM dbo.tmpStatisticCheck48
 ORDER BY current_number_of_rows DESC, 
          database_name,
          table_name,

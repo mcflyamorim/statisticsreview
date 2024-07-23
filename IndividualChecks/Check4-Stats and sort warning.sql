@@ -29,14 +29,14 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck4') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck4
+IF OBJECT_ID('dbo.tmpStatisticCheck4') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck4
 
 /* 
-  If table tempdb.dbo.tmp_default_trace was not created on sp_GetStatisticInfo
+  If table dbo.tmpStatisticCheck_default_trace was not created on sp_GetStatisticInfo
   create it now 
 */
-IF OBJECT_ID('tempdb.dbo.tmp_default_trace') IS NULL
+IF OBJECT_ID('dbo.tmpStatisticCheck_default_trace') IS NULL
 BEGIN
   /* Declaring variables */
   DECLARE @filename NVARCHAR(1000),
@@ -72,18 +72,18 @@ BEGIN
            ftg.Hostname AS host_name,
            DB_NAME(ftg.databaseID) AS database_name,
            ftg.LoginName AS login_name
-    INTO tempdb.dbo.tmp_default_trace
+    INTO dbo.tmpStatisticCheck_default_trace
     FROM::fn_trace_gettable(@filename, DEFAULT) AS ftg
     INNER JOIN sys.trace_events AS te
     ON ftg.EventClass = te.trace_event_id
     WHERE te.name = 'Sort Warnings'
 
-    CREATE CLUSTERED INDEX ix1 ON tempdb.dbo.tmp_default_trace(start_time)
+    CREATE CLUSTERED INDEX ix1 ON dbo.tmpStatisticCheck_default_trace(start_time)
   END
   ELSE
   BEGIN
     /* trace doesn't exist, creating an empty table */
-    CREATE TABLE tempdb.dbo.tmp_default_trace
+    CREATE TABLE dbo.tmpStatisticCheck_default_trace
     (
       [spid] [int] NULL,
       [name] [nvarchar] (128) NULL,
@@ -95,7 +95,7 @@ BEGIN
       [database_name] [nvarchar] (128) NULL,
       [login_name] [nvarchar] (256) NULL
     )
-    CREATE CLUSTERED INDEX ix1 ON tempdb.dbo.tmp_default_trace(start_time)
+    CREATE CLUSTERED INDEX ix1 ON dbo.tmpStatisticCheck_default_trace(start_time)
   END
 END
 
@@ -107,7 +107,7 @@ BEGIN TRY
          a.key_column_name,
          a.number_of_rows_at_time_stat_was_updated,
          (SELECT COUNT(*) 
-          FROM tempdb.dbo.tmp_exec_history b 
+          FROM dbo.tmpStatisticCheck_exec_history b 
           WHERE b.rowid = a.rowid) AS number_of_statistic_data_available_for_this_object,
          a.last_updated AS last_updated_datetime,
          Tab1.closest_sort_warning AS closest_sort_warning_datetime,
@@ -124,21 +124,21 @@ BEGIN TRY
            WHEN Tab1.cnt > 1 THEN 'Found ' + CONVERT(VARCHAR(30), Tab1.cnt) + ' sort warning events happening at ' + CONVERT(VARCHAR(30), Tab1.closest_sort_warning, 21) + '. This probably means the update stats ran in parallel and there was multiple threads spilling data to tempdb.'
            ELSE NULL
          END comment_2
-  INTO tempdb.dbo.tmpStatisticCheck4
-  FROM tempdb.dbo.tmp_stats a
-  CROSS APPLY (SELECT TOP 1 WITH TIES tmp_default_trace.start_time, COUNT(*) AS cnt 
-               FROM tempdb.dbo.tmp_default_trace
-               WHERE tmp_default_trace.start_time <= a.last_updated
-               AND tmp_default_trace.event_name = 'Sort Warnings'
-               GROUP BY tmp_default_trace.start_time
-               ORDER BY tmp_default_trace.start_time DESC) AS Tab1(closest_sort_warning, cnt)
-  WHERE (a.number_of_rows_at_time_stat_was_updated >= 10000 or a.is_lob = 1) /* Ignoring small tables unless is LOB*/
+  INTO dbo.tmpStatisticCheck4
+  FROM dbo.tmpStatisticCheck_stats a
+  CROSS APPLY (SELECT TOP 1 WITH TIES tmpStatisticCheck_default_trace.start_time, COUNT(*) AS cnt 
+               FROM dbo.tmpStatisticCheck_default_trace
+               WHERE tmpStatisticCheck_default_trace.start_time <= a.last_updated
+               AND tmpStatisticCheck_default_trace.event_name = 'Sort Warnings'
+               GROUP BY tmpStatisticCheck_default_trace.start_time
+               ORDER BY tmpStatisticCheck_default_trace.start_time DESC) AS Tab1(closest_sort_warning, cnt)
+  WHERE (a.number_of_rows_at_time_stat_was_updated >= 10000 OR a.is_lob = 1) /* Ignoring small tables unless is LOB*/
 END TRY
 BEGIN CATCH
   IF ERROR_NUMBER() = 535 /*The datediff function resulted in an overflow.*/
   BEGIN
-    IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck4') IS NOT NULL
-      DROP TABLE tempdb.dbo.tmpStatisticCheck4
+    IF OBJECT_ID('dbo.tmpStatisticCheck4') IS NOT NULL
+      DROP TABLE dbo.tmpStatisticCheck4
 
     SELECT 'Check 4 - Is there a sort Warning on default trace at the same time last update stats happened?' AS [info],
             a.database_name,
@@ -147,7 +147,7 @@ BEGIN CATCH
             a.key_column_name,
             a.number_of_rows_at_time_stat_was_updated,
             (SELECT COUNT(*) 
-             FROM tempdb.dbo.tmp_exec_history b 
+             FROM dbo.tmpStatisticCheck_exec_history b 
              WHERE b.rowid = a.rowid) AS number_of_statistic_data_available_for_this_object,
             a.last_updated AS last_updated_datetime,
             Tab1.closest_sort_warning AS closest_sort_warning_datetime,
@@ -157,15 +157,15 @@ BEGIN CATCH
               WHEN Tab1.cnt > 1 THEN 'Found ' + CONVERT(VARCHAR(30), Tab1.cnt) + ' sort warning events happening at ' + CONVERT(VARCHAR(30), Tab1.closest_sort_warning, 21) + '. This probably means the update stats ran in parallel and there was multiple threads spilling data to tempdb.'
               ELSE NULL
             END comment_2
-      INTO tempdb.dbo.tmpStatisticCheck4
-      FROM tempdb.dbo.tmp_stats a
-      CROSS APPLY (SELECT TOP 1 WITH TIES tmp_default_trace.start_time, COUNT(*) AS cnt 
-                   FROM tempdb.dbo.tmp_default_trace
-                   WHERE tmp_default_trace.start_time <= a.last_updated
-                   AND tmp_default_trace.event_name = 'Sort Warnings'
-                   GROUP BY tmp_default_trace.start_time
-                   ORDER BY tmp_default_trace.start_time DESC) AS Tab1(closest_sort_warning, cnt)
-      WHERE (a.number_of_rows_at_time_stat_was_updated >= 10000 or a.is_lob = 1) /* Ignoring small tables unless is LOB*/
+      INTO dbo.tmpStatisticCheck4
+      FROM dbo.tmpStatisticCheck_stats a
+      CROSS APPLY (SELECT TOP 1 WITH TIES tmpStatisticCheck_default_trace.start_time, COUNT(*) AS cnt 
+                   FROM dbo.tmpStatisticCheck_default_trace
+                   WHERE tmpStatisticCheck_default_trace.start_time <= a.last_updated
+                   AND tmpStatisticCheck_default_trace.event_name = 'Sort Warnings'
+                   GROUP BY tmpStatisticCheck_default_trace.start_time
+                   ORDER BY tmpStatisticCheck_default_trace.start_time DESC) AS Tab1(closest_sort_warning, cnt)
+      WHERE (a.number_of_rows_at_time_stat_was_updated >= 10000 OR a.is_lob = 1) /* Ignoring small tables unless is LOB*/
   END
   ELSE
   BEGIN
@@ -175,7 +175,7 @@ BEGIN CATCH
   END
 END CATCH
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck4
+SELECT * FROM dbo.tmpStatisticCheck4
 ORDER BY number_of_rows_at_time_stat_was_updated DESC
 
 

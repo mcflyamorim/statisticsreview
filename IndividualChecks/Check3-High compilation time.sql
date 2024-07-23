@@ -32,8 +32,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck3') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck3
+IF OBJECT_ID('dbo.tmpStatisticCheck3') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck3
 
 IF OBJECT_ID('tempdb.dbo.#tmp1') IS NOT NULL
   DROP TABLE #tmp1
@@ -41,31 +41,31 @@ IF OBJECT_ID('tempdb.dbo.#tmp1') IS NOT NULL
 ;WITH XMLNAMESPACES('http://schemas.microsoft.com/sqlserver/2004/07/showplan' AS p)
 SELECT  qp.*,
         associated_stats_update_datetime = (SELECT TOP 1 CONVERT(VARCHAR, a.last_updated, 21)
-                                            FROM tempdb.dbo.tmp_stats AS a
+                                            FROM dbo.tmpStatisticCheck_stats AS a
                                             WHERE a.last_updated >= exec_plan_creation_start_datetime
                                             ORDER BY a.last_updated ASC),
         /* Creation time plus the compilation time in milliseconds is the datetime the plan finished to compile */
         exec_plan_creation_end_datetime = CONVERT(VARCHAR, DATEADD(ms, x.value('sum(..//p:QueryPlan/@CompileTime)', 'float'), exec_plan_creation_start_datetime), 21),
         associated_stats_name = (SELECT TOP 1 a.stats_name
-                                 FROM tempdb.dbo.tmp_stats AS a
+                                 FROM dbo.tmpStatisticCheck_stats AS a
                                  WHERE a.last_updated >= exec_plan_creation_start_datetime
                                  ORDER BY a.last_updated ASC),
         statistic_associated_with_compile = (SELECT TOP 1
                                                     'Statistic ' + a.stats_name + 
                                                     ' on table ' + a.database_name + '.' + a.table_name + ' ('+ CONVERT(VARCHAR, a.current_number_of_rows) +' rows)' +
                                                     ' was updated about the same time (' + CONVERT(VARCHAR, a.last_updated, 21) + ') that the plan was created, that may be the reason of the high compile time.'
-                                             FROM tempdb.dbo.tmp_stats AS a
+                                             FROM dbo.tmpStatisticCheck_stats AS a
                                              WHERE a.last_updated >= exec_plan_creation_start_datetime
                                              ORDER BY a.last_updated ASC)
 INTO #tmp1
-FROM tempdb.dbo.tmpStatsCheckCachePlanData qp
+FROM dbo.tmpStatsCheckCachePlanData qp
 OUTER APPLY statement_plan.nodes('//p:Batch') AS Batch(x)
 WHERE x.value('sum(..//p:QueryPlan/@CompileTime)', 'float') >= 200 /* Only plans taking more than 200ms to create */
 OPTION (RECOMPILE);
 
 SELECT 'Check 3 - Do I have plans with high compilation time due to an auto update/create stats?' AS [info], 
        * 
-INTO tempdb.dbo.tmpStatisticCheck3
+INTO dbo.tmpStatisticCheck3
 FROM #tmp1
 WHERE 1=1
 /* 
@@ -77,7 +77,7 @@ AND associated_stats_update_datetime <= DATEADD(ms, 50, exec_plan_creation_end_d
 AND CONVERT(VarChar(MAX), statement_plan) COLLATE Latin1_General_BIN2 LIKE '%' + REPLACE(REPLACE(associated_stats_name, '[', ''), ']', '') + '%'
 /* OR associated_stats_name IS NULL */ -- Uncomment this if you want to see info about all plans, I mean, including plans where an associated stat was not found
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck3
+SELECT * FROM dbo.tmpStatisticCheck3
 ORDER BY compile_time_sec DESC
 
 /*

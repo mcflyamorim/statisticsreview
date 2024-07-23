@@ -27,8 +27,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck5') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck5
+IF OBJECT_ID('dbo.tmpStatisticCheck5') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck5
 
 IF OBJECT_ID('tempdb.dbo.#tmpCheck5') IS NOT NULL
   DROP TABLE #tmpCheck5
@@ -54,7 +54,7 @@ SELECT a.database_name,
        CONVERT(DECIMAL(25, 2), (a.current_number_of_modified_rows_since_last_update / (a.auto_update_threshold * 1.0)) * 100.0) AS percent_of_threshold,
        dbcc_command
 INTO #tmpCheck5
-FROM tempdb.dbo.tmp_stats a
+FROM dbo.tmpStatisticCheck_stats a
 OUTER APPLY (SELECT MAX(Dt) FROM (VALUES(a.last_user_seek), 
                                         (a.last_user_scan),
                                         (a.last_user_lookup)
@@ -67,10 +67,10 @@ AND a.stats_id <> 1 /*Ignoring clustered keys has they can still be used in look
 
 SELECT 'Check 5 - Are there any unused statistics?' AS [info], 
        * 
-INTO tempdb.dbo.tmpStatisticCheck5
+INTO dbo.tmpStatisticCheck5
 FROM #tmpCheck5
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck5
+SELECT * FROM dbo.tmpStatisticCheck5
 ORDER BY current_number_of_rows DESC, 
          database_name,
          table_name,

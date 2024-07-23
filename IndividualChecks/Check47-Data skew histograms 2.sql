@@ -42,8 +42,8 @@ SET LOCK_TIMEOUT -1;
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED; SET ANSI_WARNINGS OFF;
 SET NOCOUNT ON; SET ARITHABORT OFF; SET ARITHIGNORE ON; 
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck47') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck47
+IF OBJECT_ID('dbo.tmpStatisticCheck47') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck47
 
 DECLARE @TOP INT = 10 /* Adjust this to run for TOP n Indexes... */
 DECLARE @database_id INT, @object_id INT, @Index_ID INT
@@ -134,7 +134,7 @@ FROM sys.databases d1
 WHERE d1.state_desc = 'ONLINE' 
 AND d1.is_read_only = 0
 AND d1.name NOT IN('tempdb', 'master', 'msdb', 'model', 'distribution')
-AND d1.database_id IN(SELECT DISTINCT database_id FROM tempdb.dbo.tmp_stats)
+AND d1.database_id IN(SELECT DISTINCT database_id FROM dbo.tmpStatisticCheck_stats)
 
 DECLARE c_cursor CURSOR STATIC FOR
     SELECT database_id 
@@ -253,10 +253,10 @@ DEALLOCATE c_cursor2
 SELECT 'Check data skew histograms for top 10 (by user_seeks + user_lookups) indexes' AS [info],
        *,
        'DBCC SHOW_STATISTICS (' + '''' + database_name + '.' + schema_name + '.' + table_name + '''' + ',' + index_name + ')' AS [dbcc_command]
-INTO tempdb.dbo.tmpStatisticCheck47
+INTO dbo.tmpStatisticCheck47
 FROM ##tmpHistResults
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck47
+SELECT * FROM dbo.tmpStatisticCheck47
 ORDER BY database_name, schema_name, table_name, index_name, stepnumber
 
 

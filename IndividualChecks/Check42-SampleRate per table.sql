@@ -33,8 +33,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0;
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck42') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck42
+IF OBJECT_ID('dbo.tmpStatisticCheck42') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck42
 
 SELECT 'Check 42 - Estimating default sampling rate to be used for each table' AS [info],
        a.database_name,
@@ -55,7 +55,7 @@ SELECT 'Check 42 - Estimating default sampling rate to be used for each table' A
        CONVERT(NUMERIC(25, 2), (number_of_in_row_data_pages_on_table * 8) / 1024.) AS in_row_data_size_in_mb,
        number_of_lob_data_pages_on_table,
        CONVERT(NUMERIC(25, 2), (number_of_lob_data_pages_on_table * 8) / 1024.) AS lob_data_size_in_mb
-INTO tempdb.dbo.tmpStatisticCheck42
+INTO dbo.tmpStatisticCheck42
 FROM (SELECT DISTINCT 
              database_name,
              schema_name,
@@ -69,7 +69,7 @@ FROM (SELECT DISTINCT
              auto_update_threshold,
              auto_update_threshold_type,
 	            CONVERT(DECIMAL(25, 2), (current_number_of_modified_rows_since_last_update / (auto_update_threshold * 1.0)) * 100.0) AS percent_of_threshold
-        FROM tempdb.dbo.tmp_stats
+        FROM dbo.tmpStatisticCheck_stats
         WHERE current_number_of_rows > 0 /* Ignoring empty tables */) AS a
 CROSS APPLY (SELECT RowsPerPage = CONVERT(NUMERIC(25, 8), current_number_of_rows) / CONVERT(NUMERIC(25, 8), number_of_in_row_data_pages_on_table)) AS t1
 CROSS APPLY (SELECT SampleRows  = CONVERT(NUMERIC(25, 8), CEILING(15 * POWER(CONVERT(NUMERIC(25, 8), current_number_of_rows), 0.55)))) AS t2
@@ -81,7 +81,7 @@ CROSS APPLY (SELECT PercentSampled = t6.SamplePages / number_of_in_row_data_page
 WHERE current_number_of_rows > 0
 AND number_of_in_row_data_pages_on_table > 0
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck42
+SELECT * FROM dbo.tmpStatisticCheck42
 ORDER BY in_row_data_size_in_mb + lob_data_size_in_mb DESC, 
          database_name,
          table_name

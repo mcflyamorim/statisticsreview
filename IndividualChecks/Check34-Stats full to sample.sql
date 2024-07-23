@@ -32,8 +32,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck34') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck34
+IF OBJECT_ID('dbo.tmpStatisticCheck34') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck34
 
 SELECT 'Check 34 - Check if there was an event of an auto update stat using a sample smaller than the last sample used' AS [info],
        a.database_name,
@@ -70,21 +70,21 @@ SELECT 'Check 34 - Check if there was an event of an auto update stat using a sa
          ELSE 'OK'
        END AS [comment],
        dbcc_command
-INTO tempdb.dbo.tmpStatisticCheck34
-FROM tempdb.dbo.tmp_stats AS a
+INTO dbo.tmpStatisticCheck34
+FROM dbo.tmpStatisticCheck_stats AS a
 CROSS APPLY (SELECT CASE 
                       WHEN b.inserts_since_last_update IS NULL AND b.deletes_since_last_update IS NULL
                       THEN NULL
                       ELSE (ABS(ISNULL(b.inserts_since_last_update,0)) + ABS(ISNULL(b.deletes_since_last_update,0)))
                     END AS number_of_modifications_on_key_column_since_previous_update
-                FROM tempdb.dbo.tmp_exec_history b 
+                FROM dbo.tmpStatisticCheck_exec_history b 
                WHERE b.rowid = a.rowid
                  AND b.history_number = 1
                 ) AS Tab_StatSample1
 CROSS APPLY (SELECT b.table_cardinality AS number_of_rows_at_time_stat_was_updated,
                     b.updated as last_updated,
                     b.steps
-                FROM tempdb.dbo.tmp_exec_history b 
+                FROM dbo.tmpStatisticCheck_exec_history b 
                WHERE b.rowid = a.rowid
                  AND b.history_number = 2 /* Previous update stat sample */
                 ) AS Tab_StatSample2
@@ -93,7 +93,7 @@ WHERE a.statistic_percent_sampled <> 100 /*Only considering stats not using FULL
 AND Tab_StatSample2.steps <> 1 /*Ignoring histograms with only 1 step*/
 AND a.steps <> Tab_StatSample2.steps /*Only cases where number of steps is diff*/
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck34
+SELECT * FROM dbo.tmpStatisticCheck34
 ORDER BY steps_diff_pct ASC, 
          current_number_of_rows DESC, 
          database_name,

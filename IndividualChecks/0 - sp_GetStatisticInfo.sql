@@ -94,14 +94,14 @@ BEGIN
           @sqlcmd_dbcc_local NVARCHAR(MAX) = N'';
 
   /* If data already exists, skip the population, unless refresh was asked via @refreshdata */
-  IF OBJECT_ID('dbo.tmp_stats') IS NOT NULL
+  IF OBJECT_ID('dbo.tmpStatisticCheck_stats') IS NOT NULL
   BEGIN
     /* 
-       I'm assuming data for all tables exists, but I'm only checking tmp_stats... 
+       I'm assuming data for all tables exists, but I'm only checking tmpStatisticCheck_stats... 
        if you're not sure if this is ok, use @refreshdata = 1 to force the refresh and 
        table population
     */
-    IF EXISTS(SELECT 1 FROM dbo.tmp_stats) AND (@refreshdata = 0)
+    IF EXISTS(SELECT 1 FROM dbo.tmpStatisticCheck_stats) AND (@refreshdata = 0)
     BEGIN
 			   --SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Table with list of statistics already exists, I''ll reuse it and skip the code to populate the table.'
       --RAISERROR (@err_msg, 0, 0) WITH NOWAIT
@@ -109,20 +109,20 @@ BEGIN
     END
     ELSE
     BEGIN
-      IF OBJECT_ID('dbo.tmp_stats') IS NOT NULL
-        DROP TABLE dbo.tmp_stats
-      IF OBJECT_ID('dbo.tmp_stat_header') IS NOT NULL
-        DROP TABLE dbo.tmp_stat_header
-      IF OBJECT_ID('dbo.tmp_density_vector') IS NOT NULL
-        DROP TABLE dbo.tmp_density_vector
-      IF OBJECT_ID('dbo.tmp_histogram') IS NOT NULL
-        DROP TABLE dbo.tmp_histogram
-      IF OBJECT_ID('dbo.tmp_stats_stream') IS NOT NULL
-        DROP TABLE dbo.tmp_stats_stream
-      IF OBJECT_ID('dbo.tmp_exec_history') IS NOT NULL
-        DROP TABLE dbo.tmp_exec_history
-      IF OBJECT_ID('dbo.tmp_default_trace') IS NOT NULL
-        DROP TABLE dbo.tmp_default_trace
+      IF OBJECT_ID('dbo.tmpStatisticCheck_stats') IS NOT NULL
+        DROP TABLE dbo.tmpStatisticCheck_stats
+      IF OBJECT_ID('dbo.tmpStatisticCheck_stat_header') IS NOT NULL
+        DROP TABLE dbo.tmpStatisticCheck_stat_header
+      IF OBJECT_ID('dbo.tmpStatisticCheck_density_vector') IS NOT NULL
+        DROP TABLE dbo.tmpStatisticCheck_density_vector
+      IF OBJECT_ID('dbo.tmpStatisticCheck_histogram') IS NOT NULL
+        DROP TABLE dbo.tmpStatisticCheck_histogram
+      IF OBJECT_ID('dbo.tmpStatisticCheck_stats_stream') IS NOT NULL
+        DROP TABLE dbo.tmpStatisticCheck_stats_stream
+      IF OBJECT_ID('dbo.tmpStatisticCheck_exec_history') IS NOT NULL
+        DROP TABLE dbo.tmpStatisticCheck_exec_history
+      IF OBJECT_ID('dbo.tmpStatisticCheck_default_trace') IS NOT NULL
+        DROP TABLE dbo.tmpStatisticCheck_default_trace
     END
   END
 
@@ -156,20 +156,20 @@ BEGIN
   CLOSE c_old_exec
   DEALLOCATE c_old_exec
 
-  IF OBJECT_ID('dbo.tmp_stats') IS NOT NULL
-    DROP TABLE dbo.tmp_stats
-  IF OBJECT_ID('dbo.tmp_stat_header') IS NOT NULL
-    DROP TABLE dbo.tmp_stat_header
-  IF OBJECT_ID('dbo.tmp_density_vector') IS NOT NULL
-    DROP TABLE dbo.tmp_density_vector
-  IF OBJECT_ID('dbo.tmp_histogram') IS NOT NULL
-    DROP TABLE dbo.tmp_histogram
-  IF OBJECT_ID('dbo.tmp_stats_stream') IS NOT NULL
-    DROP TABLE dbo.tmp_stats_stream
-  IF OBJECT_ID('dbo.tmp_exec_history') IS NOT NULL
-    DROP TABLE dbo.tmp_exec_history
-  IF OBJECT_ID('dbo.tmp_default_trace') IS NOT NULL
-    DROP TABLE dbo.tmp_default_trace
+  IF OBJECT_ID('dbo.tmpStatisticCheck_stats') IS NOT NULL
+    DROP TABLE dbo.tmpStatisticCheck_stats
+  IF OBJECT_ID('dbo.tmpStatisticCheck_stat_header') IS NOT NULL
+    DROP TABLE dbo.tmpStatisticCheck_stat_header
+  IF OBJECT_ID('dbo.tmpStatisticCheck_density_vector') IS NOT NULL
+    DROP TABLE dbo.tmpStatisticCheck_density_vector
+  IF OBJECT_ID('dbo.tmpStatisticCheck_histogram') IS NOT NULL
+    DROP TABLE dbo.tmpStatisticCheck_histogram
+  IF OBJECT_ID('dbo.tmpStatisticCheck_stats_stream') IS NOT NULL
+    DROP TABLE dbo.tmpStatisticCheck_stats_stream
+  IF OBJECT_ID('dbo.tmpStatisticCheck_exec_history') IS NOT NULL
+    DROP TABLE dbo.tmpStatisticCheck_exec_history
+  IF OBJECT_ID('dbo.tmpStatisticCheck_default_trace') IS NOT NULL
+    DROP TABLE dbo.tmpStatisticCheck_default_trace
 
   /* 
     On "Check4-Stats and sort warning" and on "Check39-Missing column stats" I'm reading 
@@ -220,21 +220,21 @@ BEGIN
            ftg.Hostname AS host_name,
            DB_NAME(ftg.databaseID) AS database_name,
            ftg.LoginName AS login_name
-    INTO dbo.tmp_default_trace
+    INTO dbo.tmpStatisticCheck_default_trace
     FROM::fn_trace_gettable(@filename, DEFAULT) AS ftg
     INNER JOIN sys.trace_events AS te
     ON ftg.EventClass = te.trace_event_id
     WHERE te.name IN ('Sort Warnings', 'Missing Column Statistics')
 
     SELECT @sort_warning_rows = COUNT(*)
-    FROM dbo.tmp_default_trace
+    FROM dbo.tmpStatisticCheck_default_trace
     WHERE event_name = 'Sort Warnings'
 
     SELECT @missing_stats_rows = COUNT(*)
-    FROM dbo.tmp_default_trace
+    FROM dbo.tmpStatisticCheck_default_trace
     WHERE event_name = 'Missing Column Statistics'
 
-    CREATE CLUSTERED INDEX ix1 ON dbo.tmp_default_trace(start_time)
+    CREATE CLUSTERED INDEX ix1 ON dbo.tmpStatisticCheck_default_trace(start_time)
 
 		  SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Found ' + CONVERT(VARCHAR(200), @sort_warning_rows) + ' sort warning events on default trace.'
     RAISERROR (@err_msg, 0, 0) WITH NOWAIT
@@ -251,7 +251,7 @@ BEGIN
     RAISERROR (@err_msg, 0, 0) WITH NOWAIT
 
     /* trace doesn't exist, creating an empty table */
-    CREATE TABLE dbo.tmp_default_trace
+    CREATE TABLE dbo.tmpStatisticCheck_default_trace
     (
       [session_id] [int] NULL,
       [event_name] [nvarchar] (128) NULL,
@@ -263,12 +263,12 @@ BEGIN
       [database_name] [nvarchar] (128) NULL,
       [login_name] [nvarchar] (256) NULL
     )
-    CREATE CLUSTERED INDEX ix1 ON dbo.tmp_default_trace(start_time)
-    
-		  SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Finished code to create a copy of default trace data.'
-    RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+    CREATE CLUSTERED INDEX ix1 ON dbo.tmpStatisticCheck_default_trace(start_time)
   END
+
   /* Finished code to create a copy of default trace data */
+		SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Finished code to create a copy of default trace data.'
+  RAISERROR (@err_msg, 0, 0) WITH NOWAIT
 
   SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Starting to collect cache plan info...'
   RAISERROR(@err_msg, 0, 42) WITH NOWAIT;
@@ -1117,10 +1117,10 @@ BEGIN
   SELECT * FROM cte_seq
   OPTION (MAXRECURSION 200);
 
-  IF OBJECT_ID('tempdb.dbo.#tmp_stats') IS NOT NULL
-    DROP TABLE #tmp_stats;
+  IF OBJECT_ID('tempdb.dbo.#tmpStatisticCheck_stats') IS NOT NULL
+    DROP TABLE #tmpStatisticCheck_stats;
 
-  CREATE TABLE #tmp_stats
+  CREATE TABLE #tmpStatisticCheck_stats
   (
     [rowid] [int] IDENTITY(1, 1) NOT NULL PRIMARY KEY,
     [database_name] SYSNAME,
@@ -1224,10 +1224,10 @@ BEGIN
   );
   CREATE CLUSTERED INDEX ixrowid ON #tmp_histogram(rowid, stepnumber)
 
-  IF OBJECT_ID('tempdb.dbo.#tmp_stats_stream') IS NOT NULL
-    DROP TABLE #tmp_stats_stream;
+  IF OBJECT_ID('tempdb.dbo.#tmpStatisticCheck_stats_stream') IS NOT NULL
+    DROP TABLE #tmpStatisticCheck_stats_stream;
 
-  CREATE TABLE #tmp_stats_stream
+  CREATE TABLE #tmpStatisticCheck_stats_stream
   (
     [rowid] INT NULL,
     [database_name] SYSNAME NULL,
@@ -1238,7 +1238,7 @@ BEGIN
     [rows] BIGINT,
     [data_pages] BIGINT
   );
-  CREATE CLUSTERED INDEX ixrowid ON #tmp_stats_stream(rowid)
+  CREATE CLUSTERED INDEX ixrowid ON #tmpStatisticCheck_stats_stream(rowid)
 
   IF OBJECT_ID('tempdb.dbo.#tmp_exec_history') IS NOT NULL
     DROP TABLE #tmp_exec_history;
@@ -1518,7 +1518,7 @@ BEGIN
     SET @sqlcmd_db = 'use [' + @database_name + '];' + @sqlcmd
     
     BEGIN TRY
-      INSERT INTO #tmp_stats
+      INSERT INTO #tmpStatisticCheck_stats
       (
           database_name,
           schema_name,
@@ -1588,7 +1588,7 @@ BEGIN
   RAISERROR (@err_msg, 0, 1) WITH NOWAIT
 
   SELECT @number_of_stats = COUNT(*) 
-  FROM #tmp_stats
+  FROM #tmpStatisticCheck_stats
 
   DECLARE c_stats CURSOR READ_ONLY FOR
       SELECT [rowid], 
@@ -1597,7 +1597,7 @@ BEGIN
              [table_name],
              [stats_name],
              'DBCC SHOW_STATISTICS (''' + [database_name] + '.' + [schema_name] + '.' + REPLACE([table_name], '''', '''''') + ''',' + [stats_name] + ')' AS sqlcmd_dbcc
-      FROM #tmp_stats
+      FROM #tmpStatisticCheck_stats
   OPEN c_stats
 
   FETCH NEXT FROM c_stats
@@ -1945,8 +1945,8 @@ BEGIN
         OPTION (MAXRECURSION 200);
       END
 
-      UPDATE #tmp_stats SET histogram_graph = @histogram_graph_xml
-      WHERE #tmp_stats.rowid = @rowid
+      UPDATE #tmpStatisticCheck_stats SET histogram_graph = @histogram_graph_xml
+      WHERE rowid = @rowid
 		  END TRY
 		  BEGIN CATCH
 			   SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Error trying to create graph histogram. Skipping this info.'
@@ -1958,7 +1958,7 @@ BEGIN
     /* Code to read stats_stream */
     SET @sqlcmd_dbcc_local = @sqlcmd_dbcc + ' WITH STATS_STREAM, NO_INFOMSGS;'
     BEGIN TRY
-      INSERT INTO #tmp_stats_stream
+      INSERT INTO #tmpStatisticCheck_stats_stream
       (
           [stats_stream],
           [rows],
@@ -1975,7 +1975,7 @@ BEGIN
       RAISERROR (@err_msg, 0, 0) WITH NOWAIT
 		  END CATCH
     BEGIN TRY
-      UPDATE #tmp_stats_stream SET [rowid]         = @rowid,
+      UPDATE #tmpStatisticCheck_stats_stream SET [rowid]         = @rowid,
                                    [database_name] = @database_name,
                                    [schema_name]   = @schema_name,
                                    [table_name]    = @table_name,
@@ -2017,7 +2017,7 @@ BEGIN
                [table_name],
                [stats_name],
                'DBCC SHOW_STATISTICS (''' + [database_name] + '.' + [schema_name] + '.' + REPLACE([table_name], '''', '''''') + ''',' + [stats_name] + ')' AS sqlcmd_dbcc
-        FROM #tmp_stats
+        FROM #tmpStatisticCheck_stats
     OPEN c_stats
     
     FETCH NEXT FROM c_stats
@@ -2103,29 +2103,29 @@ BEGIN
   SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Starting to get index usage information'
   RAISERROR (@err_msg, 10, 1) WITH NOWAIT
 
-  ALTER TABLE #tmp_stats ADD user_seeks               BIGINT
-  ALTER TABLE #tmp_stats ADD user_scans               BIGINT
-  ALTER TABLE #tmp_stats ADD user_lookups             BIGINT
-  ALTER TABLE #tmp_stats ADD user_updates             BIGINT
-  ALTER TABLE #tmp_stats ADD last_user_seek           DATETIME
-  ALTER TABLE #tmp_stats ADD last_user_scan           DATETIME
-  ALTER TABLE #tmp_stats ADD last_user_lookup         DATETIME
-  ALTER TABLE #tmp_stats ADD range_scan_count         BIGINT
-  ALTER TABLE #tmp_stats ADD singleton_lookup_count   BIGINT
-  ALTER TABLE #tmp_stats ADD leaf_insert_count BIGINT
-  ALTER TABLE #tmp_stats ADD leaf_delete_count BIGINT
-  ALTER TABLE #tmp_stats ADD leaf_update_count BIGINT
-  ALTER TABLE #tmp_stats ADD forwarded_fetch_count BIGINT
+  ALTER TABLE #tmpStatisticCheck_stats ADD user_seeks               BIGINT
+  ALTER TABLE #tmpStatisticCheck_stats ADD user_scans               BIGINT
+  ALTER TABLE #tmpStatisticCheck_stats ADD user_lookups             BIGINT
+  ALTER TABLE #tmpStatisticCheck_stats ADD user_updates             BIGINT
+  ALTER TABLE #tmpStatisticCheck_stats ADD last_user_seek           DATETIME
+  ALTER TABLE #tmpStatisticCheck_stats ADD last_user_scan           DATETIME
+  ALTER TABLE #tmpStatisticCheck_stats ADD last_user_lookup         DATETIME
+  ALTER TABLE #tmpStatisticCheck_stats ADD range_scan_count         BIGINT
+  ALTER TABLE #tmpStatisticCheck_stats ADD singleton_lookup_count   BIGINT
+  ALTER TABLE #tmpStatisticCheck_stats ADD leaf_insert_count BIGINT
+  ALTER TABLE #tmpStatisticCheck_stats ADD leaf_delete_count BIGINT
+  ALTER TABLE #tmpStatisticCheck_stats ADD leaf_update_count BIGINT
+  ALTER TABLE #tmpStatisticCheck_stats ADD forwarded_fetch_count BIGINT
 
-  ALTER TABLE #tmp_stats ADD page_latch_wait_count    BIGINT
-  ALTER TABLE #tmp_stats ADD page_latch_wait_in_ms BIGINT
-  ALTER TABLE #tmp_stats ADD avg_page_latch_wait_in_ms NUMERIC(25, 2)
-  ALTER TABLE #tmp_stats ADD page_latch_wait_time_d_h_m_s VARCHAR(200)
+  ALTER TABLE #tmpStatisticCheck_stats ADD page_latch_wait_count    BIGINT
+  ALTER TABLE #tmpStatisticCheck_stats ADD page_latch_wait_in_ms BIGINT
+  ALTER TABLE #tmpStatisticCheck_stats ADD avg_page_latch_wait_in_ms NUMERIC(25, 2)
+  ALTER TABLE #tmpStatisticCheck_stats ADD page_latch_wait_time_d_h_m_s VARCHAR(200)
 
-  ALTER TABLE #tmp_stats ADD page_io_latch_wait_count BIGINT
-  ALTER TABLE #tmp_stats ADD page_io_latch_wait_in_ms BIGINT
-  ALTER TABLE #tmp_stats ADD avg_page_io_latch_wait_in_ms NUMERIC(25, 2)
-  ALTER TABLE #tmp_stats ADD page_io_latch_wait_time_d_h_m_s VARCHAR(200)
+  ALTER TABLE #tmpStatisticCheck_stats ADD page_io_latch_wait_count BIGINT
+  ALTER TABLE #tmpStatisticCheck_stats ADD page_io_latch_wait_in_ms BIGINT
+  ALTER TABLE #tmpStatisticCheck_stats ADD avg_page_io_latch_wait_in_ms NUMERIC(25, 2)
+  ALTER TABLE #tmpStatisticCheck_stats ADD page_io_latch_wait_time_d_h_m_s VARCHAR(200)
 
   IF OBJECT_ID('tempdb.dbo.#tmp_dm_db_index_usage_stats') IS NOT NULL
     DROP TABLE #tmp_dm_db_index_usage_stats
@@ -2174,7 +2174,7 @@ BEGIN
            END) AS avg_page_io_latch_wait_in_ms,
            CONVERT(VARCHAR(200), (SUM(page_io_latch_wait_in_ms) / 1000) / 86400) + ':' + CONVERT(VARCHAR(20), DATEADD(s, (SUM(page_io_latch_wait_in_ms) / 1000), 0), 108) AS page_io_latch_wait_time_d_h_m_s
       INTO #tmp_dm_db_index_operational_stats
-      FROM (SELECT DISTINCT database_id FROM #tmp_stats) AS t
+      FROM (SELECT DISTINCT database_id FROM #tmpStatisticCheck_stats) AS t
      CROSS APPLY sys.dm_db_index_operational_stats (t.database_id, NULL, NULL, NULL) AS ios
      GROUP BY t.database_id, 
            object_id, 
@@ -2193,7 +2193,7 @@ BEGIN
     this is something I need to test and think on how to fix... for now, data for b-tree clustered index should 
     be good enough.
   */
-  UPDATE #tmp_stats 
+  UPDATE #tmpStatisticCheck_stats 
   SET user_seeks                      = ius.user_seeks,
       user_scans                      = ius.user_scans,
       user_lookups                    = ius.user_lookups,
@@ -2215,15 +2215,15 @@ BEGIN
       page_io_latch_wait_in_ms        = ios.page_io_latch_wait_in_ms,
       avg_page_io_latch_wait_in_ms    = ios.avg_page_io_latch_wait_in_ms,
       page_io_latch_wait_time_d_h_m_s = ios.page_io_latch_wait_time_d_h_m_s
-  FROM #tmp_stats
+  FROM #tmpStatisticCheck_stats
   LEFT OUTER JOIN #tmp_dm_db_index_usage_stats AS ius WITH (NOLOCK)
-  ON ius.database_id = #tmp_stats.database_id
-  AND ius.object_id = #tmp_stats.object_id
-  AND (ius.index_id <= CASE WHEN #tmp_stats.[statistic_type] = 'Index_Statistic' THEN #tmp_stats.stats_id ELSE 1 END)
+  ON ius.database_id = #tmpStatisticCheck_stats.database_id
+  AND ius.object_id = #tmpStatisticCheck_stats.object_id
+  AND (ius.index_id <= CASE WHEN #tmpStatisticCheck_stats.[statistic_type] = 'Index_Statistic' THEN #tmpStatisticCheck_stats.stats_id ELSE 1 END)
   LEFT OUTER JOIN #tmp_dm_db_index_operational_stats AS ios WITH (NOLOCK)
-  ON ios.database_id = #tmp_stats.database_id
-  AND ios.object_id = #tmp_stats.object_id
-  AND (ios.index_id <= CASE WHEN #tmp_stats.[statistic_type] = 'Index_Statistic' THEN #tmp_stats.stats_id ELSE 1 END)
+  ON ios.database_id = #tmpStatisticCheck_stats.database_id
+  AND ios.object_id = #tmpStatisticCheck_stats.object_id
+  AND (ios.index_id <= CASE WHEN #tmpStatisticCheck_stats.[statistic_type] = 'Index_Statistic' THEN #tmpStatisticCheck_stats.stats_id ELSE 1 END)
 
   /* Finished to get index usage data */
   SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Finished to get index usage information.'
@@ -2233,53 +2233,53 @@ BEGIN
   SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Updating is_auto_update_stats_on, is_auto_update_stats_async_on, is_auto_create_stats_on, is_auto_create_stats_incremental_on and is_date_correlation_on columns.'
   RAISERROR (@err_msg, 10, 1) WITH NOWAIT
 
-  ALTER TABLE #tmp_stats ADD is_auto_update_stats_on BIT
-  ALTER TABLE #tmp_stats ADD is_auto_update_stats_async_on BIT
-  ALTER TABLE #tmp_stats ADD is_auto_create_stats_on BIT
-  ALTER TABLE #tmp_stats ADD is_auto_create_stats_incremental_on BIT
-  ALTER TABLE #tmp_stats ADD is_date_correlation_on BIT
+  ALTER TABLE #tmpStatisticCheck_stats ADD is_auto_update_stats_on BIT
+  ALTER TABLE #tmpStatisticCheck_stats ADD is_auto_update_stats_async_on BIT
+  ALTER TABLE #tmpStatisticCheck_stats ADD is_auto_create_stats_on BIT
+  ALTER TABLE #tmpStatisticCheck_stats ADD is_auto_create_stats_incremental_on BIT
+  ALTER TABLE #tmpStatisticCheck_stats ADD is_date_correlation_on BIT
 
     /* If this is SQL2014+ */
   IF (@sqlmajorver >= 12 /*SQL2014*/)
   BEGIN  
-    UPDATE #tmp_stats SET is_auto_update_stats_on = databases.is_auto_update_stats_on,
+    UPDATE #tmpStatisticCheck_stats SET is_auto_update_stats_on = databases.is_auto_update_stats_on,
                           is_auto_update_stats_async_on = databases.is_auto_update_stats_async_on,
                           is_auto_create_stats_on = databases.is_auto_create_stats_on,
                           is_auto_create_stats_incremental_on = databases.is_auto_create_stats_incremental_on,
                           is_date_correlation_on = databases.is_date_correlation_on
-    FROM #tmp_stats
+    FROM #tmpStatisticCheck_stats
     INNER JOIN sys.databases
-    ON databases.database_id = #tmp_stats.database_id
+    ON databases.database_id = #tmpStatisticCheck_stats.database_id
   END
   ELSE
   BEGIN
-    UPDATE #tmp_stats SET is_auto_update_stats_on = databases.is_auto_update_stats_on,
+    UPDATE #tmpStatisticCheck_stats SET is_auto_update_stats_on = databases.is_auto_update_stats_on,
                           is_auto_update_stats_async_on = databases.is_auto_update_stats_async_on,
                           is_auto_create_stats_on = databases.is_auto_create_stats_on,
                           is_auto_create_stats_incremental_on = 0,
                           is_date_correlation_on = databases.is_date_correlation_on
-    FROM #tmp_stats
+    FROM #tmpStatisticCheck_stats
     INNER JOIN sys.databases
-    ON databases.database_id = #tmp_stats.database_id
+    ON databases.database_id = #tmpStatisticCheck_stats.database_id
   END
 
   /* Updating statistic_percent_sampled column */
   SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Updating statistic_percent_sampled column.'
   RAISERROR (@err_msg, 10, 1) WITH NOWAIT
 
-  ALTER TABLE #tmp_stats ADD statistic_percent_sampled DECIMAL(25, 2)
-  UPDATE #tmp_stats SET statistic_percent_sampled = CONVERT(DECIMAL(25, 2), (rows_sampled / (number_of_rows_at_time_stat_was_updated * 1.00)) * 100.0)
+  ALTER TABLE #tmpStatisticCheck_stats ADD statistic_percent_sampled DECIMAL(25, 2)
+  UPDATE #tmpStatisticCheck_stats SET statistic_percent_sampled = CONVERT(DECIMAL(25, 2), (rows_sampled / (number_of_rows_at_time_stat_was_updated * 1.00)) * 100.0)
 
   /* Updating plan_cache_reference_count column */
   SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Updating plan_cache_reference_count column.'
   RAISERROR (@err_msg, 10, 1) WITH NOWAIT
 
-  ALTER TABLE #tmp_stats ADD plan_cache_reference_count INT NULL
-  UPDATE #tmp_stats
+  ALTER TABLE #tmpStatisticCheck_stats ADD plan_cache_reference_count INT NULL
+  UPDATE #tmpStatisticCheck_stats
   SET plan_cache_reference_count = (SELECT COUNT(DISTINCT query_hash) 
                                       FROM dbo.tmpStatsCheckCachePlanData
                                      WHERE CONVERT(NVARCHAR(MAX), tmpStatsCheckCachePlanData.stats_list) COLLATE Latin1_General_BIN2 LIKE '%' + REPLACE(REPLACE(Tab1.Col1,'[','!['),']','!]') + '%' ESCAPE '!')
-  FROM #tmp_stats
+  FROM #tmpStatisticCheck_stats
   CROSS APPLY (SELECT '(' + (database_name) + '.' + 
                             (schema_name) + '.' + 
                             (table_name) + 
@@ -2289,18 +2289,18 @@ BEGIN
   SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Updating dbcc_command column.'
   RAISERROR (@err_msg, 10, 1) WITH NOWAIT
 
-  ALTER TABLE #tmp_stats ADD dbcc_command NVARCHAR(MAX)
-  UPDATE #tmp_stats SET dbcc_command = N'DBCC SHOW_STATISTICS (' + '''' + database_name + '.' + schema_name + '.' + table_name + '''' + ',' + stats_name + ')'
+  ALTER TABLE #tmpStatisticCheck_stats ADD dbcc_command NVARCHAR(MAX)
+  UPDATE #tmpStatisticCheck_stats SET dbcc_command = N'DBCC SHOW_STATISTICS (' + '''' + database_name + '.' + schema_name + '.' + table_name + '''' + ',' + stats_name + ')'
 
   /* Updating auto_update_threshold_type and auto_update_threshold columns */
   SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Updating auto_update_threshold_type and auto_update_threshold columns.'
   RAISERROR (@err_msg, 10, 1) WITH NOWAIT
 
-  ALTER TABLE #tmp_stats ADD auto_update_threshold_type VARCHAR(50)
-  ALTER TABLE #tmp_stats ADD auto_update_threshold BIGINT
-  UPDATE #tmp_stats SET auto_update_threshold_type = tab1.auto_update_threshold_type,
+  ALTER TABLE #tmpStatisticCheck_stats ADD auto_update_threshold_type VARCHAR(50)
+  ALTER TABLE #tmpStatisticCheck_stats ADD auto_update_threshold BIGINT
+  UPDATE #tmpStatisticCheck_stats SET auto_update_threshold_type = tab1.auto_update_threshold_type,
                         auto_update_threshold = tab1.auto_update_threshold
-  FROM #tmp_stats AS a
+  FROM #tmpStatisticCheck_stats AS a
   CROSS APPLY (SELECT CASE 
                          WHEN (SELECT compatibility_level 
                                  FROM sys.databases 
@@ -2330,39 +2330,39 @@ BEGIN
 
 
   /* Creating tables with collected data */
-  SELECT * INTO dbo.tmp_stats          FROM #tmp_stats
-  SELECT * INTO dbo.tmp_stat_header    FROM #tmp_stat_header
-  SELECT * INTO dbo.tmp_density_vector FROM #tmp_density_vector
-  SELECT * INTO dbo.tmp_histogram      FROM #tmp_histogram
-  SELECT * INTO dbo.tmp_stats_stream   FROM #tmp_stats_stream
-  SELECT * INTO dbo.tmp_exec_history   FROM #tmp_exec_history
+  SELECT * INTO dbo.tmpStatisticCheck_stats          FROM #tmpStatisticCheck_stats
+  SELECT * INTO dbo.tmpStatisticCheck_stat_header    FROM #tmp_stat_header
+  SELECT * INTO dbo.tmpStatisticCheck_density_vector FROM #tmp_density_vector
+  SELECT * INTO dbo.tmpStatisticCheck_histogram      FROM #tmp_histogram
+  SELECT * INTO dbo.tmpStatisticCheck_stats_stream   FROM #tmpStatisticCheck_stats_stream
+  SELECT * INTO dbo.tmpStatisticCheck_exec_history   FROM #tmp_exec_history
 
-  CREATE CLUSTERED INDEX ix1 ON dbo.tmp_stats(database_id, object_id, stats_id)
-  CREATE INDEX ix2 ON dbo.tmp_stats (rowid)
-  CREATE INDEX ix3 ON dbo.tmp_stats (table_name)
-  CREATE INDEX ix4 ON dbo.tmp_stats (stats_name)
+  CREATE CLUSTERED INDEX ix1 ON dbo.tmpStatisticCheck_stats(database_id, object_id, stats_id)
+  CREATE INDEX ix2 ON dbo.tmpStatisticCheck_stats (rowid)
+  CREATE INDEX ix3 ON dbo.tmpStatisticCheck_stats (table_name)
+  CREATE INDEX ix4 ON dbo.tmpStatisticCheck_stats (stats_name)
 
-  CREATE CLUSTERED INDEX ix1 ON dbo.tmp_stat_header(rowid)
-  CREATE INDEX ix2 ON dbo.tmp_stat_header (table_name)
-  CREATE INDEX ix3 ON dbo.tmp_stat_header (stats_name)
+  CREATE CLUSTERED INDEX ix1 ON dbo.tmpStatisticCheck_stat_header(rowid)
+  CREATE INDEX ix2 ON dbo.tmpStatisticCheck_stat_header (table_name)
+  CREATE INDEX ix3 ON dbo.tmpStatisticCheck_stat_header (stats_name)
 
-  CREATE CLUSTERED INDEX ix1 ON dbo.tmp_density_vector(rowid)
-  CREATE INDEX ix2 ON dbo.tmp_density_vector (table_name)
-  CREATE INDEX ix3 ON dbo.tmp_density_vector (stats_name)
+  CREATE CLUSTERED INDEX ix1 ON dbo.tmpStatisticCheck_density_vector(rowid)
+  CREATE INDEX ix2 ON dbo.tmpStatisticCheck_density_vector (table_name)
+  CREATE INDEX ix3 ON dbo.tmpStatisticCheck_density_vector (stats_name)
 
-  CREATE CLUSTERED INDEX ix1 ON dbo.tmp_histogram(rowid, stepnumber)
-  CREATE INDEX ix2 ON dbo.tmp_histogram (table_name)
-  CREATE INDEX ix3 ON dbo.tmp_histogram (stats_name)
+  CREATE CLUSTERED INDEX ix1 ON dbo.tmpStatisticCheck_histogram(rowid, stepnumber)
+  CREATE INDEX ix2 ON dbo.tmpStatisticCheck_histogram (table_name)
+  CREATE INDEX ix3 ON dbo.tmpStatisticCheck_histogram (stats_name)
 
-  CREATE CLUSTERED INDEX ix1 ON dbo.tmp_stats_stream(rowid)
-  CREATE INDEX ix2 ON dbo.tmp_stats_stream (table_name)
-  CREATE INDEX ix3 ON dbo.tmp_stats_stream (stats_name)
+  CREATE CLUSTERED INDEX ix1 ON dbo.tmpStatisticCheck_stats_stream(rowid)
+  CREATE INDEX ix2 ON dbo.tmpStatisticCheck_stats_stream (table_name)
+  CREATE INDEX ix3 ON dbo.tmpStatisticCheck_stats_stream (stats_name)
 
-  CREATE CLUSTERED INDEX ix1 ON dbo.tmp_exec_history(rowid)
-  CREATE INDEX ix2 ON dbo.tmp_exec_history (table_name)
-  CREATE INDEX ix3 ON dbo.tmp_exec_history (stats_name)
+  CREATE CLUSTERED INDEX ix1 ON dbo.tmpStatisticCheck_exec_history(rowid)
+  CREATE INDEX ix2 ON dbo.tmpStatisticCheck_exec_history (table_name)
+  CREATE INDEX ix3 ON dbo.tmpStatisticCheck_exec_history (stats_name)
 
-  SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Done, statistics information saved on tempdb, tables tmp_stats, tmp_stat_header, tmp_density_vector, tmp_histogram, tmp_stats_stream and tmp_exec_history.'
+  SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Done, statistics information saved on tempdb, tables tmp_stats, tmp_stat_header, tmp_density_vector, tmp_histogram, tmp_stats_stream and tmpStatisticCheck_exec_history.'
   RAISERROR (@err_msg, 10, 1) WITH NOWAIT
 END
 GO

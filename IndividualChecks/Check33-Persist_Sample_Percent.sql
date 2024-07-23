@@ -35,8 +35,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck33') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck33
+IF OBJECT_ID('dbo.tmpStatisticCheck33') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck33
 
 DECLARE @sqlmajorver INT, @sqlminorver INT, @sqlbuild INT
 SELECT @sqlmajorver = CONVERT(INT, (@@microsoftversion / 0x1000000) & 0xff),
@@ -84,9 +84,9 @@ BEGIN
            ELSE NULL
          END AS command_to_disable_persisted_sample,
          dbcc_command
-  INTO tempdb.dbo.tmpStatisticCheck33
-  FROM tempdb.dbo.tmp_stats AS a
-  INNER JOIN tempdb.dbo.tmp_stat_header AS b
+  INTO dbo.tmpStatisticCheck33
+  FROM dbo.tmpStatisticCheck_stats AS a
+  INNER JOIN dbo.tmpStatisticCheck_stat_header AS b
   ON b.rowid = a.rowid
   ORDER BY a.current_number_of_rows DESC, 
            a.database_name,
@@ -101,8 +101,8 @@ BEGIN
          0 AS current_number_of_rows,
          0 AS persisted_sample_percent,
          '' AS [comment]
-  INTO tempdb.dbo.tmpStatisticCheck33
+  INTO dbo.tmpStatisticCheck33
 END
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck33
+SELECT * FROM dbo.tmpStatisticCheck33
 ORDER BY current_number_of_rows DESC

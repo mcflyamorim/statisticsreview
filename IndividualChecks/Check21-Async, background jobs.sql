@@ -25,8 +25,8 @@ Detailed recommendation:
 SET NOCOUNT ON; SET ARITHABORT OFF; SET ARITHIGNORE ON;  SET ANSI_WARNINGS OFF;
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck21') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck21
+IF OBJECT_ID('dbo.tmpStatisticCheck21') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck21
 
 SELECT 'Check 21 - Async - Dump information from sys.dm_exec_background_job_queue' AS [info],
        OBJECT_NAME(dm_exec_background_job_queue.[object_id1], dm_exec_background_job_queue.database_id) AS [object_name],
@@ -38,10 +38,10 @@ SELECT 'Check 21 - Async - Dump information from sys.dm_exec_background_job_queu
 	      dm_exec_requests.logical_reads, 
 	      dm_exec_requests.granted_query_memory,
 	      dm_exec_requests.last_wait_type
-INTO tempdb.dbo.tmpStatisticCheck21
+INTO dbo.tmpStatisticCheck21
 FROM sys.dm_exec_background_job_queue
     LEFT OUTER JOIN sys.dm_exec_requests
         ON dm_exec_requests.session_id = dm_exec_background_job_queue.session_id
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck21
+SELECT * FROM dbo.tmpStatisticCheck21
 ORDER BY time_queued ASC

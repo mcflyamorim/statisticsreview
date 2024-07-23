@@ -25,8 +25,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck35') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck35
+IF OBJECT_ID('dbo.tmpStatisticCheck35') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck35
 
 SELECT 'Check 35 - Check if there are hypothetical statistics created by DTA.' AS [info],
        a.database_name,
@@ -41,8 +41,8 @@ SELECT 'Check 35 - Check if there are hypothetical statistics created by DTA.' A
        t.[comment],
        'USE ' + a.database_name + '; BEGIN TRY SET LOCK_TIMEOUT 5; DROP STATISTICS '+ a.schema_name +'.'+ a.table_name +'.' + a.stats_name + '; END TRY BEGIN CATCH PRINT ''Error on ' + a.stats_name + '''; PRINT ERROR_MESSAGE() END CATCH;' AS drop_stat_command,
        dbcc_command
-INTO tempdb.dbo.tmpStatisticCheck35
-FROM tempdb.dbo.tmp_stats AS a
+INTO dbo.tmpStatisticCheck35
+FROM dbo.tmpStatisticCheck_stats AS a
 CROSS APPLY (SELECT CASE
                       WHEN (a.stats_name LIKE '%_dta_stat%') AND (a.steps IS NOT NULL)
                       THEN 'Warning - It looks like this statistic was created/recommended by DTA. I would question its efficiency, I''d say this is probably causing more damage then helping. If I was you, I would probably drop it, but, you may want to test the queries to confirm it will not have a negative impact.'
@@ -57,7 +57,7 @@ CROSS APPLY (SELECT CASE
 WHERE t.comment <> 'OK'
 AND statistic_type <> 'Index_Statistic'
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck35
+SELECT * FROM dbo.tmpStatisticCheck35
 ORDER BY [comment], 
          current_number_of_rows DESC, 
          database_name,

@@ -25,8 +25,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck6') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck6
+IF OBJECT_ID('dbo.tmpStatisticCheck6') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck6
 
 SELECT 'Check 6 - How many modifications per minute we have?' AS [info],
        a.database_name,
@@ -34,7 +34,7 @@ SELECT 'Check 6 - How many modifications per minute we have?' AS [info],
        a.stats_name,
        a.key_column_name,
        (SELECT COUNT(*) 
-        FROM tempdb.dbo.tmp_exec_history b 
+        FROM dbo.tmpStatisticCheck_exec_history b 
         WHERE b.rowid = a.rowid) AS number_of_statistic_data_available_for_this_object,
        a.last_updated AS last_updated_datetime,
        a.plan_cache_reference_count,
@@ -69,8 +69,8 @@ SELECT 'Check 6 - How many modifications per minute we have?' AS [info],
       page_latch_wait_count AS number_of_page_latch_since_last_restart_rebuild,
       page_io_latch_wait_count AS number_of_page_i_o_latch_since_last_restart_rebuild,
       dbcc_command
-INTO tempdb.dbo.tmpStatisticCheck6
-FROM tempdb.dbo.tmp_stats AS a
+INTO dbo.tmpStatisticCheck6
+FROM dbo.tmpStatisticCheck_stats AS a
 OUTER APPLY (SELECT MAX(Dt) FROM (VALUES(a.last_user_seek), 
                                         (a.last_user_scan),
                                         (a.last_user_lookup)
@@ -81,7 +81,7 @@ OUTER APPLY (SELECT CASE
                       ELSE (ABS(ISNULL(b.inserts_since_last_update,0)) + ABS(ISNULL(b.deletes_since_last_update,0)))
                     END AS number_of_modifications_on_key_column_since_previous_update,
                    b.updated AS last_updated
-              FROM tempdb.dbo.tmp_exec_history b
+              FROM dbo.tmpStatisticCheck_exec_history b
              WHERE b.rowid = a.rowid
                AND b.history_number = 1 /* Previous update stat sample */
               ) AS Tab_StatSample1
@@ -91,7 +91,7 @@ OUTER APPLY (SELECT CASE
                       ELSE (ABS(ISNULL(b.inserts_since_last_update,0)) + ABS(ISNULL(b.deletes_since_last_update,0)))
                     END AS number_of_modifications_on_key_column_since_previous_update,
                    b.updated AS last_updated
-              FROM tempdb.dbo.tmp_exec_history b
+              FROM dbo.tmpStatisticCheck_exec_history b
              WHERE b.rowid = a.rowid
                AND b.history_number = 2 /* Previous update stat sample */
               ) AS Tab_StatSample2
@@ -101,7 +101,7 @@ OUTER APPLY (SELECT CASE
                       ELSE (ABS(ISNULL(b.inserts_since_last_update,0)) + ABS(ISNULL(b.deletes_since_last_update,0)))
                     END AS number_of_modifications_on_key_column_since_previous_update,
                    b.updated AS last_updated
-              FROM tempdb.dbo.tmp_exec_history b
+              FROM dbo.tmpStatisticCheck_exec_history b
              WHERE b.rowid = a.rowid
                AND b.history_number = 3 /* Previous update stat sample */
               ) AS Tab_StatSample3
@@ -111,7 +111,7 @@ OUTER APPLY (SELECT CASE
                       ELSE (ABS(ISNULL(b.inserts_since_last_update,0)) + ABS(ISNULL(b.deletes_since_last_update,0)))
                     END AS number_of_modifications_on_key_column_since_previous_update,
                    b.updated AS last_updated
-              FROM tempdb.dbo.tmp_exec_history b
+              FROM dbo.tmpStatisticCheck_exec_history b
              WHERE b.rowid = a.rowid
                AND b.history_number = 4 /* Previous update stat sample */
               ) AS Tab_StatSample4
@@ -130,7 +130,7 @@ CROSS APPLY (SELECT CONVERT(NUMERIC(25, 2), Tab_TotModifications.tot_modificatio
                       END)) AS TabModificationsPerMinute(avg_modifications_per_minute_based_on_existing_update_stats_intervals)
 WHERE a.current_number_of_rows > 100 /* Ignoring "small" tables */
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck6
+SELECT * FROM dbo.tmpStatisticCheck6
 ORDER BY avg_modifications_per_minute_based_on_existing_update_stats_intervals DESC,
          current_number_of_rows DESC, 
          database_name,

@@ -24,8 +24,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck29') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck29
+IF OBJECT_ID('dbo.tmpStatisticCheck29') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck29
 
 SELECT 'Check 29 - Check if there are tables with more than 10mi rows' AS [info],
        a.database_name,
@@ -47,15 +47,15 @@ SELECT 'Check 29 - Check if there are tables with more than 10mi rows' AS [info]
            ELSE 'OK'
          END AS number_of_rows_comment,
        dbcc_command
-INTO tempdb.dbo.tmpStatisticCheck29
-FROM tempdb.dbo.tmp_stats a
-INNER JOIN tempdb.dbo.tmp_density_vector b
+INTO dbo.tmpStatisticCheck29
+FROM dbo.tmpStatisticCheck_stats a
+INNER JOIN dbo.tmpStatisticCheck_density_vector b
 ON b.rowid = a.rowid
 AND b.density_number = 1
 WHERE a.current_number_of_rows > 0 /* Ignoring empty tables */
   AND a.current_number_of_rows >= 1000000 /*1mi*/
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck29
+SELECT * FROM dbo.tmpStatisticCheck29
 ORDER BY current_number_of_rows DESC, 
          database_name,
          table_name,

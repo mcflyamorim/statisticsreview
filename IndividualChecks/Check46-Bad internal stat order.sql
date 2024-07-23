@@ -27,8 +27,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck46') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck46
+IF OBJECT_ID('dbo.tmpStatisticCheck46') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck46
 
 SELECT 'Check 46 - Check if there are statistics with wrong metadata order' AS [info],
        database_name,
@@ -42,11 +42,11 @@ SELECT 'Check 46 - Check if there are statistics with wrong metadata order' AS [
        last_updated AS last_updated_datetime,
        current_number_of_rows,
        dbcc_command
-INTO tempdb.dbo.tmpStatisticCheck46
-FROM tempdb.dbo.tmp_stats
+INTO dbo.tmpStatisticCheck46
+FROM dbo.tmpStatisticCheck_stats
 WHERE stat_all_columns_index_order <> stat_all_columns_stat_order
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck46
+SELECT * FROM dbo.tmpStatisticCheck46
 ORDER BY current_number_of_rows DESC, 
          database_name,
          table_name,

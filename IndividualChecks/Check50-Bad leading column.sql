@@ -16,7 +16,7 @@ Detailed recommendation:
 */
 
 /*
-TODO - Add logic to show more info based on density vector data already saved on table tempdb.dbo.tmp_stats_Stat_Density_Vector
+TODO - Add logic to show more info based on density vector data already saved on table dbo.tmpStatisticCheck_stats_Stat_Density_Vector
 */
 
 -- Fabiano Amorim
@@ -27,8 +27,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck50') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck50
+IF OBJECT_ID('dbo.tmpStatisticCheck50') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck50
 
 SELECT 'Check 50 - Statistics with a bad leading column' AS [info],
        a.database_name,
@@ -47,16 +47,16 @@ SELECT 'Check 50 - Statistics with a bad leading column' AS [info],
          ELSE 'OK'
        END AS [comment],
        dbcc_command
-INTO tempdb.dbo.tmpStatisticCheck50
-FROM tempdb.dbo.tmp_stats AS a
-INNER JOIN tempdb.dbo.tmp_density_vector AS b
+INTO dbo.tmpStatisticCheck50
+FROM dbo.tmpStatisticCheck_stats AS a
+INNER JOIN dbo.tmpStatisticCheck_density_vector AS b
 ON b.rowid = a.rowid
 AND b.density_number = 1
 CROSS APPLY (SELECT CONVERT(BigInt, 1.0 / CASE b.all_density WHEN 0 THEN 1 ELSE b.all_density END)) AS t(unique_values_on_key_column)
 WHERE a.key_column_name <> a.stat_all_columns
 AND a.current_number_of_rows >= 100 /* ignoring small tables */
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck50
+SELECT * FROM dbo.tmpStatisticCheck50
 ORDER BY unique_values_on_key_column ASC, 
          current_number_of_rows,
          database_name,

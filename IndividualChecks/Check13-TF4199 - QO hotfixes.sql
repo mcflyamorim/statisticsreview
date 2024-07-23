@@ -25,8 +25,8 @@ Warning Note: Customers should always test changes related to trace flags or/and
 SET NOCOUNT ON; SET ARITHABORT OFF; SET ARITHIGNORE ON;  SET ANSI_WARNINGS OFF;
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck13') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck13
+IF OBJECT_ID('dbo.tmpStatisticCheck13') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck13
 
 DECLARE @sqlmajorver INT, @sqlminorver int, @sqlbuild int
 SELECT @sqlmajorver = CONVERT(int, (@@microsoftversion / 0x1000000) & 0xff)
@@ -53,9 +53,9 @@ SELECT
 				THEN 'Warning - Consider enabling TF4199 to enable query optimizer changes released in SQL Server Cumulative Updates and Service Packs'
     ELSE 'OK'
   END AS [comment]
-INTO tempdb.dbo.tmpStatisticCheck13
+INTO dbo.tmpStatisticCheck13
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck13
+SELECT * FROM dbo.tmpStatisticCheck13
 
 /*
   Code sample to show issue

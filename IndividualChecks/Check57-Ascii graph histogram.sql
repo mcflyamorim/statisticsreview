@@ -25,8 +25,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck57') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck57
+IF OBJECT_ID('dbo.tmpStatisticCheck57') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck57
 
 ;WITH CTE_1
 AS
@@ -48,55 +48,55 @@ SELECT *,
        MAX(CASE WHEN rn <= max_steps * 0.90 THEN eq_rows END) OVER(PARTITION BY rowid) AS percentile_90,
        MAX(CASE WHEN rn <= max_steps * 0.99 THEN eq_rows END) OVER(PARTITION BY rowid) AS percentile_99
 FROM (SELECT TOP (50000) /* Limiting resultset */
-       tmp_stats.rowid,
-       tmp_stats.database_name,
-       tmp_stats.schema_name,
-       tmp_stats.table_name,
-       tmp_stats.stats_name,
-       tmp_stats.histogram_graph,
-       tmp_stats.table_index_base_type,
-       tmp_stats.key_column_name,
-       tmp_stats.key_column_data_type,
-       tmp_stats.stat_all_columns,
-       tmp_stats.statistic_type,
-       tmp_density_vector.all_density,
-       tmp_exec_history.leading_column_type,
-       tmp_stats.current_number_of_rows AS current_number_of_rows_table,
-       tmp_stats.current_number_of_modified_rows_since_last_update,
-       tmp_stats.auto_update_threshold_type,
-       tmp_stats.auto_update_threshold,
-       CONVERT(DECIMAL(25, 2), (tmp_stats.current_number_of_modified_rows_since_last_update / (tmp_stats.auto_update_threshold * 1.0)) * 100.0) AS percent_of_threshold,
-       tmp_stats.rows_sampled AS number_of_rows_sampled_on_last_update,
-       tmp_stats.number_of_rows_at_time_stat_was_updated,
-       tmp_stats.statistic_percent_sampled,
-       DATEDIFF(HOUR, tmp_stats.last_updated, GETDATE()) AS hours_since_last_update,
-       CONVERT(VARCHAR(4), DATEDIFF(mi,tmp_stats.last_updated,GETDATE()) / 60 / 24) + 'd ' + CONVERT(VARCHAR(4), DATEDIFF(mi,tmp_stats.last_updated,GETDATE()) / 60 % 24) + 'hr '
-       + CONVERT(VARCHAR(4), DATEDIFF(mi,tmp_stats.last_updated,GETDATE()) % 60) + 'min' AS time_since_last_update,
-       tmp_stats.last_updated AS last_updated_datetime,
-       tmp_histogram.stepnumber,
-       tmp_histogram.range_hi_key,
-       tmp_histogram.range_rows,
-       tmp_histogram.eq_rows,
-       tmp_histogram.distinct_range_rows,
-       tmp_histogram.avg_range_rows,
-             ROW_NUMBER() OVER (PARTITION BY tmp_histogram.rowid ORDER BY tmp_histogram.eq_rows) as rn,
-             MAX(tmp_histogram.stepnumber) OVER(PARTITION BY tmp_histogram.rowid) as max_steps
-      FROM tempdb.dbo.tmp_stats
-     INNER JOIN tempdb.dbo.tmp_histogram
-        ON tmp_histogram.rowid = tmp_stats.rowid
-     INNER JOIN tempdb.dbo.tmp_density_vector
-        ON tmp_density_vector.rowid = tmp_stats.rowid
-       AND tmp_density_vector.density_number = 1
-     INNER JOIN tempdb.dbo.tmp_exec_history
-        ON tmp_exec_history.rowid = tmp_stats.rowid
-       AND tmp_exec_history.history_number = 1
+       tmpStatisticCheck_stats.rowid,
+       tmpStatisticCheck_stats.database_name,
+       tmpStatisticCheck_stats.schema_name,
+       tmpStatisticCheck_stats.table_name,
+       tmpStatisticCheck_stats.stats_name,
+       tmpStatisticCheck_stats.histogram_graph,
+       tmpStatisticCheck_stats.table_index_base_type,
+       tmpStatisticCheck_stats.key_column_name,
+       tmpStatisticCheck_stats.key_column_data_type,
+       tmpStatisticCheck_stats.stat_all_columns,
+       tmpStatisticCheck_stats.statistic_type,
+       tmpStatisticCheck_density_vector.all_density,
+       tmpStatisticCheck_exec_history.leading_column_type,
+       tmpStatisticCheck_stats.current_number_of_rows AS current_number_of_rows_table,
+       tmpStatisticCheck_stats.current_number_of_modified_rows_since_last_update,
+       tmpStatisticCheck_stats.auto_update_threshold_type,
+       tmpStatisticCheck_stats.auto_update_threshold,
+       CONVERT(DECIMAL(25, 2), (tmpStatisticCheck_stats.current_number_of_modified_rows_since_last_update / (tmpStatisticCheck_stats.auto_update_threshold * 1.0)) * 100.0) AS percent_of_threshold,
+       tmpStatisticCheck_stats.rows_sampled AS number_of_rows_sampled_on_last_update,
+       tmpStatisticCheck_stats.number_of_rows_at_time_stat_was_updated,
+       tmpStatisticCheck_stats.statistic_percent_sampled,
+       DATEDIFF(HOUR, tmpStatisticCheck_stats.last_updated, GETDATE()) AS hours_since_last_update,
+       CONVERT(VARCHAR(4), DATEDIFF(mi,tmpStatisticCheck_stats.last_updated,GETDATE()) / 60 / 24) + 'd ' + CONVERT(VARCHAR(4), DATEDIFF(mi,tmpStatisticCheck_stats.last_updated,GETDATE()) / 60 % 24) + 'hr '
+       + CONVERT(VARCHAR(4), DATEDIFF(mi,tmpStatisticCheck_stats.last_updated,GETDATE()) % 60) + 'min' AS time_since_last_update,
+       tmpStatisticCheck_stats.last_updated AS last_updated_datetime,
+       tmpStatisticCheck_histogram.stepnumber,
+       tmpStatisticCheck_histogram.range_hi_key,
+       tmpStatisticCheck_histogram.range_rows,
+       tmpStatisticCheck_histogram.eq_rows,
+       tmpStatisticCheck_histogram.distinct_range_rows,
+       tmpStatisticCheck_histogram.avg_range_rows,
+             ROW_NUMBER() OVER (PARTITION BY tmpStatisticCheck_histogram.rowid ORDER BY tmpStatisticCheck_histogram.eq_rows) as rn,
+             MAX(tmpStatisticCheck_histogram.stepnumber) OVER(PARTITION BY tmpStatisticCheck_histogram.rowid) as max_steps
+      FROM dbo.tmpStatisticCheck_stats
+     INNER JOIN dbo.tmpStatisticCheck_histogram
+        ON tmpStatisticCheck_histogram.rowid = tmpStatisticCheck_stats.rowid
+     INNER JOIN dbo.tmpStatisticCheck_density_vector
+        ON tmpStatisticCheck_density_vector.rowid = tmpStatisticCheck_stats.rowid
+       AND tmpStatisticCheck_density_vector.density_number = 1
+     INNER JOIN dbo.tmpStatisticCheck_exec_history
+        ON tmpStatisticCheck_exec_history.rowid = tmpStatisticCheck_stats.rowid
+       AND tmpStatisticCheck_exec_history.history_number = 1
      WHERE 1=1
-       AND tmp_stats.is_unique = 0
-       AND tmp_stats.current_number_of_rows >= 1000 /*ignoring small tables*/
+       AND tmpStatisticCheck_stats.is_unique = 0
+       AND tmpStatisticCheck_stats.current_number_of_rows >= 1000 /*ignoring small tables*/
        AND (SELECT COUNT(DISTINCT a.eq_rows) AS DistinctCount
-              FROM tempdb.dbo.tmp_histogram AS a
-             WHERE a.rowid = tmp_stats.rowid) > 1 /*only stats with more than 1 distinct eq_rows*/
-      ORDER BY (ISNULL(tmp_stats.user_seeks,0) + ISNULL(tmp_stats.range_scan_count, 0)) DESC, tmp_stats.current_number_of_rows DESC) AS Tab1
+              FROM dbo.tmpStatisticCheck_histogram AS a
+             WHERE a.rowid = tmpStatisticCheck_stats.rowid) > 1 /*only stats with more than 1 distinct eq_rows*/
+      ORDER BY (ISNULL(tmpStatisticCheck_stats.user_seeks,0) + ISNULL(tmpStatisticCheck_stats.range_scan_count, 0)) DESC, tmpStatisticCheck_stats.current_number_of_rows DESC) AS Tab1
 ),
 CTE_2
 AS
@@ -200,11 +200,11 @@ SELECT REPLICATE('|', CEILING(eq_rows_percent_from_total)) AS g_histogram,
        CTE_2.mean_avg, CTE_2.percent_diff_from_avg, CTE_2.percent_change_from_avg,
        CTE_2.median, CTE_2.percent_diff_from_median, CTE_2.percent_change_from_median,
        CTE_2.min, CTE_2.max
-INTO tempdb.dbo.tmpStatisticCheck57
+INTO dbo.tmpStatisticCheck57
 FROM CTE_2
 ORDER BY rowid, stepnumber
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck57
+SELECT * FROM dbo.tmpStatisticCheck57
 ORDER BY current_number_of_rows_table DESC,
          database_name,
          table_name,

@@ -27,8 +27,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck28') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck28
+IF OBJECT_ID('dbo.tmpStatisticCheck28') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck28
 
 SELECT 'Check 28 - Check if there are duplicated statistics' AS [info],
        a.database_name,
@@ -44,7 +44,7 @@ SELECT 'Check 28 - Check if there are duplicated statistics' AS [info],
        a.rows_sampled AS number_of_rows_sampled_on_last_update_create_statistic,
        CASE 
          WHEN (SELECT COUNT(*) 
-                 FROM tempdb.dbo.tmp_stats AS b
+                 FROM dbo.tmpStatisticCheck_stats AS b
                 WHERE b.database_id = a.database_id
                   AND b.object_id = a.object_id
                   AND b.stat_all_columns LIKE a.stat_all_columns + '%'
@@ -57,11 +57,11 @@ SELECT 'Check 28 - Check if there are duplicated statistics' AS [info],
        END AS auto_created_stats_duplicated_comment,
        'USE ' + a.database_name + '; BEGIN TRY SET LOCK_TIMEOUT 5; DROP STATISTICS '+ a.schema_name +'.'+ a.table_name +'.' + a.stats_name + '; END TRY BEGIN CATCH PRINT ''Error on ' + a.stats_name + '''; PRINT ERROR_MESSAGE() END CATCH;' AS drop_stat_command,
        dbcc_command
-INTO tempdb.dbo.tmpStatisticCheck28
-FROM tempdb.dbo.tmp_stats a
+INTO dbo.tmpStatisticCheck28
+FROM dbo.tmpStatisticCheck_stats a
 WHERE a.current_number_of_rows > 0 /* Ignoring empty tables */
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck28
+SELECT * FROM dbo.tmpStatisticCheck28
 ORDER BY current_number_of_rows DESC, 
          database_name,
          table_name,

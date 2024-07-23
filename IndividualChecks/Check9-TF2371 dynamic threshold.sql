@@ -28,8 +28,8 @@ SET NOCOUNT ON; SET ARITHABORT OFF; SET ARITHIGNORE ON;  SET ANSI_WARNINGS OFF;
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck9') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck9
+IF OBJECT_ID('dbo.tmpStatisticCheck9') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck9
 
 DECLARE @sqlmajorver INT, @sqlminorver int, @sqlbuild int
 SELECT @sqlmajorver = CONVERT(int, (@@microsoftversion / 0x1000000) & 0xff),
@@ -78,10 +78,10 @@ SELECT
            END
     ELSE 'OK'
   END AS [comment]
-INTO tempdb.dbo.tmpStatisticCheck9
+INTO dbo.tmpStatisticCheck9
 FROM sys.databases
 WHERE state_desc = 'ONLINE'
 AND is_read_only = 0 
 AND name not in ('tempdb', 'master', 'model', 'msdb')
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck9
+SELECT * FROM dbo.tmpStatisticCheck9

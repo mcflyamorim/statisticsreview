@@ -29,8 +29,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck8') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck8
+IF OBJECT_ID('dbo.tmpStatisticCheck8') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck8
 
 SELECT 'Check 8 - Is there any tiny (less than or equal to 500 rows) table with out-of-date statistics?' AS [info],
        a.database_name,
@@ -54,8 +54,8 @@ SELECT 'Check 8 - Is there any tiny (less than or equal to 500 rows) table with 
        a.auto_update_threshold,
        a.auto_update_threshold_type,
        dbcc_command
-INTO tempdb.dbo.tmpStatisticCheck8
-FROM tempdb.dbo.tmp_stats AS a
+INTO dbo.tmpStatisticCheck8
+FROM dbo.tmpStatisticCheck_stats AS a
 OUTER APPLY (SELECT MAX(Dt) FROM (VALUES(a.last_user_seek), 
                                         (a.last_user_scan),
                                         (a.last_user_lookup)
@@ -63,7 +63,7 @@ OUTER APPLY (SELECT MAX(Dt) FROM (VALUES(a.last_user_seek),
  WHERE a.number_of_rows_at_time_stat_was_updated <= 500
    AND a.current_number_of_modified_rows_since_last_update >= 1
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck8
+SELECT * FROM dbo.tmpStatisticCheck8
 ORDER BY current_number_of_rows DESC, 
          database_name,
          table_name,

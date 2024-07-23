@@ -34,8 +34,8 @@ SET DATEFORMAT MDY
 /* Preparing tables with statistic info */
 EXEC sp_GetStatisticInfo @database_name_filter = N'', @refreshdata = 0
 
-IF OBJECT_ID('tempdb.dbo.tmpStatisticCheck1') IS NOT NULL
-  DROP TABLE tempdb.dbo.tmpStatisticCheck1
+IF OBJECT_ID('dbo.tmpStatisticCheck1') IS NOT NULL
+  DROP TABLE dbo.tmpStatisticCheck1
 
 SELECT 'Check 1 - Do we have statistics with useful history?' AS [info],
        a.database_name,
@@ -95,12 +95,12 @@ SELECT 'Check 1 - Do we have statistics with useful history?' AS [info],
        avg_page_io_latch_wait_in_ms AS avg_page_io_latch_in_ms_since_last_restart_rebuild,
        page_io_latch_wait_time_d_h_m_s AS total_page_io_latch_wait_time_d_h_m_s_since_last_restart_rebuild,
        TabIndexUsage.last_datetime_obj_was_used,
-       (SELECT COUNT(*) FROM tempdb.dbo.tmp_exec_history b 
+       (SELECT COUNT(*) FROM dbo.tmpStatisticCheck_exec_history b 
          WHERE b.rowid = a.rowid
        ) AS number_of_statistic_data_available_for_this_object,
 
        CASE 
-         WHEN ((SELECT COUNT(*) FROM tempdb.dbo.tmp_exec_history b 
+         WHEN ((SELECT COUNT(*) FROM dbo.tmpStatisticCheck_exec_history b 
                 WHERE b.rowid = a.rowid)) < 4
          THEN 'Warning - This statistic had less than 4 updates since it was created. This will limit the results of other checks and may indicate update stats for this obj. is not running'
          ELSE 'OK'
@@ -116,15 +116,15 @@ SELECT 'Check 1 - Do we have statistics with useful history?' AS [info],
          ELSE 'OK'
        END AS comment_2,
        a.dbcc_command
-INTO tempdb.dbo.tmpStatisticCheck1
-FROM tempdb.dbo.tmp_stats a
-INNER JOIN tempdb.dbo.tmp_exec_history AS b
+INTO dbo.tmpStatisticCheck1
+FROM dbo.tmpStatisticCheck_stats a
+INNER JOIN dbo.tmpStatisticCheck_exec_history AS b
 ON b.rowid = a.rowid
 AND b.history_number = 1
-INNER JOIN tempdb.dbo.tmp_density_vector AS c
+INNER JOIN dbo.tmpStatisticCheck_density_vector AS c
 ON c.rowid = a.rowid
 AND c.density_number = 1
-INNER JOIN tempdb.dbo.tmp_stat_header AS d
+INNER JOIN dbo.tmpStatisticCheck_stat_header AS d
 ON d.rowid = a.rowid
 OUTER APPLY (SELECT CASE 
                       WHEN b.inserts_since_last_update IS NULL AND b.deletes_since_last_update IS NULL
@@ -132,7 +132,7 @@ OUTER APPLY (SELECT CASE
                       ELSE (ABS(ISNULL(b.inserts_since_last_update,0)) + ABS(ISNULL(b.deletes_since_last_update,0)))
                     END AS number_of_modifications_on_key_column_since_previous_update,
                    b.updated as last_updated
-              FROM tempdb.dbo.tmp_exec_history b
+              FROM dbo.tmpStatisticCheck_exec_history b
              WHERE b.rowid = a.rowid
                AND b.history_number = 2 /* Previous update stat sample */
               ) AS Tab_StatSample2
@@ -142,7 +142,7 @@ OUTER APPLY (SELECT CASE
                       ELSE (ABS(ISNULL(b.inserts_since_last_update,0)) + ABS(ISNULL(b.deletes_since_last_update,0)))
                     END AS number_of_modifications_on_key_column_since_previous_update,
                    b.updated as last_updated
-              FROM tempdb.dbo.tmp_exec_history b
+              FROM dbo.tmpStatisticCheck_exec_history b
              WHERE b.rowid = a.rowid
                AND b.history_number = 3 /* Previous update stat sample */
               ) AS Tab_StatSample3
@@ -152,7 +152,7 @@ OUTER APPLY (SELECT CASE
                       ELSE (ABS(ISNULL(b.inserts_since_last_update,0)) + ABS(ISNULL(b.deletes_since_last_update,0)))
                     END AS number_of_modifications_on_key_column_since_previous_update,
                    b.updated as last_updated
-              FROM tempdb.dbo.tmp_exec_history b
+              FROM dbo.tmpStatisticCheck_exec_history b
              WHERE b.rowid = a.rowid
                AND b.history_number = 4 /* Previous update stat sample */
               ) AS Tab_StatSample4
@@ -162,7 +162,7 @@ OUTER APPLY (SELECT MAX(Dt) FROM (VALUES(a.last_user_seek),
                                ) AS t(Dt)) AS TabIndexUsage(last_datetime_obj_was_used)
 WHERE a.current_number_of_rows > 0 /* Ignoring empty tables */
 
-SELECT * FROM tempdb.dbo.tmpStatisticCheck1
+SELECT * FROM dbo.tmpStatisticCheck1
 ORDER BY current_number_of_rows_table DESC, 
          database_name,
          schema_name,
