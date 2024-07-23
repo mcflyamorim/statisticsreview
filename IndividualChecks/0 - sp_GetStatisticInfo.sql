@@ -97,14 +97,14 @@ BEGIN
           @sqlcmd_dbcc_local NVARCHAR(MAX) = N'';
 
   /* If data already exists, skip the population, unless refresh was asked via @refreshdata */
-  IF OBJECT_ID('tempdb.dbo.tmp_stats') IS NOT NULL
+  IF OBJECT_ID('dbo.tmp_stats') IS NOT NULL
   BEGIN
     /* 
        I'm assuming data for all tables exists, but I'm only checking tmp_stats... 
        if you're not sure if this is ok, use @refreshdata = 1 to force the refresh and 
        table population
     */
-    IF EXISTS(SELECT 1 FROM tempdb.dbo.tmp_stats) AND (@refreshdata = 0)
+    IF EXISTS(SELECT 1 FROM dbo.tmp_stats) AND (@refreshdata = 0)
     BEGIN
 			   --SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Table with list of statistics already exists, I''ll reuse it and skip the code to populate the table.'
       --RAISERROR (@err_msg, 0, 0) WITH NOWAIT
@@ -112,12 +112,20 @@ BEGIN
     END
     ELSE
     BEGIN
-      DROP TABLE tempdb.dbo.tmp_stats
-      DROP TABLE tempdb.dbo.tmp_stat_header
-      DROP TABLE tempdb.dbo.tmp_density_vector
-      DROP TABLE tempdb.dbo.tmp_histogram
-      DROP TABLE tempdb.dbo.tmp_stats_stream
-      DROP TABLE tempdb.dbo.tmp_exec_history
+      IF OBJECT_ID('dbo.tmp_stats') IS NOT NULL
+        DROP TABLE dbo.tmp_stats
+      IF OBJECT_ID('dbo.tmp_stat_header') IS NOT NULL
+        DROP TABLE dbo.tmp_stat_header
+      IF OBJECT_ID('dbo.tmp_density_vector') IS NOT NULL
+        DROP TABLE dbo.tmp_density_vector
+      IF OBJECT_ID('dbo.tmp_histogram') IS NOT NULL
+        DROP TABLE dbo.tmp_histogram
+      IF OBJECT_ID('dbo.tmp_stats_stream') IS NOT NULL
+        DROP TABLE dbo.tmp_stats_stream
+      IF OBJECT_ID('dbo.tmp_exec_history') IS NOT NULL
+        DROP TABLE dbo.tmp_exec_history
+      IF OBJECT_ID('dbo.tmp_default_trace') IS NOT NULL
+        DROP TABLE dbo.tmp_default_trace
     END
   END
 
@@ -151,20 +159,20 @@ BEGIN
   CLOSE c_old_exec
   DEALLOCATE c_old_exec
 
-  IF OBJECT_ID('tempdb.dbo.tmp_stats') IS NOT NULL
-    DROP TABLE tempdb.dbo.tmp_stats
-  IF OBJECT_ID('tempdb.dbo.tmp_stat_header') IS NOT NULL
-    DROP TABLE tempdb.dbo.tmp_stat_header
-  IF OBJECT_ID('tempdb.dbo.tmp_density_vector') IS NOT NULL
-    DROP TABLE tempdb.dbo.tmp_density_vector
-  IF OBJECT_ID('tempdb.dbo.tmp_histogram') IS NOT NULL
-    DROP TABLE tempdb.dbo.tmp_histogram
-  IF OBJECT_ID('tempdb.dbo.tmp_stats_stream') IS NOT NULL
-    DROP TABLE tempdb.dbo.tmp_stats_stream
-  IF OBJECT_ID('tempdb.dbo.tmp_exec_history') IS NOT NULL
-    DROP TABLE tempdb.dbo.tmp_exec_history
-  IF OBJECT_ID('tempdb.dbo.tmp_default_trace') IS NOT NULL
-    DROP TABLE tempdb.dbo.tmp_default_trace
+  IF OBJECT_ID('dbo.tmp_stats') IS NOT NULL
+    DROP TABLE dbo.tmp_stats
+  IF OBJECT_ID('dbo.tmp_stat_header') IS NOT NULL
+    DROP TABLE dbo.tmp_stat_header
+  IF OBJECT_ID('dbo.tmp_density_vector') IS NOT NULL
+    DROP TABLE dbo.tmp_density_vector
+  IF OBJECT_ID('dbo.tmp_histogram') IS NOT NULL
+    DROP TABLE dbo.tmp_histogram
+  IF OBJECT_ID('dbo.tmp_stats_stream') IS NOT NULL
+    DROP TABLE dbo.tmp_stats_stream
+  IF OBJECT_ID('dbo.tmp_exec_history') IS NOT NULL
+    DROP TABLE dbo.tmp_exec_history
+  IF OBJECT_ID('dbo.tmp_default_trace') IS NOT NULL
+    DROP TABLE dbo.tmp_default_trace
 
   /* 
     On "Check4-Stats and sort warning" and on "Check39-Missing column stats" I'm reading 
@@ -718,10 +726,10 @@ BEGIN
   SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Starting to run final query and parse query plan XML and populate tmpStatsCheckCachePlanData'
   RAISERROR (@err_msg, 0, 0) WITH NOWAIT
 
-  IF OBJECT_ID('tempdb.dbo.tmpStatsCheckCachePlanData') IS NOT NULL
-    DROP TABLE tempdb.dbo.tmpStatsCheckCachePlanData
+  IF OBJECT_ID('dbo.tmpStatsCheckCachePlanData') IS NOT NULL
+    DROP TABLE dbo.tmpStatsCheckCachePlanData
 
-  CREATE TABLE tempdb.dbo.tmpStatsCheckCachePlanData
+  CREATE TABLE dbo.tmpStatsCheckCachePlanData
   (
     [database_name] [sys].[sysname] NULL,
     [object_name] [sys].[sysname] NULL,
