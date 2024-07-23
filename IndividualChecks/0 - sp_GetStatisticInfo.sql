@@ -241,9 +241,6 @@ BEGIN
 
 		  SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Found ' + CONVERT(VARCHAR(200), @missing_stats_rows) + ' missing column statistics events on default trace.'
     RAISERROR (@err_msg, 0, 0) WITH NOWAIT
-
-		  SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Finished code to create a copy of default trace data.'
-    RAISERROR (@err_msg, 0, 0) WITH NOWAIT
   END
   ELSE
   BEGIN
