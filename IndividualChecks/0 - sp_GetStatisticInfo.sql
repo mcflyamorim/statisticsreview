@@ -135,7 +135,7 @@ BEGIN
 
   SELECT [name] 
   INTO #tmp_old_exec
-  FROM tempdb.sys.tables
+  FROM sys.tables
   WHERE type = 'U'
   AND name LIKE'tmpStatisticCheck%'
 
@@ -147,7 +147,7 @@ BEGIN
   INTO @tmp_table_name
   WHILE @@FETCH_STATUS = 0
   BEGIN
-    SET @sql_old_table = 'DROP TABLE tempdb.dbo.[' + @tmp_table_name + '];'; 
+    SET @sql_old_table = 'DROP TABLE dbo.[' + @tmp_table_name + '];'; 
     EXEC (@sql_old_table)
 
     FETCH NEXT FROM c_old_exec
@@ -220,21 +220,21 @@ BEGIN
            ftg.Hostname AS host_name,
            DB_NAME(ftg.databaseID) AS database_name,
            ftg.LoginName AS login_name
-    INTO tempdb.dbo.tmp_default_trace
+    INTO dbo.tmp_default_trace
     FROM::fn_trace_gettable(@filename, DEFAULT) AS ftg
     INNER JOIN sys.trace_events AS te
     ON ftg.EventClass = te.trace_event_id
     WHERE te.name IN ('Sort Warnings', 'Missing Column Statistics')
 
     SELECT @sort_warning_rows = COUNT(*)
-    FROM tempdb.dbo.tmp_default_trace
+    FROM dbo.tmp_default_trace
     WHERE event_name = 'Sort Warnings'
 
     SELECT @missing_stats_rows = COUNT(*)
-    FROM tempdb.dbo.tmp_default_trace
+    FROM dbo.tmp_default_trace
     WHERE event_name = 'Missing Column Statistics'
 
-    CREATE CLUSTERED INDEX ix1 ON tempdb.dbo.tmp_default_trace(start_time)
+    CREATE CLUSTERED INDEX ix1 ON dbo.tmp_default_trace(start_time)
 
 		  SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Found ' + CONVERT(VARCHAR(200), @sort_warning_rows) + ' sort warning events on default trace.'
     RAISERROR (@err_msg, 0, 0) WITH NOWAIT
@@ -251,7 +251,7 @@ BEGIN
     RAISERROR (@err_msg, 0, 0) WITH NOWAIT
 
     /* trace doesn't exist, creating an empty table */
-    CREATE TABLE tempdb.dbo.tmp_default_trace
+    CREATE TABLE dbo.tmp_default_trace
     (
       [session_id] [int] NULL,
       [event_name] [nvarchar] (128) NULL,
@@ -263,7 +263,7 @@ BEGIN
       [database_name] [nvarchar] (128) NULL,
       [login_name] [nvarchar] (256) NULL
     )
-    CREATE CLUSTERED INDEX ix1 ON tempdb.dbo.tmp_default_trace(start_time)
+    CREATE CLUSTERED INDEX ix1 ON dbo.tmp_default_trace(start_time)
     
 		  SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Finished code to create a copy of default trace data.'
     RAISERROR (@err_msg, 0, 0) WITH NOWAIT
@@ -694,7 +694,7 @@ BEGIN
   AND qs.statement_end_offset = dm_exec_query_stats.statement_end_offset
 
   /* Wait for 1 minute */
-  IF (@@SERVERNAME NOT LIKE '%amorim%') AND (@@SERVERNAME NOT LIKE '%fabiano%')
+  IF (@@SERVERNAME NOT LIKE '%amorim%') AND (@@SERVERNAME NOT LIKE '%fabiano%') AND (@skipcache = 0)
   BEGIN
     WAITFOR DELAY '00:01:00.000'
   END
@@ -871,7 +871,7 @@ BEGIN
         RAISERROR (@err_msg, 0, 1) WITH NOWAIT
 
       ;WITH XMLNAMESPACES('http://schemas.microsoft.com/sqlserver/2004/07/showplan' AS p)
-      INSERT INTO tempdb.dbo.tmpStatsCheckCachePlanData WITH(TABLOCK)
+      INSERT INTO dbo.tmpStatsCheckCachePlanData WITH(TABLOCK)
       SELECT  CASE database_id 
                 WHEN 32767 THEN 'ResourceDB' 
                 ELSE DB_NAME(database_id)
@@ -2006,87 +2006,95 @@ BEGIN
   SET @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Starting loop through statistics list to collect execution history info using TF2388'
   RAISERROR (@err_msg, 0, 1) WITH NOWAIT
 
-  /* Enabling TF2388 at session level to capture result of DBCC SHOW_STATISTICS with stats history info*/
-  DBCC TRACEON(2388) WITH NO_INFOMSGS;
-
-  DECLARE c_stats CURSOR READ_ONLY FOR
-      SELECT [rowid], 
-             [database_name],
-             [schema_name],
-             [table_name],
-             [stats_name],
-             'DBCC SHOW_STATISTICS (''' + [database_name] + '.' + [schema_name] + '.' + REPLACE([table_name], '''', '''''') + ''',' + [stats_name] + ')' AS sqlcmd_dbcc
-      FROM #tmp_stats
-  OPEN c_stats
-
-  FETCH NEXT FROM c_stats
-  INTO @rowid, @database_name, @schema_name, @table_name, @stats_name, @sqlcmd_dbcc
-  WHILE @@FETCH_STATUS = 0
-  BEGIN
-    SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Progress ' + '(' + CONVERT(VARCHAR(200), CONVERT(NUMERIC(25, 2), (CONVERT(NUMERIC(25, 2), @rowid) / CONVERT(NUMERIC(25, 2), @number_of_stats)) * 100)) + '%%) - ' 
-           + CONVERT(VARCHAR(200), @rowid) + ' of ' + CONVERT(VARCHAR(200), @number_of_stats)
-    IF @rowid % 1000 = 0
-      RAISERROR (@err_msg, 0, 1) WITH NOWAIT
-
-    /* Code to read execution history */
-    SET @sqlcmd_dbcc_local = @sqlcmd_dbcc + ' WITH NO_INFOMSGS;'
-    BEGIN TRY
-      INSERT INTO #tmp_exec_history
-      (
-          updated,
-          table_cardinality,
-          snapshot_ctr,
-          steps,
-          density,
-          rows_above,
-          rows_below,
-          squared_variance_error,
-          inserts_since_last_update,
-          deletes_since_last_update,
-          leading_column_type
-      )
-      EXECUTE sp_executesql @sqlcmd_dbcc_local;
-		  END TRY
-		  BEGIN CATCH
-			   SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Error trying to run command to read execution history. Skipping this statistic.'
-      RAISERROR (@err_msg, 0, 0) WITH NOWAIT
-      SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Command: ' + @sqlcmd_dbcc_local
-      RAISERROR (@err_msg, 0, 0) WITH NOWAIT
-      SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + ERROR_MESSAGE() 
-      RAISERROR (@err_msg, 0, 0) WITH NOWAIT
-		  END CATCH
-    BEGIN TRY
-      ;WITH CTE_1
-      AS
-      (
-        SELECT history_number, ROW_NUMBER() OVER(ORDER BY (SELECT 0)) AS rn 
-        FROM #tmp_exec_history
-        WHERE [rowid] IS NULL
-      )
-      UPDATE CTE_1 SET CTE_1.history_number = CTE_1.rn
-
-      UPDATE #tmp_exec_history SET [rowid]         = @rowid,
-                                   [database_name] = @database_name,
-                                   [schema_name]   = @schema_name,
-                                   [table_name]    = @table_name,
-                                   [stats_name]    = @stats_name
-      WHERE [rowid] IS NULL
-		  END TRY
-		  BEGIN CATCH
-			   SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Error trying to update exec_history on temporary table. Skipping this statistic.'
-      RAISERROR (@err_msg, 0, 0) WITH NOWAIT
-      SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + ERROR_MESSAGE() 
-      RAISERROR (@err_msg, 0, 0) WITH NOWAIT
-		  END CATCH
-
+  BEGIN TRY
+    /* Enabling TF2388 at session level to capture result of DBCC SHOW_STATISTICS with stats history info*/
+    DBCC TRACEON(2388) WITH NO_INFOMSGS;
+    
+    DECLARE c_stats CURSOR READ_ONLY FOR
+        SELECT [rowid], 
+               [database_name],
+               [schema_name],
+               [table_name],
+               [stats_name],
+               'DBCC SHOW_STATISTICS (''' + [database_name] + '.' + [schema_name] + '.' + REPLACE([table_name], '''', '''''') + ''',' + [stats_name] + ')' AS sqlcmd_dbcc
+        FROM #tmp_stats
+    OPEN c_stats
+    
     FETCH NEXT FROM c_stats
     INTO @rowid, @database_name, @schema_name, @table_name, @stats_name, @sqlcmd_dbcc
-  END
-  CLOSE c_stats
-  DEALLOCATE c_stats
-
-  /* Disable TF2388 */
-  DBCC TRACEOFF(2388) WITH NO_INFOMSGS;
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+      SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Progress ' + '(' + CONVERT(VARCHAR(200), CONVERT(NUMERIC(25, 2), (CONVERT(NUMERIC(25, 2), @rowid) / CONVERT(NUMERIC(25, 2), @number_of_stats)) * 100)) + '%%) - ' 
+             + CONVERT(VARCHAR(200), @rowid) + ' of ' + CONVERT(VARCHAR(200), @number_of_stats)
+      IF @rowid % 1000 = 0
+        RAISERROR (@err_msg, 0, 1) WITH NOWAIT
+    
+      /* Code to read execution history */
+      SET @sqlcmd_dbcc_local = @sqlcmd_dbcc + ' WITH NO_INFOMSGS;'
+      BEGIN TRY
+        INSERT INTO #tmp_exec_history
+        (
+            updated,
+            table_cardinality,
+            snapshot_ctr,
+            steps,
+            density,
+            rows_above,
+            rows_below,
+            squared_variance_error,
+            inserts_since_last_update,
+            deletes_since_last_update,
+            leading_column_type
+        )
+        EXECUTE sp_executesql @sqlcmd_dbcc_local;
+	  	  END TRY
+	  	  BEGIN CATCH
+	  		   SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Error trying to run command to read execution history. Skipping this statistic.'
+        RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+        SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Command: ' + @sqlcmd_dbcc_local
+        RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+        SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + ERROR_MESSAGE() 
+        RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+	  	  END CATCH
+      BEGIN TRY
+        ;WITH CTE_1
+        AS
+        (
+          SELECT history_number, ROW_NUMBER() OVER(ORDER BY (SELECT 0)) AS rn 
+          FROM #tmp_exec_history
+          WHERE [rowid] IS NULL
+        )
+        UPDATE CTE_1 SET CTE_1.history_number = CTE_1.rn
+    
+        UPDATE #tmp_exec_history SET [rowid]         = @rowid,
+                                     [database_name] = @database_name,
+                                     [schema_name]   = @schema_name,
+                                     [table_name]    = @table_name,
+                                     [stats_name]    = @stats_name
+        WHERE [rowid] IS NULL
+	  	  END TRY
+	  	  BEGIN CATCH
+	  		   SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Error trying to update exec_history on temporary table. Skipping this statistic.'
+        RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+        SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + ERROR_MESSAGE() 
+        RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+	  	  END CATCH
+    
+      FETCH NEXT FROM c_stats
+      INTO @rowid, @database_name, @schema_name, @table_name, @stats_name, @sqlcmd_dbcc
+    END
+    CLOSE c_stats
+    DEALLOCATE c_stats
+    
+    /* Disable TF2388 */
+    DBCC TRACEOFF(2388) WITH NO_INFOMSGS;
+  END TRY
+  BEGIN CATCH
+    SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Error trying to collect execution history info using TF2388. Skipping this data.'
+    RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+    SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + ERROR_MESSAGE() 
+    RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+  END CATCH
 
   SET @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Finished loop through statistics list to collect execution history info using TF2388'
   RAISERROR (@err_msg, 0, 1) WITH NOWAIT
@@ -2269,7 +2277,7 @@ BEGIN
   ALTER TABLE #tmp_stats ADD plan_cache_reference_count INT NULL
   UPDATE #tmp_stats
   SET plan_cache_reference_count = (SELECT COUNT(DISTINCT query_hash) 
-                                      FROM tempdb.dbo.tmpStatsCheckCachePlanData
+                                      FROM dbo.tmpStatsCheckCachePlanData
                                      WHERE CONVERT(NVARCHAR(MAX), tmpStatsCheckCachePlanData.stats_list) COLLATE Latin1_General_BIN2 LIKE '%' + REPLACE(REPLACE(Tab1.Col1,'[','!['),']','!]') + '%' ESCAPE '!')
   FROM #tmp_stats
   CROSS APPLY (SELECT '(' + (database_name) + '.' + 
@@ -2322,37 +2330,37 @@ BEGIN
 
 
   /* Creating tables with collected data */
-  SELECT * INTO tempdb.dbo.tmp_stats          FROM #tmp_stats
-  SELECT * INTO tempdb.dbo.tmp_stat_header    FROM #tmp_stat_header
-  SELECT * INTO tempdb.dbo.tmp_density_vector FROM #tmp_density_vector
-  SELECT * INTO tempdb.dbo.tmp_histogram      FROM #tmp_histogram
-  SELECT * INTO tempdb.dbo.tmp_stats_stream   FROM #tmp_stats_stream
-  SELECT * INTO tempdb.dbo.tmp_exec_history   FROM #tmp_exec_history
+  SELECT * INTO dbo.tmp_stats          FROM #tmp_stats
+  SELECT * INTO dbo.tmp_stat_header    FROM #tmp_stat_header
+  SELECT * INTO dbo.tmp_density_vector FROM #tmp_density_vector
+  SELECT * INTO dbo.tmp_histogram      FROM #tmp_histogram
+  SELECT * INTO dbo.tmp_stats_stream   FROM #tmp_stats_stream
+  SELECT * INTO dbo.tmp_exec_history   FROM #tmp_exec_history
 
-  CREATE CLUSTERED INDEX ix1 ON tempdb.dbo.tmp_stats(database_id, object_id, stats_id)
-  CREATE INDEX ix2 ON tempdb.dbo.tmp_stats (rowid)
-  CREATE INDEX ix3 ON tempdb.dbo.tmp_stats (table_name)
-  CREATE INDEX ix4 ON tempdb.dbo.tmp_stats (stats_name)
+  CREATE CLUSTERED INDEX ix1 ON dbo.tmp_stats(database_id, object_id, stats_id)
+  CREATE INDEX ix2 ON dbo.tmp_stats (rowid)
+  CREATE INDEX ix3 ON dbo.tmp_stats (table_name)
+  CREATE INDEX ix4 ON dbo.tmp_stats (stats_name)
 
-  CREATE CLUSTERED INDEX ix1 ON tempdb.dbo.tmp_stat_header(rowid)
-  CREATE INDEX ix2 ON tempdb.dbo.tmp_stat_header (table_name)
-  CREATE INDEX ix3 ON tempdb.dbo.tmp_stat_header (stats_name)
+  CREATE CLUSTERED INDEX ix1 ON dbo.tmp_stat_header(rowid)
+  CREATE INDEX ix2 ON dbo.tmp_stat_header (table_name)
+  CREATE INDEX ix3 ON dbo.tmp_stat_header (stats_name)
 
-  CREATE CLUSTERED INDEX ix1 ON tempdb.dbo.tmp_density_vector(rowid)
-  CREATE INDEX ix2 ON tempdb.dbo.tmp_density_vector (table_name)
-  CREATE INDEX ix3 ON tempdb.dbo.tmp_density_vector (stats_name)
+  CREATE CLUSTERED INDEX ix1 ON dbo.tmp_density_vector(rowid)
+  CREATE INDEX ix2 ON dbo.tmp_density_vector (table_name)
+  CREATE INDEX ix3 ON dbo.tmp_density_vector (stats_name)
 
-  CREATE CLUSTERED INDEX ix1 ON tempdb.dbo.tmp_histogram(rowid, stepnumber)
-  CREATE INDEX ix2 ON tempdb.dbo.tmp_histogram (table_name)
-  CREATE INDEX ix3 ON tempdb.dbo.tmp_histogram (stats_name)
+  CREATE CLUSTERED INDEX ix1 ON dbo.tmp_histogram(rowid, stepnumber)
+  CREATE INDEX ix2 ON dbo.tmp_histogram (table_name)
+  CREATE INDEX ix3 ON dbo.tmp_histogram (stats_name)
 
-  CREATE CLUSTERED INDEX ix1 ON tempdb.dbo.tmp_stats_stream(rowid)
-  CREATE INDEX ix2 ON tempdb.dbo.tmp_stats_stream (table_name)
-  CREATE INDEX ix3 ON tempdb.dbo.tmp_stats_stream (stats_name)
+  CREATE CLUSTERED INDEX ix1 ON dbo.tmp_stats_stream(rowid)
+  CREATE INDEX ix2 ON dbo.tmp_stats_stream (table_name)
+  CREATE INDEX ix3 ON dbo.tmp_stats_stream (stats_name)
 
-  CREATE CLUSTERED INDEX ix1 ON tempdb.dbo.tmp_exec_history(rowid)
-  CREATE INDEX ix2 ON tempdb.dbo.tmp_exec_history (table_name)
-  CREATE INDEX ix3 ON tempdb.dbo.tmp_exec_history (stats_name)
+  CREATE CLUSTERED INDEX ix1 ON dbo.tmp_exec_history(rowid)
+  CREATE INDEX ix2 ON dbo.tmp_exec_history (table_name)
+  CREATE INDEX ix3 ON dbo.tmp_exec_history (stats_name)
 
   SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Done, statistics information saved on tempdb, tables tmp_stats, tmp_stat_header, tmp_density_vector, tmp_histogram, tmp_stats_stream and tmp_exec_history.'
   RAISERROR (@err_msg, 10, 1) WITH NOWAIT
