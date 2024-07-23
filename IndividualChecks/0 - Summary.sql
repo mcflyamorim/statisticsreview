@@ -1,3 +1,7 @@
+SET NOCOUNT ON; SET ARITHABORT OFF; SET ARITHIGNORE ON; SET ANSI_WARNINGS OFF; 
+SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+SET LOCK_TIMEOUT 60000; /*60 seconds*/
+
 DECLARE @sqlcmd NVARCHAR(MAX),
         @params NVARCHAR(600),
         @sqlmajorver INT;
@@ -746,7 +750,7 @@ AS (
                           CASE 
                             WHEN DATEDIFF(HOUR, max_end_datetime, crdate) <= 4 THEN '1'
                           END
-                   FROM tempdb.dbo.sysobjects
+                   FROM dbo.sysobjects
                    CROSS JOIN dbo.tmpStatisticCheck51
                    WHERE name = 'tmpStatisticCheck53'
                )
