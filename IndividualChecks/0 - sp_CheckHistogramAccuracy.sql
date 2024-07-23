@@ -953,5 +953,3 @@ BEGIN
   EXEC ('SELECT * FROM #tmp1 ORDER BY stepnumber')
 END
 GO
-
-EXEC [sys].[sp_MS_marksystemobject] 'sp_CheckHistogramAccuracy';
