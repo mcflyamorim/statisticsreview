@@ -2359,7 +2359,7 @@ BEGIN
   CREATE INDEX ix2 ON dbo.tmpStatisticCheck_exec_history (table_name)
   CREATE INDEX ix3 ON dbo.tmpStatisticCheck_exec_history (stats_name)
 
-  SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Done, statistics information saved on tempdb, tables tmp_stats, tmp_stat_header, tmp_density_vector, tmp_histogram, tmp_stats_stream and tmpStatisticCheck_exec_history.'
+  SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Done, statistics information saved, tables tmpStatisticCheck_stats, tmpStatisticCheck_stat_header, tmpStatisticCheck_density_vector, tmpStatisticCheck_histogram, tmpStatisticCheck_stats_stream and tmpStatisticCheck_exec_history.'
   RAISERROR (@err_msg, 10, 1) WITH NOWAIT
 END
 GO

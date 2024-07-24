@@ -585,11 +585,11 @@ try
     $TsqlFile = $StatisticChecksFolderPath + '0 - sp_CheckHistogramAccuracy.sql'
 	Invoke-SqlCmd @Params -ServerInstance $instance -MaxCharLength 10000000 -InputFile $TsqlFile -ErrorAction Stop
 
-	#Checking if tmp_stats table already exist
-	$Result = Invoke-SqlCmd @Params -ServerInstance $instance -Query "SELECT ISNULL(OBJECT_ID('dbo.tmp_stats'),0) AS [ObjID]" -ErrorAction Stop | Select-Object -ExpandProperty ObjID
+	#Checking if tmpStatisticCheck_stats table already exist
+	$Result = Invoke-SqlCmd @Params -ServerInstance $instance -Query "SELECT ISNULL(OBJECT_ID('dbo.tmpStatisticCheck_stats'),0) AS [ObjID]" -ErrorAction Stop | Select-Object -ExpandProperty ObjID
 
 	if ($Result -eq 0) {
-		Write-Msg "Could not find table dbo.tmp_stats, make sure you've executed Proc sp_GetStatisticInfo to populate it." -Level Error
+		Write-Msg "Could not find table dbo.tmpStatisticCheck_stats, make sure you've executed Proc sp_GetStatisticInfo to populate it." -Level Error
         Write-Msg "Use option -Force_sp_GetStatisticInfo_Execution to create and execute the proc" -Level Error
         fnReturn
 	}
