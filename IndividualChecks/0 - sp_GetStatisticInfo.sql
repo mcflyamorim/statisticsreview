@@ -1221,6 +1221,9 @@ BEGIN
   );
   CREATE CLUSTERED INDEX ixrowid ON #tmp_histogram(rowid, stepnumber)
 
+  UPDATE STATISTICS #tmp_histogram ixrowid WITH SAMPLE, NORECOMPUTE
+  CREATE STATISTICS #tmp_histogram_stepnumber ON #tmp_histogram(stepnumber) WITH SAMPLE, NORECOMPUTE
+
   IF OBJECT_ID('tempdb.dbo.#tmpStatisticCheck_stats_stream') IS NOT NULL
     DROP TABLE #tmpStatisticCheck_stats_stream;
 
@@ -1261,6 +1264,8 @@ BEGIN
     [leading_column_type] NVARCHAR(200)
   )
   CREATE CLUSTERED INDEX ixrowid ON #tmp_exec_history(rowid)
+
+  UPDATE STATISTICS #tmp_exec_history ixrowid WITH SAMPLE, NORECOMPUTE
 
 		SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Determining SQL Server version.'
   RAISERROR (@err_msg, 0, 0) WITH NOWAIT
@@ -1796,18 +1801,23 @@ BEGIN
       ;WITH CTE_1
       AS
       (
-        SELECT stepnumber, ROW_NUMBER() OVER(ORDER BY (SELECT 0)) AS rn 
+        SELECT [stepnumber],
+               [rowid],
+               [database_name],
+               [schema_name],
+               [table_name],
+               [stats_name],
+               ROW_NUMBER() OVER(ORDER BY (SELECT 0)) AS rn 
         FROM #tmp_histogram
         WHERE [rowid] IS NULL
       )
-      UPDATE CTE_1 SET CTE_1.stepnumber = CTE_1.rn
+      UPDATE CTE_1 SET CTE_1.[stepnumber]    = CTE_1.rn,
+                       CTE_1.[rowid]         = @rowid,
+                       CTE_1.[database_name] = @database_name,
+                       CTE_1.[schema_name]   = @schema_name,
+                       CTE_1.[table_name]    = @table_name,
+                       CTE_1.[stats_name]    = @stats_name
 
-      UPDATE #tmp_histogram SET [rowid]         = @rowid,
-                                [database_name] = @database_name,
-                                [schema_name]   = @schema_name,
-                                [table_name]    = @table_name,
-                                [stats_name]    = @stats_name
-      WHERE [rowid] IS NULL
 		  END TRY
 		  BEGIN CATCH
 			   SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Error trying to update histogram on temporary table. Skipping this statistic.'
