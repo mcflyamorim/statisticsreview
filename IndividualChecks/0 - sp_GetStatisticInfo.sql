@@ -7,7 +7,7 @@ ALTER PROC dbo.sp_GetStatisticInfo
   @database_name_filter NVARCHAR(200) = NULL, /* By default I'm collecting information about all DBs */
   @refreshdata          BIT = 0, /* 1 to force drop/create of statistics tables, 0 will skip table creation if they already exists */
   @skipcache            BIT = 0,  /* use 1 skip plan cache collection*/
-  @skiphistgraph        BIT = 0  /* use 1 skip queries used to create histogram graph */
+  @skiphistgraph        BIT = 1  /* use 1 skip queries used to create histogram graph */
 )
 /*
 -------------------------------------------------------------------------------
@@ -1333,6 +1333,22 @@ BEGIN
       SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + ERROR_MESSAGE() 
       RAISERROR (@err_msg, 0, 0) WITH NOWAIT
 		  END CATCH
+  END
+
+  /* If TF 2388 is enabled, disable it as it will cause DBCC SHOW_STATISTICS to return a diff resultset and make insert into dbcc show_stats to fail */
+  DECLARE @tracestatus TABLE(TraceFlag nVarChar(40)
+                           , Status    tinyint
+                           , Global    tinyint
+                           , Session   tinyint)
+
+  INSERT INTO @tracestatus
+  EXEC ('DBCC TRACESTATUS WITH NO_INFOMSGS')
+
+  IF EXISTS(SELECT TraceFlag
+			            FROM @tracestatus
+			            WHERE TraceFlag = 2388)
+  BEGIN
+    DBCC TRACEOFF(2388) WITH NO_INFOMSGS;
   END
 
 		SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Creating dynamic SQL to read sys.stats based on SQL Server version.'
