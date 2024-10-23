@@ -1518,7 +1518,7 @@ BEGIN
                          AND a.stats_id = stats_columns.stats_id
                          ORDER BY stats_columns.stats_column_id
                          FOR XML PATH('''')) as tab_stat_all_columns (statallcolumns)
-        WHERE b.type = ''U''
+        WHERE b.type = ''U'' AND QUOTENAME(OBJECT_NAME(a.object_id)) NOT LIKE ''tmpStatisticCheck%''
   '
 
   SET @sqlcmd = @sqlpart1 + @sqlpart2

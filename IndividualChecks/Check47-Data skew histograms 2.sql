@@ -159,9 +159,14 @@ BEGIN
                DROP TABLE #tmp_dm_db_index_usage_stats
              BEGIN TRY
                /* Creating a copy of sys.dm_db_index_usage_stats because this is too slow to access without an index */
-               SELECT database_id, object_id, index_id, user_seeks, user_scans, user_lookups, user_updates, last_user_seek, last_user_scan, last_user_lookup
+               SELECT DB_ID() AS database_id, tables.object_id, indexes.index_id, user_seeks, user_scans, user_lookups, user_updates, last_user_seek, last_user_scan, last_user_lookup
                  INTO #tmp_dm_db_index_usage_stats 
-                 FROM sys.dm_db_index_usage_stats AS ius WITH(NOLOCK)
+                 FROM sys.tables 
+                 INNER JOIN sys.indexes
+                 ON indexes.object_id = tables.object_id
+                 LEFT OUTER JOIN sys.dm_db_index_usage_stats AS ius WITH(NOLOCK)
+                 ON ius.object_id = tables.object_id
+                 AND ius.index_id = indexes.index_id
              END TRY
              BEGIN CATCH
                SET @err_msg = ''['' + CONVERT(VARCHAR(200), GETDATE(), 120) + ''] - '' + ''Error while trying to read data from sys.dm_db_index_usage_stats. You may see limited results because of it.''
@@ -178,7 +183,7 @@ BEGIN
               WHERE database_id = DB_ID()
               AND partitions.index_id > 0 /*ignoring heaps*/
               AND partitions.partition_number = 1
-              AND EXISTS(SELECT 1 FROM sys.tables WHERE dm_db_index_usage_stats.object_id = tables.object_id)
+              AND EXISTS(SELECT 1 FROM sys.tables WHERE dm_db_index_usage_stats.object_id = tables.object_id AND tables.name NOT LIKE ''tmpStatisticCheck%'')
               ORDER BY user_seeks + user_lookups DESC'
 
   INSERT INTO #tmpIndexes(database_id, object_id, index_id, rows, seek_lookup)
