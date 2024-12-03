@@ -270,6 +270,17 @@ BEGIN
   SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Starting to collect cache plan info...'
   RAISERROR(@err_msg, 0, 42) WITH NOWAIT;
 
+  BEGIN TRY
+    /* Enabling TF8666 at session level to capture internalinfo in the cached plans*/
+    DBCC TRACEON(8666) WITH NO_INFOMSGS;
+  END TRY
+  BEGIN CATCH
+    SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Error trying to enable TF8666. Skipping this data.'
+    RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+    SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + ERROR_MESSAGE() 
+    RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+  END CATCH
+
   /* Config params: */
   DECLARE @TOP BIGINT = 5000 /* By default, I'm only reading TOP 5k plans */
 
@@ -1086,6 +1097,17 @@ BEGIN
 
   SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Finished to run final query and parse query plan XML and populate tmpStatsCheckCachePlanData'
   RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+
+  BEGIN TRY
+    /* Disable TF8666 */
+    DBCC TRACEOFF(8666) WITH NO_INFOMSGS;
+  END TRY
+  BEGIN CATCH
+    SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Error trying to disable TF8666. Skipping this data.'
+    RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+    SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + ERROR_MESSAGE() 
+    RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+  END CATCH
 
   SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Finished to collect cache plan info...'
   RAISERROR(@err_msg, 0, 42) WITH NOWAIT;

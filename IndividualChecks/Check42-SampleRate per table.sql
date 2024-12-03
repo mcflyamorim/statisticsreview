@@ -3,7 +3,7 @@ Check42 - Statistic sample rate per table
 Description:
 Check 42 - Estimating default sampling rate to be used for each table
 When Microsoft SQL Server creates or updates statistics, if a sampling rate isn't manually specified, SQL Server will calculate a default sampling rate. Depending on the real distribution of data in the underlying table, the default sampling rate may not accurately represent the data distribution. This may cause degradation of query plan efficiency.
-The sampling algorithm for SQL Server is not entirely "random". First, it samples pages and then uses all rows on the page. Second, it will actually sample the same pages each time, mostly to retain sanity within the test team at Microsoft. So, it is possible that the default sample rate will sample pages that do not contain all of the interesting rows that define the "spikes" in your data distribution. A higher sample rate can capture more of these rows, although it will be at a higher cost.
+The sampling algorithm samples pages and then uses all rows on the page. So, it is possible that the default sample rate will sample pages that do not contain all of the interesting rows that define the "spikes" in your data distribution. A higher sample rate can capture more of these rows, although it will be at a higher cost.
 Estimated Benefit:
 High
 Estimated Effort:

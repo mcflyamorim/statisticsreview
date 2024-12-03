@@ -122,7 +122,7 @@ ORDER BY steps_diff_pct ASC,
 USE Dica151
 GO
 
--- Query takes 7 seconds to run
+-- Query takes 7-15 seconds to run
 SELECT C.CAIXA,
        A.FILIAL,
        A.NF_SAIDA,
@@ -153,7 +153,7 @@ GO
 UPDATE STATISTICS FATURAMENTO_PROD XIE2FATURAMENTO_PROD WITH FULLSCAN
 GO
 
--- Query takes avg of 1 second to run
+-- Query takes avg of 1-3 second to run
 SELECT C.CAIXA,
        A.FILIAL,
        A.NF_SAIDA,
@@ -195,7 +195,7 @@ GO
 
 -- This will trigger auto-update stats which 
 -- will use sample
--- Query takes 7 seconds to run
+-- Query takes 7-15 seconds to run
 SELECT C.CAIXA,
        A.FILIAL,
        A.NF_SAIDA,
