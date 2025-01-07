@@ -45,7 +45,7 @@ SET NOCOUNT ON; SET ARITHABORT OFF; SET ARITHIGNORE ON;
 IF OBJECT_ID('dbo.tmpStatisticCheck47') IS NOT NULL
   DROP TABLE dbo.tmpStatisticCheck47
 
-DECLARE @TOP INT = 10 /* Adjust this to run for TOP n Indexes... */
+DECLARE @TOP INT = 20 /* Adjust this to run for TOP n Indexes... */
 DECLARE @database_id INT, @object_id INT, @Index_ID INT
 DECLARE @sp_CheckHistogramAccuracyCmd VARCHAR(8000), @SQL VARCHAR(8000)
 DECLARE @ErrMsg VarChar(8000)

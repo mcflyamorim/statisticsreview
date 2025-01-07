@@ -8,3 +8,7 @@ Util/Step3 - Create job to run sp_ParalellIndexOptimize.sql
 Util/Step4 - Create job to stop the parallel job.sql
 Util/Step5 - Job - Output File Cleanup - sp_ParalellIndexOptimize.sql
 Util/00 - Prepare lab.sql
+Log/StatisticCheck_LogOutput_20241212_14_38_13_014.txt
+Log/StatisticCheck_LogOutput_20241212_14_39_04_652.txt
+Log/StatisticCheck_LogOutput_20241212_15_00_55_807.txt
+Log/StatisticCheck_LogOutput_20241212_15_48_13_116.txt
