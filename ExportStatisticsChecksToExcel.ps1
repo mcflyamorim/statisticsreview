@@ -12,6 +12,8 @@
     SQL Server password to connect on SQL Server, if not specified WinAuth will be used.
     .PARAMETER Database
     Specify a specific Database, if not specified it will collect info about all online user DBs.
+    .PARAMETER UserDatabase
+    Specify a specific user database to be used to create internal objects and tables, if not specified it will use tempdb.
     .PARAMETER LogFilePath
     Path I'll use to create the "SQLServerStatisticsCheck_<>.xlsx" file with script output, default is $ScriptPath
     .LINK
@@ -30,6 +32,7 @@ param
     [String]$UserName,
     [String]$Password,
     [String]$Database = "",
+    [String]$UserDatabase = "tempdb",
     [parameter(Mandatory=$false)]
     [String] $LogFilePath = "C:\temp\",
     [parameter(Mandatory=$false)]
@@ -246,6 +249,7 @@ if ($Password){
     Write-Msg -Message "Password: ********"
 }
 Write-Msg -Message "Database: $Database" -VerboseMsg
+Write-Msg -Message "UserDatabase: $UserDatabase" -VerboseMsg
 Write-Msg -Message "LogFilePath: $LogFilePath" -VerboseMsg
 Write-Msg -Message "Exporting data to $FileOutput" -VerboseMsg
 Write-Msg -Message "Force_sp_GetStatisticInfo_Execution: $Force_sp_GetStatisticInfo_Execution" -VerboseMsg
@@ -546,7 +550,7 @@ else{
 
 try
 {
-	$Result = Invoke-SqlCmd @Params -ServerInstance $instance -Query "SELECT SERVERPROPERTY('EngineEdition') AS SeverEngineEdition" -ErrorAction Stop | Select-Object -ExpandProperty SeverEngineEdition
+	$Result = Invoke-SqlCmd @Params -ServerInstance $instance -Database $UserDatabase -Query "SELECT SERVERPROPERTY('EngineEdition') AS SeverEngineEdition" -ErrorAction Stop | Select-Object -ExpandProperty SeverEngineEdition
 
 	if (($Result -eq 5 <#Azure DB#>) -or ($Result -eq 8 <#SQL Managed Instance#>)) {
         	if ([string]::IsNullOrEmpty($Database)){
@@ -557,6 +561,9 @@ try
 
     if ($Database){
         $Params.Database = $Database
+    }
+    else{
+        $Params.Database = $UserDatabase
     }
 
     #If -Force_sp_GetStatisticInfo_Execution is set, recreate and run proc sp_GetStatisticInfo  
@@ -694,6 +701,7 @@ try
 				Add-ConditionalFormatting -WorkSheet $ws -Address $Range -DataBarColor Green
 			}
 			elseif ($ColValue -like '*comment*') {
+                Set-ExcelColumn -Worksheet $ws -Column $i -Width 50
 				$c2 = $c1 + ($NumberOfRowsDescription + 4).ToString()
 				$c3 = $c1 + ($ResultRowCount + [int]($NumberOfRowsDescription + 3))
 				$Range = $c2 + ':' + $c3 | Out-String

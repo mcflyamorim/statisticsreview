@@ -783,6 +783,7 @@ BEGIN
     [has_join_residual_predicate] [bit] NULL,
     [has_index_seek_residual_predicate] [bit] NULL,
     [has_key_or_rid_lookup] [bit] NULL,
+    [LookupComment] XML NULL,
     [has_spilling_operators] [bit] NULL,
     [has_remote_operators] [bit] NULL,
     [has_spool_operators] [bit] NULL,
@@ -850,6 +851,8 @@ BEGIN
     [max_returned_rows] [bigint] NULL,
     [last_returned_rows] [bigint] NULL
   )
+
+  CREATE CLUSTERED INDEX ix_query_hash ON tmpStatsCheckCachePlanData(query_hash);
 
   DECLARE @ctp INT;
   SELECT  @ctp = CAST(value AS INT)
@@ -969,7 +972,8 @@ BEGIN
               Batch.x.exist('(//p:Merge/@ManyToMany[.="1"])') AS has_many_to_many_merge_join,
               Batch.x.exist('(//p:RelOp/p:Hash/p:ProbeResidual or //p:RelOp/p:Merge/p:Residual)') AS has_join_residual_predicate,
               Batch.x.exist('(//p:IndexScan/p:Predicate)') AS has_index_seek_residual_predicate,
-              Batch.x.exist('(//p:RelOp[contains(@PhysicalOp, " Lookup")])') AS has_key_or_rid_lookup,
+              ISNULL(Batch.x.exist('(//p:IndexScan[@Lookup][1])'),0) AS has_key_or_rid_lookup,
+              LookupComment,
               Batch.x.exist('(//p:RelOp[contains(@PhysicalOp, "Sort") or contains(@PhysicalOp, "Hash Match")])') AS has_spilling_operators,
               Batch.x.exist('(//p:RelOp[contains(@PhysicalOp, "Remote")])') AS has_remote_operators,
               Batch.x.exist('(//p:RelOp[contains(@PhysicalOp, "Spool")])') AS has_spool_operators,
@@ -1077,6 +1081,84 @@ BEGIN
                                     FOR XML PATH(''))
                                   , 1, 2,'')
         ) t_stats_list
+      OUTER APPLY (SELECT CONVERT(XML, CONVERT(XML, '<?query --' +
+                                                              REPLACE
+					                                                         (
+						                                                         REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+						                                                         REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+						                                                         REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+							                                                         CONVERT
+							                                                         (
+								                                                         VARCHAR(MAX),
+								                                                         N'--' + NCHAR(13) + NCHAR(10) + 
+                                                                 (SELECT '' + LookupComment + NCHAR(10)
+                                                                  FROM (
+                                                                  SELECT *,
+                                                                         CASE 
+                                                                           WHEN IndexKind = 'Heap' THEN 'SQL is doing a rid lookup on ' + TableName + ' because column(s) (' + Previous_ColumnsUsed + ') is/are missing on index ' + Previous_fqn_IndexName
+                                                                           ELSE 'SQL is doing a key lookup on ' + fqn_IndexName + ' because column(s) (' + Previous_ColumnsUsed + ') is/are missing on index ' + Previous_fqn_IndexName
+                                                                         END AS LookupComment
+                                                                  FROM (SELECT 
+                                                                        DISTINCT 
+                                                                        --NestedLoops.query('.'),
+                                                                        --CurrentRelOp.query('.'),
+                                                                        CurrentRelOp.value('@NodeId', 'INT') AS NodeId,
+                                                                        CurrentRelOp.value('@PhysicalOp', 'VARCHAR(255)') AS PhysicalOp,
+                                                                        CONVERT(VARCHAR(255), ISNULL(Lookups.value('@Lookup', 'VARCHAR(255)'), '0')) AS c_Lookup,
+                                                                        Object.value('@Database', 'sysname') + '.' + Object.value('@Schema', 'sysname') + '.' + Object.value('@Table', 'sysname') AS TableName,
+                                                                        Object.value('@Index', 'sysname') AS IndexName,
+                                                                        Object.value('@Database', 'sysname') + '.' + Object.value('@Schema', 'sysname') + '.' + Object.value('@Table', 'sysname') + '.' + Object.value('@Index', 'sysname') AS fqn_IndexName,
+                                                                        ColumnsUsed,
+                                                                        Object.value('@IndexKind', 'VARCHAR(255)') AS IndexKind
+                                                                        FROM statement_plan.nodes('//p:NestedLoops') AS t0(NestedLoops)
+                                                                        OUTER APPLY NestedLoops.nodes('.//p:RelOp') AS t1(CurrentRelOp)
+                                                                        OUTER APPLY CurrentRelOp.nodes('./p:IndexScan') AS t5(Lookups)
+                                                                        OUTER APPLY Lookups.nodes('./p:Object') AS t6(Object)
+                                                                        OUTER APPLY (SELECT STUFF((SELECT DISTINCT ', ' +
+                                                                                                          ISNULL(QUOTENAME(ColumnReference.value('@Column', 'sysname')), '')
+                                                                                                   FROM Lookups.nodes('.//p:ColumnReference') AS t1(ColumnReference)
+                                                                                                   WHERE ColumnReference.value('@Database', 'sysname') IS NOT NULL /* To ignore [Bmk1004] type references as they won't have a @Database */
+                                                                                                   FOR XML PATH(''))
+                                                                                                 , 1, 2,'')) t7(ColumnsUsed)
+                                                                        ) AS cte_lookup_data
+                                                                  CROSS APPLY(SELECT TOP 1 t2.NodeId AS Previous_NodeId, t2.fqn_IndexName AS Previous_fqn_IndexName, t2.ColumnsUsed AS Previous_ColumnsUsed 
+                                                                              FROM (SELECT 
+                                                                                    DISTINCT 
+                                                                                    --NestedLoops.query('.'),
+                                                                                    --CurrentRelOp.query('.'),
+                                                                                    CurrentRelOp.value('@NodeId', 'INT') AS NodeId,
+                                                                                    CurrentRelOp.value('@PhysicalOp', 'VARCHAR(255)') AS PhysicalOp,
+                                                                                    CONVERT(VARCHAR(255), ISNULL(Lookups.value('@Lookup', 'VARCHAR(255)'), '0')) AS c_Lookup,
+                                                                                    Object.value('@Database', 'sysname') + '.' + Object.value('@Schema', 'sysname') + '.' + Object.value('@Table', 'sysname') AS TableName,
+                                                                                    Object.value('@Index', 'sysname') AS IndexName,
+                                                                                    Object.value('@Database', 'sysname') + '.' + Object.value('@Schema', 'sysname') + '.' + Object.value('@Table', 'sysname') + '.' + Object.value('@Index', 'sysname') AS fqn_IndexName,
+                                                                                    ColumnsUsed,
+                                                                                    Object.value('@IndexKind', 'VARCHAR(255)') AS IndexKind
+                                                                                    FROM statement_plan.nodes('//p:NestedLoops') AS t0(NestedLoops)
+                                                                                    OUTER APPLY NestedLoops.nodes('.//p:RelOp') AS t1(CurrentRelOp)
+                                                                                    OUTER APPLY CurrentRelOp.nodes('./p:IndexScan') AS t5(Lookups)
+                                                                                    OUTER APPLY Lookups.nodes('./p:Object') AS t6(Object)
+                                                                                    OUTER APPLY (SELECT STUFF((SELECT DISTINCT ', ' +
+                                                                                                                      ISNULL(QUOTENAME(ColumnReference.value('@Column', 'sysname')), '')
+                                                                                                               FROM Lookups.nodes('.//p:ColumnReference') AS t1(ColumnReference)
+                                                                                                               WHERE ColumnReference.value('@Database', 'sysname') IS NOT NULL /* To ignore [Bmk1004] type references as they won't have a @Database */
+                                                                                                               FOR XML PATH(''))
+                                                                                                             , 1, 2,'')) t7(ColumnsUsed)
+                                                                                    ) AS t2 
+                                                                              WHERE t2.NodeId < cte_lookup_data.NodeId ORDER BY t2.NodeId DESC) AS t2
+                                                                  WHERE c_Lookup IN ('1', 'True')
+                                                                  ) AS t
+                                                                 FOR XML PATH('')
+                                                                 )
+                                                                 + N'--' COLLATE Latin1_General_Bin2
+							                                                         ),
+							                                                         NCHAR(31),N'?'),NCHAR(30),N'?'),NCHAR(29),N'?'),NCHAR(28),N'?'),NCHAR(27),N'?'),NCHAR(26),N'?'),NCHAR(25),N'?'),NCHAR(24),N'?'),NCHAR(23),N'?'),NCHAR(22),N'?'),
+							                                                         NCHAR(21),N'?'),NCHAR(20),N'?'),NCHAR(19),N'?'),NCHAR(18),N'?'),NCHAR(17),N'?'),NCHAR(16),N'?'),NCHAR(15),N'?'),NCHAR(14),N'?'),NCHAR(12),N'?'),
+							                                                         NCHAR(11),N'?'),NCHAR(8),N'?'),NCHAR(7),N'?'),NCHAR(6),N'?'),NCHAR(5),N'?'),NCHAR(4),N'?'),NCHAR(3),N'?'),NCHAR(2),N'?'),NCHAR(1),N'?'),
+						                                                         NCHAR(0),
+						                                                         N'')
+                                                               + '--?>')
+                                                    )) AS t2 (LookupComment)
       WHERE qp.plan_handle = @plan_handle
       AND qp.statement_start_offset = @statement_start_offset
       AND qp.statement_end_offset = @statement_end_offset
@@ -1540,7 +1622,9 @@ BEGIN
                          AND a.stats_id = stats_columns.stats_id
                          ORDER BY stats_columns.stats_column_id
                          FOR XML PATH('''')) as tab_stat_all_columns (statallcolumns)
-        WHERE b.type = ''U'' AND QUOTENAME(OBJECT_NAME(a.object_id)) NOT LIKE ''tmpStatisticCheck%''
+        WHERE b.type = ''U'' AND QUOTENAME(OBJECT_NAME(a.object_id)) NOT LIKE ''tmpStatisticCheck%'' 
+        /* Ignoring stats with hierarchy data type has there is an issue when converting it from sql_variant, no one really uses this anyways... shoul not be an issue to ignore it */
+        AND ISNULL(tab_index_key_column.keycolumndatatype, tab_stats_key_column.keycolumndatatype) NOT LIKE ''%hierarchy%''
   '
 
   SET @sqlcmd = @sqlpart1 + @sqlpart2
@@ -1638,6 +1722,7 @@ BEGIN
              [stats_name],
              'DBCC SHOW_STATISTICS (''' + [database_name] + '.' + [schema_name] + '.' + REPLACE([table_name], '''', '''''') + ''',' + [stats_name] + ')' AS sqlcmd_dbcc
       FROM #tmpStatisticCheck_stats
+      WHERE key_column_data_type NOT LIKE '%hierarchy%'
   OPEN c_stats
 
   FETCH NEXT FROM c_stats
@@ -2316,19 +2401,53 @@ BEGIN
   UPDATE #tmpStatisticCheck_stats SET statistic_percent_sampled = CONVERT(DECIMAL(25, 2), (rows_sampled / (number_of_rows_at_time_stat_was_updated * 1.00)) * 100.0)
 
   /* Updating plan_cache_reference_count column */
-  SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Updating plan_cache_reference_count column.'
+  SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Updating plan_cache_reference_count and query_hashes columns.'
   RAISERROR (@err_msg, 10, 1) WITH NOWAIT
 
   ALTER TABLE #tmpStatisticCheck_stats ADD plan_cache_reference_count INT NULL
-  UPDATE #tmpStatisticCheck_stats
-  SET plan_cache_reference_count = (SELECT COUNT(DISTINCT query_hash) 
-                                      FROM dbo.tmpStatsCheckCachePlanData
-                                     WHERE CONVERT(NVARCHAR(MAX), tmpStatsCheckCachePlanData.stats_list) COLLATE Latin1_General_BIN2 LIKE '%' + REPLACE(REPLACE(Tab1.Col1,'[','!['),']','!]') + '%' ESCAPE '!')
+  ALTER TABLE #tmpStatisticCheck_stats ADD query_hashes VARCHAR(MAX) NULL
+  ALTER TABLE #tmpStatisticCheck_stats ADD fqn_stats_name NVARCHAR(MAX)
+
+  UPDATE #tmpStatisticCheck_stats SET fqn_stats_name = (database_name) + '.' + 
+                                                       (schema_name) + '.' + 
+                                                       (table_name) + 
+                                                       ISNULL('.' + (stats_name),'')
+
+  IF OBJECT_ID('tempdb.dbo.#tmp_query_hash') IS NOT NULL
+    DROP TABLE #tmp_query_hash
+
+  SELECT rowid, fqn_stats_name, Tab2.*
+  INTO #tmp_query_hash
   FROM #tmpStatisticCheck_stats
-  CROSS APPLY (SELECT '(' + (database_name) + '.' + 
-                            (schema_name) + '.' + 
-                            (table_name) + 
-                            ISNULL('.' + (stats_name),'') + ')') AS Tab1(Col1)
+  CROSS APPLY (SELECT '(' + fqn_stats_name + ')') AS Tab1(Col1)
+  CROSS APPLY (SELECT query_hash
+                 FROM dbo.tmpStatsCheckCachePlanData
+                WHERE CONVERT(NVARCHAR(MAX), dbo.tmpStatsCheckCachePlanData.stats_list) COLLATE Latin1_General_BIN2 LIKE '%' + REPLACE(REPLACE(Tab1.Col1,'[','!['),']','!]') + '%' ESCAPE '!') AS Tab2(query_hash)
+  OPTION (MAXDOP 1)
+
+  --SELECT count_query_hash, STUFF(query_hashes, 1, 1, '')
+  UPDATE #tmpStatisticCheck_stats
+  SET plan_cache_reference_count = Tab1.count_query_hash,
+      query_hashes = STUFF(Tab2.query_hashes, 1, 1, '')
+  FROM #tmpStatisticCheck_stats
+  CROSS APPLY(SELECT COUNT(DISTINCT #tmp_query_hash.query_hash) AS count_query_hash
+              FROM #tmp_query_hash
+              WHERE #tmp_query_hash.rowid = #tmpStatisticCheck_stats.rowid
+              HAVING COUNT(DISTINCT #tmp_query_hash.query_hash) > 0) AS Tab1
+  CROSS APPLY(SELECT ',' + query_hash
+              FROM #tmp_query_hash
+              WHERE #tmp_query_hash.rowid = #tmpStatisticCheck_stats.rowid
+              FOR XML PATH('')) AS Tab2(query_hashes)
+
+  --UPDATE #tmpStatisticCheck_stats
+  --SET plan_cache_reference_count = (SELECT COUNT(DISTINCT query_hash) 
+  --                                    FROM dbo.tmpStatsCheckCachePlanData
+  --                                   WHERE CONVERT(NVARCHAR(MAX), tmpStatsCheckCachePlanData.stats_list) COLLATE Latin1_General_BIN2 LIKE '%' + REPLACE(REPLACE(Tab1.Col1,'[','!['),']','!]') + '%' ESCAPE '!')
+  --FROM #tmpStatisticCheck_stats
+  --CROSS APPLY (SELECT '(' +  + ')') AS Tab1(Col1)
+
+  SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Finished to plan_cache_reference_count and query_hashes columns.'
+  RAISERROR (@err_msg, 0, 0) WITH NOWAIT
 
   /* Updating dbcc_command column */
   SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Updating dbcc_command column.'
@@ -2370,7 +2489,7 @@ BEGIN
                        END) AS tab1(auto_update_threshold_type, auto_update_threshold)
 
   /* Finished to get index usage data */
-  SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Almost done, creating the final tables with data on tempdb DB.'
+  SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Almost done, creating the final tables with data on user temp DB.'
   RAISERROR (@err_msg, 10, 1) WITH NOWAIT
 
 
