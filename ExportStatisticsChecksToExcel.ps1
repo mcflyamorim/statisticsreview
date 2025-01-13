@@ -188,6 +188,11 @@ function Add-ExcelImage {
 Clear-Host
 $CurrentDate = Get-Date
 
+if ([string]::IsNullOrEmpty($UserDatabase)){
+    Write-Msg "UserDatabase parameter is mandatory. Please specify the user database parameter and try again." -Level Error
+    fnReturn
+}
+
 $global:ProgressPreference = 'Continue'
 
 $ScriptPath = split-path -parent $MyInvocation.MyCommand.Definition
@@ -559,12 +564,8 @@ try
         	}
 	}
 
-    if ($Database){
-        $Params.Database = $Database
-    }
-    else{
-        $Params.Database = $UserDatabase
-    }
+    # Set the DB context to the userDB where we'll create the internal objs used to run the scripts and the final tables with the collected data
+    $Params.Database = $UserDatabase
 
     #If -Force_sp_GetStatisticInfo_Execution is set, recreate and run proc sp_GetStatisticInfo  
 	if ($Force_sp_GetStatisticInfo_Execution) {
