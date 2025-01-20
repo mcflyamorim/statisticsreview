@@ -2421,7 +2421,7 @@ BEGIN
   INTO #tmp_query_plan_stats_list
   FROM (SELECT query_hash, number_of_referenced_stats, stats_list,
                TRY_CONVERT(XML, '<Test Ind="' + REPLACE(CONVERT(VARCHAR(MAX), stats_list), ',','"/><Test Ind="') + '"/>') AS ColXML
-          FROM tempdb.dbo.tmpStatsCheckCachePlanData) AS Tab
+          FROM dbo.tmpStatsCheckCachePlanData) AS Tab
   CROSS APPLY Tab.ColXML.nodes('/Test') As Tab1 (ColXML)
   WHERE CONVERT(NVARCHAR(MAX), stats_list) <> ''
 

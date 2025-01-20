@@ -98,6 +98,7 @@ BEGIN
   FROM sys.databases d1
   where d1.state_desc = 'ONLINE' and is_read_only = 0
   AND d1.name not in ('tempdb', 'master', 'model', 'msdb')
+  and d1.database_id in (SELECT DISTINCT database_id FROM dbo.tmpStatisticCheck_stats)
 
   DECLARE @SQL NVarChar(MAX)
   declare @database_name sysname
