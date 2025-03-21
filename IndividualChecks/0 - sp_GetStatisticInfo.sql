@@ -2137,87 +2137,149 @@ BEGIN
   RAISERROR (@err_msg, 0, 1) WITH NOWAIT
 
   BEGIN TRY
-    /* Enabling TF2388 at session level to capture result of DBCC SHOW_STATISTICS with stats history info*/
-    DBCC TRACEON(2388) WITH NO_INFOMSGS;
-    
-    DECLARE c_stats CURSOR READ_ONLY FOR
-        SELECT [rowid], 
-               [database_name],
-               [schema_name],
-               [table_name],
-               [stats_name],
-               'DBCC SHOW_STATISTICS (''' + [database_name] + '.' + [schema_name] + '.' + REPLACE([table_name], '''', '''''') + ''',' + [stats_name] + ')' AS sqlcmd_dbcc
-        FROM #tmpStatisticCheck_stats
-    OPEN c_stats
-    
-    FETCH NEXT FROM c_stats
-    INTO @rowid, @database_name, @schema_name, @table_name, @stats_name, @sqlcmd_dbcc
-    WHILE @@FETCH_STATUS = 0
+    BEGIN TRY
+      /* Enabling TF2388 at session level to capture result of DBCC SHOW_STATISTICS with stats history info*/
+      DBCC TRACEON(2388) WITH NO_INFOMSGS;
+ 	  END TRY
+	  	BEGIN CATCH
+      SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + ERROR_MESSAGE() 
+      RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+	  		 SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Error trying to enable TF2388. Continuing to collect only last exec info.'
+      RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+
+      INSERT INTO #tmp_exec_history
+      (
+          rowid,
+          history_number,
+          database_name,
+          schema_name,
+          table_name,
+          stats_name,   
+          updated,
+          table_cardinality,
+          snapshot_ctr,
+          steps,
+          density,
+          rows_above,
+          rows_below,
+          squared_variance_error,
+          inserts_since_last_update,
+          deletes_since_last_update,
+          leading_column_type
+      )
+      SELECT rowid,
+             1,
+             database_name,
+             schema_name,
+             table_name,
+             stats_name,
+             updated,
+             rows,
+             0,
+             steps,
+             density,
+             0,
+             0,
+             0,
+             0,
+             0,
+             'Unknown'
+      FROM #tmp_stat_header
+      WHERE updated IS NOT NULL
+	  	END CATCH
+
+    /* Only continue if TF 2388 is enabled */
+    DECLARE @tracestatus1 TABLE(TraceFlag nVarChar(40)
+                             , Status    tinyint
+                             , Global    tinyint
+                             , Session   tinyint)
+
+    INSERT INTO @tracestatus1
+    EXEC ('DBCC TRACESTATUS WITH NO_INFOMSGS')
+
+    IF EXISTS(SELECT TraceFlag
+			              FROM @tracestatus1
+			              WHERE TraceFlag = 2388)
     BEGIN
-      SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Progress ' + '(' + CONVERT(VARCHAR(200), CONVERT(NUMERIC(25, 2), (CONVERT(NUMERIC(25, 2), @rowid) / CONVERT(NUMERIC(25, 2), @number_of_stats)) * 100)) + '%%) - ' 
-             + CONVERT(VARCHAR(200), @rowid) + ' of ' + CONVERT(VARCHAR(200), @number_of_stats)
-      IF @rowid % 1000 = 0
-        RAISERROR (@err_msg, 0, 1) WITH NOWAIT
-    
-      /* Code to read execution history */
-      SET @sqlcmd_dbcc_local = @sqlcmd_dbcc + ' WITH NO_INFOMSGS;'
-      BEGIN TRY
-        INSERT INTO #tmp_exec_history
-        (
-            updated,
-            table_cardinality,
-            snapshot_ctr,
-            steps,
-            density,
-            rows_above,
-            rows_below,
-            squared_variance_error,
-            inserts_since_last_update,
-            deletes_since_last_update,
-            leading_column_type
-        )
-        EXECUTE sp_executesql @sqlcmd_dbcc_local;
-	  	  END TRY
-	  	  BEGIN CATCH
-	  		   SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Error trying to run command to read execution history. Skipping this statistic.'
-        RAISERROR (@err_msg, 0, 0) WITH NOWAIT
-        SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Command: ' + @sqlcmd_dbcc_local
-        RAISERROR (@err_msg, 0, 0) WITH NOWAIT
-        SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + ERROR_MESSAGE() 
-        RAISERROR (@err_msg, 0, 0) WITH NOWAIT
-	  	  END CATCH
-      BEGIN TRY
-        ;WITH CTE_1
-        AS
-        (
-          SELECT history_number, ROW_NUMBER() OVER(ORDER BY (SELECT 0)) AS rn 
-          FROM #tmp_exec_history
-          WHERE [rowid] IS NULL
-        )
-        UPDATE CTE_1 SET CTE_1.history_number = CTE_1.rn
-    
-        UPDATE #tmp_exec_history SET [rowid]         = @rowid,
-                                     [database_name] = @database_name,
-                                     [schema_name]   = @schema_name,
-                                     [table_name]    = @table_name,
-                                     [stats_name]    = @stats_name
-        WHERE [rowid] IS NULL
-	  	  END TRY
-	  	  BEGIN CATCH
-	  		   SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Error trying to update exec_history on temporary table. Skipping this statistic.'
-        RAISERROR (@err_msg, 0, 0) WITH NOWAIT
-        SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + ERROR_MESSAGE() 
-        RAISERROR (@err_msg, 0, 0) WITH NOWAIT
-	  	  END CATCH
+      DECLARE c_stats CURSOR READ_ONLY FOR
+          SELECT [rowid], 
+                 [database_name],
+                 [schema_name],
+                 [table_name],
+                 [stats_name],
+                 'DBCC SHOW_STATISTICS (''' + [database_name] + '.' + [schema_name] + '.' + REPLACE([table_name], '''', '''''') + ''',' + [stats_name] + ')' AS sqlcmd_dbcc
+          FROM #tmpStatisticCheck_stats
+      OPEN c_stats
     
       FETCH NEXT FROM c_stats
       INTO @rowid, @database_name, @schema_name, @table_name, @stats_name, @sqlcmd_dbcc
-    END
-    CLOSE c_stats
-    DEALLOCATE c_stats
+      WHILE @@FETCH_STATUS = 0
+      BEGIN
+        SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Progress ' + '(' + CONVERT(VARCHAR(200), CONVERT(NUMERIC(25, 2), (CONVERT(NUMERIC(25, 2), @rowid) / CONVERT(NUMERIC(25, 2), @number_of_stats)) * 100)) + '%%) - ' 
+               + CONVERT(VARCHAR(200), @rowid) + ' of ' + CONVERT(VARCHAR(200), @number_of_stats)
+        IF @rowid % 1000 = 0
+          RAISERROR (@err_msg, 0, 1) WITH NOWAIT
     
-    /* Disable TF2388 */
-    DBCC TRACEOFF(2388) WITH NO_INFOMSGS;
+        /* Code to read execution history */
+        SET @sqlcmd_dbcc_local = @sqlcmd_dbcc + ' WITH NO_INFOMSGS;'
+        BEGIN TRY
+          INSERT INTO #tmp_exec_history
+          (
+              updated,
+              table_cardinality,
+              snapshot_ctr,
+              steps,
+              density,
+              rows_above,
+              rows_below,
+              squared_variance_error,
+              inserts_since_last_update,
+              deletes_since_last_update,
+              leading_column_type
+          )
+          EXECUTE sp_executesql @sqlcmd_dbcc_local;
+	  	    END TRY
+	  	    BEGIN CATCH
+	  		     SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Error trying to run command to read execution history. Skipping this statistic.'
+          RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+          SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Command: ' + @sqlcmd_dbcc_local
+          RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+          SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + ERROR_MESSAGE() 
+          RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+	  	    END CATCH
+        BEGIN TRY
+          ;WITH CTE_1
+          AS
+          (
+            SELECT history_number, ROW_NUMBER() OVER(ORDER BY (SELECT 0)) AS rn 
+            FROM #tmp_exec_history
+            WHERE [rowid] IS NULL
+          )
+          UPDATE CTE_1 SET CTE_1.history_number = CTE_1.rn
+    
+          UPDATE #tmp_exec_history SET [rowid]         = @rowid,
+                                       [database_name] = @database_name,
+                                       [schema_name]   = @schema_name,
+                                       [table_name]    = @table_name,
+                                       [stats_name]    = @stats_name
+          WHERE [rowid] IS NULL
+	  	    END TRY
+	  	    BEGIN CATCH
+	  		     SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Error trying to update exec_history on temporary table. Skipping this statistic.'
+          RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+          SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + ERROR_MESSAGE() 
+          RAISERROR (@err_msg, 0, 0) WITH NOWAIT
+	  	    END CATCH
+    
+        FETCH NEXT FROM c_stats
+        INTO @rowid, @database_name, @schema_name, @table_name, @stats_name, @sqlcmd_dbcc
+      END
+      CLOSE c_stats
+      DEALLOCATE c_stats
+    
+      /* Disable TF2388 */
+      DBCC TRACEOFF(2388) WITH NO_INFOMSGS;
+    END
   END TRY
   BEGIN CATCH
     SELECT @err_msg = '[' + CONVERT(NVARCHAR(200), GETDATE(), 120) + '] - ' + 'Error trying to collect execution history info using TF2388. Skipping this data.'

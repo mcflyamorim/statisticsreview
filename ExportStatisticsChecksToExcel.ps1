@@ -555,6 +555,8 @@ else{
 
 try
 {
+    $Params.TrustServerCertificate = $true
+    $Params.Encrypt = "Mandatory"
 	$Result = Invoke-SqlCmd @Params -ServerInstance $instance -Database $UserDatabase -Query "SELECT SERVERPROPERTY('EngineEdition') AS SeverEngineEdition" -ErrorAction Stop | Select-Object -ExpandProperty SeverEngineEdition
 
 	if (($Result -eq 5 <#Azure DB#>) -or ($Result -eq 8 <#SQL Managed Instance#>)) {
@@ -667,6 +669,9 @@ try
 		$ws.Cells["A1"].Value = $CheckDescription | Select-Object -ExpandProperty Info | Out-String
 
 		$ws.View.ZoomScale = 90
+        $dimension = $ws.Dimension
+        $address = $dimension.address
+        Set-Format -Worksheet $ws -Range $address -FontName 'Lucida Console' -FontSize 9        
 			
 		$a = 65..90 | %{[char]$_}
         $a += 65..90 | %{'A' + [char]$_}
@@ -676,6 +681,14 @@ try
 			$c2 = $c1 + '2' 
 			$c2 = $c1 + ($NumberOfRowsDescription + 3).ToString()
 			$ColValue = $ws.Cells["$c2"].Value
+
+            # Access the column and get its width
+            $column = $ws.Column($i)
+            $columnWidth = $column.Width
+            if ($columnWidth -gt 50) 
+            {
+                Set-ExcelColumn -Worksheet $ws -Column $i -Width 50
+            }            
 
 			if ($ColValue -like '*number_of_rows*'){
 				$c2 = $c1 + ($NumberOfRowsDescription + 4).ToString()
@@ -709,11 +722,12 @@ try
 				Add-ConditionalFormatting -WorkSheet $ws -Range $Range -RuleType NotEqual `
 											-ConditionValue 'OK' -ForeGroundColor "Red"
 			}
-            elseif ($ColValue -like '*datetime*') {
+            elseif ($ColValue -like '*date*') {
                 $c2 = $c1 + ($NumberOfRowsDescription + 4).ToString()
 				$c3 = $c1 + ($ResultRowCount + [int]($NumberOfRowsDescription + 3))
 				$Range = $c2 + ':' + $c3 | Out-String
 				$ws.Cells["$Range"].Style.Numberformat.Format = (Expand-NumberFormat -NumberFormat 'yyyy-mm-dd hh:mm:ss.000')
+                Set-ExcelColumn -Worksheet $ws -Column $i -Width 30 -HorizontalAlignment Center
             }
             elseif (($ColValue -like '*histogram*') -Or ($ColValue -like '*statement_plan*') -Or ($ColValue -like '*list_of_top_10_values_and_number_of_rows*') -Or ($ColValue -like '*statement_text*') -Or ($ColValue -like '*indexed_columns*') -Or ($ColValue -like '*index_list*') -Or ($ColValue -like '*stats_list*') -Or ($ColValue -like '*object_code_definition*') -Or ($ColValue -like '*referenced_columns*')) {
                 Set-ExcelColumn -Worksheet $ws -Column $i -Width 30

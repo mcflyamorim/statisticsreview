@@ -4,9 +4,18 @@ Description:
 Check 20 - Check if there are partitioned tables with indexes or statistics not using incremental
 When new partitions are added to a large table, statistics should be updated to include the new partitions. However, the time required to scan the entire table (FULLSCAN or SAMPLE option) might be quite long. Also, scanning the entire table isn't necessary because only the statistics on the new partitions might be needed. 
 If you assume that only data in the most recent partition is changing, then ideally you only update statistics for that partition. You can do this now with incremental statistics, and what happens is that information is then merged back into the main histogram. The histogram for the entire table will update without having to read through the entire table to update statistics, and this can help with performance of your maintenance tasks.
-The other valuable point is that the percentage of data changes required to trigger the automatic update of statistics, 20% of rows changed, will be applied at the partition level.
+
+The other valuable point is that the percentage of data changes required to trigger the automatic update of statistics, 20% of rows changed, will be applied at the partition level. To disable this behavior and set it to root node, 
+use TF 11024
+-> https://support.microsoft.com/en-us/topic/kb4041811-fix-automatic-update-of-incremental-statistics-is-delayed-in-sql-server-2014-2016-and-2017-9a0043d9-f911-798a-f971-0a7aae696119
+In Microsoft SQL Server 2014, 2016 and 2017, when incremental statistics are built on the top of partitioned tables, the sum of modification counts of all partitions is stored as the modification count of the root node. When the modification count of the root node exceeds a threshold, the auto update of statistics is triggered. However, if the modification count of any single partition does not exceed the local threshold, the statistics are not updated. Additionally, the modification count of the root node is reset to zero. This may cause delay in the auto update of incremental statistics.
+This issue is fixed by triggering the auto update of statistics when the modification count of any partition exceeds the local threshold. Therefore, when the auto update of statistics is triggered, the statistics are updated correctly.
+A new trace flag (TF) 11024 is also introduced. When this trace flag is enabled, the modification count of the root node is kept as the sum of modification counts of all partitions.
+
 The query optimizer still just uses the main histogram that represents the entire table. 
-Note: This is not a statistic/histogram per partition, QO doesn't use this to get information about each partition. It is used to provide a performance benefit when managing statistics for partitioned tables. If statistics only need to be updated for select partitions, just those can be updated. The new information is then merged into the table-level histogram, providing the optimizer more current information, without the cost of reading the entire table.
+Note 1: This is not a statistic/histogram per partition, QO doesn't use this to get information about each partition. It is used to provide a performance benefit when managing statistics for partitioned tables. If statistics only need to be updated for select partitions, just those can be updated. The new information is then merged into the table-level histogram, providing the optimizer more current information, without the cost of reading the entire table.
+
+Note 2: Script-out an index or stat that has incremental set to ON does not work. The script will not have and respect the WITH (STATISTICS_INCREMENTAL = ON) for indexes and WITH INCREMENTAL = ON for stats.
 Estimated Benefit:
 High
 Estimated Effort:
