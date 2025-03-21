@@ -54,10 +54,7 @@ Important notes and pre-requisites:
    Trace flags can have unpredictable consequences and should be deployed with care.
 
 Known issues and limitations:
- * Not tested and not support on Azure SQL DBs, Amazon RDS and Managed Instances (I’m planning to add support for this in a new release).
  * As for v1, there are no specific checks and validations for Memory-Optimized Tables. (I'm planning to add support for this in a new release).
- * Tables with Clustered ColumnStore index, may fail to report index usage information. (I still have to test this and find a workaround, 
-   should be easy to fix, but, did't dit it yet)
  * SQL Server creates and maintains temporary statistics in tempdb for read-only DBs, 
    snapshots or read-only AG replicas. 
    I'm not checking those yet, but, I'm planing to support it in a new release.
