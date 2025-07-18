@@ -2457,7 +2457,7 @@ BEGIN
   RAISERROR (@err_msg, 10, 1) WITH NOWAIT
 
   ALTER TABLE #tmpStatisticCheck_stats ADD statistic_percent_sampled DECIMAL(25, 2)
-  UPDATE #tmpStatisticCheck_stats SET statistic_percent_sampled = CONVERT(DECIMAL(25, 2), (rows_sampled / (number_of_rows_at_time_stat_was_updated * 1.00)) * 100.0)
+  UPDATE #tmpStatisticCheck_stats SET statistic_percent_sampled = CONVERT(DECIMAL(25, 2), (rows_sampled / (CASE WHEN ISNULL(number_of_rows_at_time_stat_was_updated,0) = 0 THEN 1 ELSE number_of_rows_at_time_stat_was_updated END * 1.00)) * 100.0)
 
   /* Updating plan_cache_reference_count column */
   SET @err_msg = '[' + CONVERT(VARCHAR(200), GETDATE(), 120) + '] - ' + 'Updating plan_cache_reference_count and query_hashes columns.'

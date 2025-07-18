@@ -428,7 +428,7 @@ if(-not (Get-Module -Name SqlServer))
     if(-not (Get-Module -Name SqlServer)){
         try {
             Write-Msg -Message "Trying to install SqlServer via Install-Module" -VerboseMsg
-            Install-Module SqlServer -Scope CurrentUser -Confirm:$False -Force -ErrorAction Stop | Out-Null
+            Install-Module SqlServer -Scope CurrentUser -Confirm:$False -Force -AllowClobber -ErrorAction Stop | Out-Null
             Import-Module SqlServer -Force -ErrorAction Stop
         } catch {
             Write-Msg -Message "Error trying to install SqlServer via Install-Module" -Level Error
